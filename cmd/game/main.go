@@ -29,6 +29,8 @@ func main() {
 	groundModel.Materials.Shader = gridShader
 
 	groundPosition := rl.NewVector3(gridSize/2, 0, gridSize/2)
+	dronePosition := rl.NewVector3(gridSize/2, droneCenterY, gridSize/2)
+	droneSize := rl.NewVector3(droneWidth, droneHeight, droneDepth)
 	origin := rl.NewVector3(0, 0, 0)
 
 	rl.SetTargetFPS(targetFPS)
@@ -40,6 +42,8 @@ func main() {
 
 		rl.BeginMode3D(camera)
 		rl.DrawModel(groundModel, groundPosition, 1, rl.Beige)
+		rl.DrawCubeV(dronePosition, droneSize, rl.Gray)
+		rl.DrawCubeWiresV(dronePosition, droneSize, rl.DarkGray)
 		rl.DrawLine3D(origin, rl.NewVector3(axisLength, 0, 0), rl.Red)
 		rl.DrawLine3D(origin, rl.NewVector3(0, axisLength, 0), rl.Green)
 		rl.DrawLine3D(origin, rl.NewVector3(0, 0, axisLength), rl.Blue)

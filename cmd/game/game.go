@@ -47,6 +47,8 @@ func (game *Game) spawnInitialEntities() {
 }
 
 func (game *Game) registerSystems() {
+	game.AddSystem(&DroneInputSystem{})
+	game.AddSystem(&PhysicsSystem{})
 	game.AddSystem(&RenderSystem3D{})
 	game.AddSystem(&DebugRender3DSystem{})
 }
@@ -64,9 +66,10 @@ func (game *Game) spawnGroundPlane() {
 }
 
 func (game *Game) spawnDrone() {
-	droneMapper := ecs.NewMap3[Position3, Renderable, Drone](game.world)
+	droneMapper := ecs.NewMap4[Position3, Velocity3, Renderable, Drone](game.world)
 	droneMapper.NewEntity(
 		&Position3{X: gridSize / 2, Y: droneCenterY, Z: gridSize / 2},
+		&Velocity3{},
 		&Renderable{
 			model: game.assets.Model("drone"),
 			scale: 1.0,

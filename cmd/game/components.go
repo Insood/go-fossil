@@ -7,6 +7,7 @@ import (
 )
 
 type Position3 rl.Vector3
+type Velocity3 rl.Vector3
 
 type Renderable struct {
 	model *rl.Model

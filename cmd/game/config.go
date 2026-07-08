@@ -13,6 +13,7 @@ const (
 	droneHeight            = 0.2
 	droneDepth             = 1.0
 	droneCenterY           = 2.0
+	droneTopSpeed          = 1.0
 	cameraDistance         = 15.0
 	cameraHeight           = 15.0
 	cameraOrthographicSize = 10.0

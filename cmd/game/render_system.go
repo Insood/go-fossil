@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -47,6 +48,11 @@ func (system *RenderSystem3D) renderShadowPass(game *Game) {
 }
 
 func (system *RenderSystem3D) renderScenePass(game *Game) {
+	lightCamera, ok := system.lightCamera()
+	if ok {
+		system.configureShadowReceiverShader(game, lightCamera)
+	}
+
 	rl.BeginMode3D(game.camera)
 	system.renderModels(false)
 	rl.EndMode3D()
@@ -128,6 +134,19 @@ func (system *RenderSystem3D) saveDepthBufferScreenshot(game *Game) {
 	rl.ExportImage(*image, fileName)
 }
 
+func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCamera rl.Camera3D) {
+	shadowShader := game.assets.Shader("shadow_receiver")
+	lightViewProjectionLoc := rl.GetShaderLocation(shadowShader, "lightViewProjection")
+	shadowBiasLoc := rl.GetShaderLocation(shadowShader, "shadowBias")
+	shadowDarknessLoc := rl.GetShaderLocation(shadowShader, "shadowDarkness")
+
+	groundModel := game.assets.Model("ground")
+	rl.SetMaterialTexture(groundModel.Materials, rl.MapHeight, game.shadowFramebuffer.Target.Depth)
+	rl.SetShaderValueMatrix(shadowShader, lightViewProjectionLoc, lightViewProjectionMatrix(lightCamera, game.shadowFramebuffer))
+	rl.SetShaderValue(shadowShader, shadowBiasLoc, []float32{shadowBias}, rl.ShaderUniformFloat)
+	rl.SetShaderValue(shadowShader, shadowDarknessLoc, []float32{shadowDarkness}, rl.ShaderUniformFloat)
+}
+
 func (system *RenderSystem3D) withClipPlanes(nearPlane, farPlane float64, draw func()) {
 	previousNear := rl.GetCullDistanceNear()
 	previousFar := rl.GetCullDistanceFar()
@@ -136,4 +155,19 @@ func (system *RenderSystem3D) withClipPlanes(nearPlane, farPlane float64, draw f
 	defer rl.SetClipPlanes(previousNear, previousFar)
 
 	draw()
+}
+
+func lightViewProjectionMatrix(camera rl.Camera3D, framebuffer *Framebuffer) rl.Matrix {
+	aspectRatio := float32(framebuffer.Width) / float32(framebuffer.Height)
+	view := rl.GetCameraMatrix(camera)
+
+	if camera.Projection == rl.CameraOrthographic {
+		top := camera.Fovy / 2
+		right := top * aspectRatio
+		projection := rl.MatrixOrtho(-right, right, -top, top, shadowNearPlane, shadowFarPlane)
+		return rl.MatrixMultiply(view, projection)
+	}
+
+	projection := rl.MatrixPerspective(camera.Fovy*float32(math.Pi/180), aspectRatio, shadowNearPlane, shadowFarPlane)
+	return rl.MatrixMultiply(view, projection)
 }

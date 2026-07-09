@@ -64,7 +64,7 @@ func (game *Game) spawnGroundPlane() {
 			model:          game.assets.Model("ground"),
 			scale:          1.0,
 			tint:           rl.Beige,
-			castsShadow:    true,
+			castsShadow:    false,
 			receivesShadow: true,
 		},
 	)

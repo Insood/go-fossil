@@ -21,5 +21,7 @@ const (
 	lightOrthographicSize  = 8.0
 	shadowNearPlane        = 0.1
 	shadowFarPlane         = 32.0
+	shadowBias             = 0.0025
+	shadowDarkness         = 0.55
 	shadowMapSize          = 1024
 )

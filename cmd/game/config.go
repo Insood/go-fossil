@@ -2,7 +2,7 @@ package main
 
 const (
 	screenWidth            = 1280
-	screenHeight           = 720
+	screenHeight           = 800
 	windowTitle            = "go-fossil"
 	targetFPS              = 60
 	gridSize               = 8.0

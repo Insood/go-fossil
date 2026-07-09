@@ -1,14 +1,17 @@
 package main
 
 import (
+	"embed"
 	"fmt"
-	"os"
+	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
+
+//go:embed assets/shaders/*
+var shaderAssets embed.FS
 
 type AssetManager struct {
 	models  map[string]*rl.Model
@@ -45,8 +48,8 @@ func (assets *AssetManager) Unload() {
 }
 
 func (assets *AssetManager) loadShaders() {
-	for name, paths := range shaderAssetPaths() {
-		assets.shaders[name] = rl.LoadShader(paths.vertex, paths.fragment)
+	for name, sources := range shaderAssetSources() {
+		assets.shaders[name] = rl.LoadShaderFromMemory(sources.vertex, sources.fragment)
 	}
 }
 
@@ -56,11 +59,12 @@ func (assets *AssetManager) loadModels() {
 }
 
 func (assets *AssetManager) loadGroundModel() *rl.Model {
-	gridShader := assets.gridShader()
-	assets.configureGridShader(gridShader)
-
 	ground := rl.LoadModelFromMesh(rl.GenMeshPlane(gridSize, gridSize, gridSubdivisions, gridSubdivisions))
-	ground.Materials.Shader = gridShader
+	ground.Materials.Shader = assets.shaders["shadow_receiver"]
+	ground.Materials.Shader.UpdateLocation(
+		rl.ShaderLocMapHeight,
+		rl.GetShaderLocation(ground.Materials.Shader, "shadowMap"),
+	)
 	return &ground
 }
 
@@ -69,30 +73,20 @@ func (assets *AssetManager) loadDroneModel() *rl.Model {
 	return &drone
 }
 
-func (assets *AssetManager) gridShader() rl.Shader {
-	return assets.shaders["grid"]
-}
-
-func (assets *AssetManager) configureGridShader(gridShader rl.Shader) {
-	gridCellsLoc := rl.GetShaderLocation(gridShader, "gridCells")
-	lineWidthLoc := rl.GetShaderLocation(gridShader, "lineWidth")
-	rl.SetShaderValue(gridShader, gridCellsLoc, []float32{gridSubdivisions}, rl.ShaderUniformFloat)
-	rl.SetShaderValue(gridShader, lineWidthLoc, []float32{gridLineWidth}, rl.ShaderUniformFloat)
-}
-
 type shaderFiles struct {
 	vertex   string
 	fragment string
 }
 
-func shaderAssetPaths() map[string]shaderFiles {
-	shaderDir := gameAssetPath("assets", "shaders")
-	entries, err := os.ReadDir(shaderDir)
+func shaderAssetSources() map[string]shaderFiles {
+	const shaderDir = "assets/shaders"
+
+	entries, err := shaderAssets.ReadDir(shaderDir)
 	if err != nil {
 		panic(fmt.Errorf("read shader dir %q: %w", shaderDir, err))
 	}
 
-	paths := make(map[string]shaderFiles)
+	sources := make(map[string]shaderFiles)
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -100,37 +94,30 @@ func shaderAssetPaths() map[string]shaderFiles {
 
 		ext := strings.ToLower(filepath.Ext(entry.Name()))
 		stem := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+		sourcePath := path.Join(shaderDir, entry.Name())
+		sourceBytes, err := shaderAssets.ReadFile(sourcePath)
+		if err != nil {
+			panic(fmt.Errorf("read shader source %q: %w", sourcePath, err))
+		}
+		source := string(sourceBytes)
 
 		switch ext {
 		case ".vs", ".vert":
-			current := paths[stem]
-			current.vertex = filepath.Join(shaderDir, entry.Name())
-			paths[stem] = current
+			current := sources[stem]
+			current.vertex = source
+			sources[stem] = current
 		case ".fs", ".frag":
-			current := paths[stem]
-			current.fragment = filepath.Join(shaderDir, entry.Name())
-			paths[stem] = current
+			current := sources[stem]
+			current.fragment = source
+			sources[stem] = current
 		}
 	}
 
-	for name, paths := range paths {
-		if paths.vertex == "" || paths.fragment == "" {
+	for name, sources := range sources {
+		if sources.vertex == "" || sources.fragment == "" {
 			panic(fmt.Errorf("shader %q is missing a vertex or fragment file", name))
 		}
 	}
 
-	return paths
-}
-
-func gameAssetPath(parts ...string) string {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return filepath.Join(parts...)
-	}
-
-	base := filepath.Dir(filename)
-	segments := make([]string, 0, len(parts)+1)
-	segments = append(segments, base)
-	segments = append(segments, parts...)
-	return filepath.Join(segments...)
+	return sources
 }

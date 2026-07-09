@@ -56,6 +56,15 @@ make build
 ```
 
 The build writes the Linux binary to `bin/go-fossil` and uses a repo-local Go build cache.
+Shader assets are embedded into the binary with `go:embed`, so no extra asset copy step is required for builds.
+
+To cross-compile a Windows executable from the same setup:
+
+```bash
+make build-windows
+```
+
+That writes the executable to `bin/win/go-fossil.exe`.
 
 To build and run in one command:
 

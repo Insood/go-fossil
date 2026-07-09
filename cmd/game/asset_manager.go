@@ -71,6 +71,8 @@ func (assets *AssetManager) loadShaders() {
 func (assets *AssetManager) loadTextures() {
 	const textureDir = "assets/textures"
 
+	assets.textures["white"] = loadSolidTexture(rl.White)
+
 	for _, fileName := range embeddedAssetNames(textureAssets, textureDir, ".png", ".jpg", ".jpeg") {
 		assetPath := path.Join(textureDir, fileName)
 		textureName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
@@ -102,6 +104,12 @@ func (assets *AssetManager) loadGroundModel() *rl.Model {
 
 func (assets *AssetManager) loadDroneModel() *rl.Model {
 	drone := rl.LoadModelFromMesh(rl.GenMeshCube(droneWidth, droneHeight, droneDepth))
+	drone.Materials.Shader = assets.shaders["shadow_receiver"]
+	rl.SetMaterialTexture(drone.Materials, rl.MapAlbedo, assets.Texture("white"))
+	drone.Materials.Shader.UpdateLocation(
+		rl.ShaderLocMapHeight,
+		rl.GetShaderLocation(drone.Materials.Shader, "shadowMap"),
+	)
 	return &drone
 }
 
@@ -178,6 +186,16 @@ func loadTextureAsset(assetPath string) rl.Texture2D {
 	image := rl.LoadImageFromMemory(".png", data, int32(len(data)))
 	if image == nil {
 		panic(fmt.Errorf("load texture image %q from memory", assetPath))
+	}
+	defer rl.UnloadImage(image)
+
+	return rl.LoadTextureFromImage(image)
+}
+
+func loadSolidTexture(color rl.Color) rl.Texture2D {
+	image := rl.GenImageColor(1, 1, color)
+	if image == nil {
+		panic("generate solid texture image")
 	}
 	defer rl.UnloadImage(image)
 

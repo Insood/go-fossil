@@ -96,8 +96,8 @@ func (system *RenderSystem3D) saveDepthBufferScreenshot(game *Game) {
 	farPlaneLoc := rl.GetShaderLocation(depthShader, "farPlane")
 	isOrthographicLoc := rl.GetShaderLocation(depthShader, "isOrthographic")
 
-	nearPlane := float32(shadowNearPlane)
-	farPlane := float32(shadowFarPlane)
+	nearPlane := shadowNearPlane
+	farPlane := shadowFarPlane
 	isOrthographic := float32(0)
 	if lightCamera, ok := system.lightCamera(); ok && lightCamera.Projection == rl.CameraOrthographic {
 		isOrthographic = 1
@@ -137,21 +137,36 @@ func (system *RenderSystem3D) saveDepthBufferScreenshot(game *Game) {
 func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCamera rl.Camera3D) {
 	shadowShader := game.assets.Shader("shadow_receiver")
 	lightViewProjectionLoc := rl.GetShaderLocation(shadowShader, "lightViewProjection")
+	lightDirectionLoc := rl.GetShaderLocation(shadowShader, "lightDirection")
 	shadowBiasLoc := rl.GetShaderLocation(shadowShader, "shadowBias")
+	shadowSlopeBiasLoc := rl.GetShaderLocation(shadowShader, "shadowSlopeBias")
 	shadowDarknessLoc := rl.GetShaderLocation(shadowShader, "shadowDarkness")
 
-	groundModel := game.assets.Model("ground")
-	rl.SetMaterialTexture(groundModel.Materials, rl.MapHeight, game.shadowFramebuffer.Target.Depth)
+	query := system.filter.Query()
+	defer query.Close()
+
+	for query.Next() {
+		_, renderable := query.Get()
+		if !renderable.receivesShadow {
+			continue
+		}
+
+		rl.SetMaterialTexture(renderable.model.Materials, rl.MapHeight, game.shadowFramebuffer.Target.Depth)
+	}
+
+	lightDirection := rl.Vector3Normalize(rl.Vector3Subtract(lightCamera.Target, lightCamera.Position))
 	rl.SetShaderValueMatrix(shadowShader, lightViewProjectionLoc, lightViewProjectionMatrix(lightCamera, game.shadowFramebuffer))
+	rl.SetShaderValue(shadowShader, lightDirectionLoc, []float32{lightDirection.X, lightDirection.Y, lightDirection.Z}, rl.ShaderUniformVec3)
 	rl.SetShaderValue(shadowShader, shadowBiasLoc, []float32{shadowBias}, rl.ShaderUniformFloat)
+	rl.SetShaderValue(shadowShader, shadowSlopeBiasLoc, []float32{shadowSlopeBias}, rl.ShaderUniformFloat)
 	rl.SetShaderValue(shadowShader, shadowDarknessLoc, []float32{shadowDarkness}, rl.ShaderUniformFloat)
 }
 
-func (system *RenderSystem3D) withClipPlanes(nearPlane, farPlane float64, draw func()) {
+func (system *RenderSystem3D) withClipPlanes(nearPlane, farPlane float32, draw func()) {
 	previousNear := rl.GetCullDistanceNear()
 	previousFar := rl.GetCullDistanceFar()
 
-	rl.SetClipPlanes(nearPlane, farPlane)
+	rl.SetClipPlanes(float64(nearPlane), float64(farPlane))
 	defer rl.SetClipPlanes(previousNear, previousFar)
 
 	draw()

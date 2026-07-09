@@ -1,9 +1,11 @@
 #version 330
 
 in vec4 fragColor;
+in vec2 fragTexCoord;
 in vec4 fragLightClipPosition;
 
 uniform vec4 colDiffuse;
+uniform sampler2D texture0;
 uniform sampler2D shadowMap;
 uniform float shadowBias;
 uniform float shadowDarkness;
@@ -28,9 +30,10 @@ float sampleShadow(vec4 lightClipPosition) {
 }
 
 void main() {
-    vec3 baseColor = colDiffuse.rgb * fragColor.rgb;
+    vec4 albedo = texture(texture0, fragTexCoord);
+    vec3 baseColor = colDiffuse.rgb * fragColor.rgb * albedo.rgb;
     float shadow = sampleShadow(fragLightClipPosition);
     vec3 shadedColor = baseColor * (1.0 - shadow);
 
-    finalColor = vec4(shadedColor, colDiffuse.a * fragColor.a);
+    finalColor = vec4(shadedColor, colDiffuse.a * fragColor.a * albedo.a);
 }

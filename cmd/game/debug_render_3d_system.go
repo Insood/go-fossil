@@ -2,20 +2,12 @@ package main
 
 import rl "github.com/gen2brain/raylib-go/raylib"
 
-type DebugRender3DSystem struct {
-	overlayActive bool
-}
+type DebugRender3DSystem struct{}
 
-func (system *DebugRender3DSystem) Initialize(game *Game) {
-	system.overlayActive = false
-}
+func (system *DebugRender3DSystem) Initialize(game *Game) {}
 
 func (system *DebugRender3DSystem) Update(game *Game) {
-	if rl.IsKeyPressed(rl.KeyF10) {
-		system.overlayActive = !system.overlayActive
-	}
-
-	if !system.overlayActive {
+	if !debugOverlayVisible {
 		return
 	}
 

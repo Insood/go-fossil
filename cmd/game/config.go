@@ -18,10 +18,15 @@ const (
 	cameraHeight           = 15.0
 	cameraOrthographicSize = 10.0
 	lightHeight            = 12.0
-	lightOrthographicSize  = 8.0
-	shadowNearPlane        = 0.1
-	shadowFarPlane         = 32.0
-	shadowBias             = 0.0025
 	shadowDarkness         = 0.55
 	shadowMapSize          = 1024
+)
+
+var (
+	lightOrthographicSize float32 = 6.0
+	shadowNearPlane       float32 = 0.5
+	shadowFarPlane        float32 = 20.0
+	shadowBias            float32 = 0.0003
+	shadowSlopeBias       float32 = 0.00001
+	debugOverlayVisible           = false
 )

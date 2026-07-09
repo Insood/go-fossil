@@ -54,6 +54,7 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&PhysicsSystem{})
 	game.AddSystem(&RenderSystem3D{})
 	game.AddSystem(&DebugRender3DSystem{})
+	game.AddSystem(&DebugRenderSystem2D{})
 }
 
 func (game *Game) spawnGroundPlane() {

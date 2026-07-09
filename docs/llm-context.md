@@ -71,7 +71,8 @@ When adding a feature, prefer this order:
 - The scene currently has a single `Light` entity, and its camera is used by the render pipeline.
 - `Renderable` carries `castsShadow` and `receivesShadow` flags so future render passes can filter participation without adding extra ECS components.
 - `RenderSystem3D` currently owns the main scene render flow and the temporary shadow-depth debug pass.
-- `F10` toggles the debug overlay, and `F11` exports the framebuffer depth texture for inspection.
+- `DebugRenderSystem2D` owns the top-right raygui overlay for live shadow tuning controls.
+- `F10` toggles the debug overlays, and `F11` exports the framebuffer depth texture for inspection.
 - The current shadow work is intentionally incremental; prefer tiny, verifiable slices before introducing actual shadow sampling into the lit scene.
 
 ## Things Not To Do

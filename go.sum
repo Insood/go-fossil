@@ -1,5 +1,7 @@
 github.com/ebitengine/purego v0.10.0 h1:QIw4xfpWT6GWTzaW5XEKy3HXoqrJGx1ijYHzTF0/ISU=
 github.com/ebitengine/purego v0.10.0/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
+github.com/gen2brain/raylib-go/raygui v0.0.0-20260619180708-8f9e96aca992 h1:PyGNZCkgOxXTRH8jsYqQ21LQDVgcJobzRui7IXl5z28=
+github.com/gen2brain/raylib-go/raygui v0.0.0-20260619180708-8f9e96aca992/go.mod h1:9WxQA2oI5b0q/B6dX9/WOaAdMN+IxsSeaB6JnJ2HY3k=
 github.com/gen2brain/raylib-go/raylib v0.60.0 h1:KsP7W3EMkmb9zztivdgbh1bXR78pEuqP6jeUR8GCbEA=
 github.com/gen2brain/raylib-go/raylib v0.60.0/go.mod h1:puAMU7Zcx6VJ6pcZSSs3gGFPyFvJuTwQlfm4KzeoXy8=
 github.com/jupiterrider/ffi v0.7.0 h1:RKsl6Ascal+3kyAqR5Qcbp83LceQMLc1VZbPfHWoNzs=
@@ -8,3 +10,5 @@ github.com/mlange-42/ark v0.8.3 h1:vgmV4EiwqYbW9adiO576zapzW/O0BhkuUT2IXlqJ43s=
 github.com/mlange-42/ark v0.8.3/go.mod h1:gkS9cuklENPTmSjL2z4DcJgJsIVqF1yNwFlx48Hz/Sw=
 golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 h1:vr/HnozRka3pE4EsMEg1lgkXJkTFJCVUX+S/ZT6wYzM=
 golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842/go.mod h1:XtvwrStGgqGPLc4cjQfWqZHG1YFdYs6swckp8vpsjnc=
+golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a h1:+3jdDGGB8NGb1Zktc737jlt3/A5f6UlwSzmvqUuufxw=
+golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a/go.mod h1:d2fgXJLVs4dYDHUk5lwMIfzRzSrWCfGZb0ZqeLa/Vcw=

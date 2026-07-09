@@ -6,10 +6,11 @@ import (
 )
 
 type Game struct {
-	assets  *AssetManager
-	camera  rl.Camera3D
-	world   *ecs.World
-	systems []System
+	assets            *AssetManager
+	camera            rl.Camera3D
+	shadowFramebuffer *Framebuffer
+	world             *ecs.World
+	systems           []System
 }
 
 func InitializeGame() *Game {
@@ -17,9 +18,10 @@ func InitializeGame() *Game {
 	assets.Load()
 
 	game := &Game{
-		assets: assets,
-		camera: newCamera(),
-		world:  ecs.NewWorld(),
+		assets:            assets,
+		camera:            newCamera(),
+		shadowFramebuffer: NewFramebuffer(shadowMapSize, shadowMapSize),
+		world:             ecs.NewWorld(),
 	}
 
 	game.spawnInitialEntities()
@@ -44,6 +46,7 @@ func newCamera() rl.Camera3D {
 func (game *Game) spawnInitialEntities() {
 	game.spawnGroundPlane()
 	game.spawnDrone()
+	game.spawnLight()
 }
 
 func (game *Game) registerSystems() {
@@ -58,9 +61,11 @@ func (game *Game) spawnGroundPlane() {
 	groundMapper.NewEntity(
 		&Position3{X: gridSize / 2, Y: 0, Z: gridSize / 2},
 		&Renderable{
-			model: game.assets.Model("ground"),
-			scale: 1.0,
-			tint:  rl.Beige,
+			model:          game.assets.Model("ground"),
+			scale:          1.0,
+			tint:           rl.Beige,
+			castsShadow:    true,
+			receivesShadow: true,
 		},
 	)
 }
@@ -71,11 +76,33 @@ func (game *Game) spawnDrone() {
 		&Position3{X: gridSize / 2, Y: droneCenterY, Z: gridSize / 2},
 		&Velocity3{},
 		&Renderable{
-			model: game.assets.Model("drone"),
-			scale: 1.0,
-			tint:  rl.Gray,
+			model:          game.assets.Model("drone"),
+			scale:          1.0,
+			tint:           rl.Gray,
+			castsShadow:    true,
+			receivesShadow: true,
 		},
 		&Drone{},
+	)
+}
+
+func (game *Game) spawnLight() {
+	lightMapper := ecs.NewMap1[Light](game.world)
+	lightMapper.NewEntity(
+		&Light{
+			camera: newLightCamera(),
+		},
+	)
+}
+
+func newLightCamera() rl.Camera3D {
+	center := rl.NewVector3(gridSize/2, 0, gridSize/2)
+	return rl.NewCamera3D(
+		rl.NewVector3(center.X, lightHeight, center.Z),
+		center,
+		rl.NewVector3(0, 0, -1),
+		lightOrthographicSize,
+		rl.CameraOrthographic,
 	)
 }
 
@@ -96,5 +123,6 @@ func (game *Game) UpdateSystems() {
 }
 
 func (game *Game) UnloadAssets() {
+	game.shadowFramebuffer.Unload()
 	game.assets.Unload()
 }

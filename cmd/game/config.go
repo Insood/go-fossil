@@ -17,4 +17,9 @@ const (
 	cameraDistance         = 15.0
 	cameraHeight           = 15.0
 	cameraOrthographicSize = 10.0
+	lightHeight            = 12.0
+	lightOrthographicSize  = 8.0
+	shadowNearPlane        = 0.1
+	shadowFarPlane         = 32.0
+	shadowMapSize          = 1024
 )

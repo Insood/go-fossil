@@ -47,6 +47,7 @@ Use this as the default change map:
 | New ECS data | `cmd/game/components.go` |
 | New gameplay system | `cmd/game/*_system.go` |
 | New render behavior | `cmd/game/render_system.go` or a dedicated render system |
+| Framebuffer / render-target setup | `cmd/game/framebuffer.go` |
 | New input behavior | `cmd/game/input_system.go` |
 | System order changes | `cmd/game/game.go` |
 | Gameplay constants | `cmd/game/config.go` |
@@ -63,6 +64,15 @@ When adding a feature, prefer this order:
 3. Add or update ECS components and systems.
 4. Wire the system into `cmd/game/game.go` in the correct order.
 5. Update docs if the change affects ownership, coordinate assumptions, camera behavior, terrain behavior, or system order.
+
+## Current Implementation Notes
+
+- There is a dedicated `Framebuffer` wrapper in `cmd/game/framebuffer.go` for off-screen render targets.
+- The scene currently has a single `Light` entity, and its camera is used by the render pipeline.
+- `Renderable` carries `castsShadow` and `receivesShadow` flags so future render passes can filter participation without adding extra ECS components.
+- `RenderSystem3D` currently owns the main scene render flow and the temporary shadow-depth debug pass.
+- `F10` toggles the debug overlay, and `F11` exports the framebuffer depth texture for inspection.
+- The current shadow work is intentionally incremental; prefer tiny, verifiable slices before introducing actual shadow sampling into the lit scene.
 
 ## Things Not To Do
 

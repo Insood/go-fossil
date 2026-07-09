@@ -13,6 +13,13 @@ type Renderable struct {
 	model *rl.Model
 	scale float32
 	tint  color.RGBA
+
+	castsShadow    bool
+	receivesShadow bool
+}
+
+type Light struct {
+	camera rl.Camera3D
 }
 
 type Drone struct{}

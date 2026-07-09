@@ -7,7 +7,7 @@ type DebugRender3DSystem struct {
 }
 
 func (system *DebugRender3DSystem) Initialize(game *Game) {
-	system.overlayActive = true
+	system.overlayActive = false
 }
 
 func (system *DebugRender3DSystem) Update(game *Game) {

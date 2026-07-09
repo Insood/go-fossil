@@ -5,11 +5,16 @@ import (
 
 	rg "github.com/gen2brain/raylib-go/raygui"
 	rl "github.com/gen2brain/raylib-go/raylib"
+	ecs "github.com/mlange-42/ark/ecs"
 )
 
-type DebugRenderSystem2D struct{}
+type DebugRenderSystem2D struct {
+	lightFilter *ecs.Filter1[Light]
+}
 
-func (system *DebugRenderSystem2D) Initialize(game *Game) {}
+func (system *DebugRenderSystem2D) Initialize(game *Game) {
+	system.lightFilter = ecs.NewFilter1[Light](game.world)
+}
 
 func (system *DebugRenderSystem2D) Update(game *Game) {
 	if rl.IsKeyPressed(rl.KeyF10) {
@@ -34,15 +39,28 @@ func (system *DebugRenderSystem2D) drawShadowControls() {
 		valueWidth   = 148
 	)
 
-	rows := 5
+	rows := 7
 	panelHeight := float32(panelPadding*2 + 28 + rows*rowHeight + (rows-1)*rowGap)
 	panelX := float32(screenWidth) - panelWidth - panelPadding
 	panelY := float32(panelPadding)
 
 	rg.GroupBox(rl.NewRectangle(panelX, panelY, panelWidth, panelHeight), "Shadow Tuning")
 
+	query := system.lightFilter.Query()
+	defer query.Close()
+
+	if !query.Next() {
+		return
+	}
+
+	light := query.Get()
+
 	rowY := panelY + panelPadding + 24
-	system.drawTuningRow(panelX+panelPadding, rowY, labelWidth, buttonWidth, valueWidth, "Light Size", &lightOrthographicSize)
+	system.drawTuningRow(panelX+panelPadding, rowY, labelWidth, buttonWidth, valueWidth, "Light Size", &light.orthographicSize)
+	rowY += rowHeight + rowGap
+	system.drawTuningRow(panelX+panelPadding, rowY, labelWidth, buttonWidth, valueWidth, "Light X", &light.origin.X)
+	rowY += rowHeight + rowGap
+	system.drawTuningRow(panelX+panelPadding, rowY, labelWidth, buttonWidth, valueWidth, "Light Z", &light.origin.Z)
 	rowY += rowHeight + rowGap
 	system.drawTuningRow(panelX+panelPadding, rowY, labelWidth, buttonWidth, valueWidth, "Near Plane", &shadowNearPlane)
 	rowY += rowHeight + rowGap

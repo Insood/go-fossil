@@ -19,7 +19,11 @@ type Renderable struct {
 }
 
 type Light struct {
-	camera rl.Camera3D
+	origin           rl.Vector3
+	target           rl.Vector3
+	up               rl.Vector3
+	orthographicSize float32
+	camera           rl.Camera3D
 }
 
 type Drone struct{}

@@ -1,3 +1,4 @@
 .gocache-local/*
 bin/*
 *.exe
+*.png

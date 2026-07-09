@@ -52,6 +52,7 @@ func (game *Game) spawnInitialEntities() {
 func (game *Game) registerSystems() {
 	game.AddSystem(&DroneInputSystem{})
 	game.AddSystem(&PhysicsSystem{})
+	game.AddSystem(&LightSystem{})
 	game.AddSystem(&RenderSystem3D{})
 	game.AddSystem(&DebugRender3DSystem{})
 	game.AddSystem(&DebugRenderSystem2D{})
@@ -90,21 +91,18 @@ func (game *Game) spawnDrone() {
 func (game *Game) spawnLight() {
 	lightMapper := ecs.NewMap1[Light](game.world)
 	lightMapper.NewEntity(
-		&Light{
-			camera: newLightCamera(),
-		},
+		newLight(),
 	)
 }
 
-func newLightCamera() rl.Camera3D {
+func newLight() *Light {
 	center := rl.NewVector3(gridSize/2, 0, gridSize/2)
-	return rl.NewCamera3D(
-		rl.NewVector3(center.X, lightHeight, center.Z),
-		center,
-		rl.NewVector3(0, 0, -1),
-		lightOrthographicSize,
-		rl.CameraOrthographic,
-	)
+	return &Light{
+		origin:           rl.NewVector3(center.X+defaultLightOffsetX, lightHeight, center.Z+defaultLightOffsetZ),
+		target:           center,
+		up:               rl.NewVector3(0, 0, -1),
+		orthographicSize: defaultLightSize,
+	}
 }
 
 func (game *Game) AddSystem(system System) {

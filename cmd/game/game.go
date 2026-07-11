@@ -46,6 +46,7 @@ func newCamera() rl.Camera3D {
 func (game *Game) spawnInitialEntities() {
 	game.spawnGroundPlane()
 	game.spawnDrone()
+	game.spawnSceneProps()
 	game.spawnLight()
 }
 
@@ -73,7 +74,7 @@ func (game *Game) spawnGroundPlane() {
 }
 
 func (game *Game) spawnDrone() {
-	droneMapper := ecs.NewMap4[Position3, Velocity3, Renderable, Drone](game.world)
+	droneMapper := ecs.NewMap5[Position3, Velocity3, Renderable, Drone, HoverMotion](game.world)
 	droneMapper.NewEntity(
 		&Position3{X: gridSize / 2, Y: droneCenterY, Z: gridSize / 2},
 		&Velocity3{},
@@ -85,7 +86,56 @@ func (game *Game) spawnDrone() {
 			receivesShadow: true,
 		},
 		&Drone{},
+		&HoverMotion{
+			baseY:        droneCenterY,
+			amplitude:    droneHoverAmplitude,
+			angularSpeed: droneHoverAngularSpeed,
+		},
 	)
+}
+
+func (game *Game) spawnSceneProps() {
+	props := []struct {
+		modelName string
+		position  rl.Vector3
+		tint      rl.Color
+	}{
+		{
+			modelName: "prop_sphere",
+			position:  rl.NewVector3(2.0, 1.5, 2.0),
+			tint:      rl.SkyBlue,
+		},
+		{
+			modelName: "prop_sphere",
+			position:  rl.NewVector3(6.0, 4.2, 5.5),
+			tint:      rl.Magenta,
+		},
+		{
+			modelName: "prop_cube",
+			position:  rl.NewVector3(2.5, 0.5, 6.0),
+			tint:      rl.Orange,
+		},
+		{
+			modelName: "prop_cube",
+			position:  rl.NewVector3(5.8, 0.5, 1.8),
+			tint:      rl.Lime,
+		},
+	}
+
+	renderableMapper := ecs.NewMap2[Position3, Renderable](game.world)
+	for _, prop := range props {
+		position := prop.position
+		renderableMapper.NewEntity(
+			&Position3{X: position.X, Y: position.Y, Z: position.Z},
+			&Renderable{
+				model:          game.assets.Model(prop.modelName),
+				scale:          1.0,
+				tint:           prop.tint,
+				castsShadow:    true,
+				receivesShadow: true,
+			},
+		)
+	}
 }
 
 func (game *Game) spawnLight() {

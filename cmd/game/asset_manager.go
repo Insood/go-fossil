@@ -86,6 +86,8 @@ func (assets *AssetManager) loadTextures() {
 func (assets *AssetManager) loadModels() {
 	assets.models["ground"] = assets.loadGroundModel()
 	assets.models["drone"] = assets.loadDroneModel()
+	assets.models["prop_cube"] = assets.loadUnitCubeModel()
+	assets.models["prop_sphere"] = assets.loadUnitSphereModel()
 }
 
 func (assets *AssetManager) loadGroundModel() *rl.Model {
@@ -104,13 +106,29 @@ func (assets *AssetManager) loadGroundModel() *rl.Model {
 
 func (assets *AssetManager) loadDroneModel() *rl.Model {
 	drone := rl.LoadModelFromMesh(rl.GenMeshCube(droneWidth, droneHeight, droneDepth))
-	drone.Materials.Shader = assets.shaders["shadow_receiver"]
-	rl.SetMaterialTexture(drone.Materials, rl.MapAlbedo, assets.Texture("white"))
-	drone.Materials.Shader.UpdateLocation(
-		rl.ShaderLocMapHeight,
-		rl.GetShaderLocation(drone.Materials.Shader, "shadowMap"),
-	)
+	configureShadowReceiverMaterial(&drone, assets)
 	return &drone
+}
+
+func (assets *AssetManager) loadUnitCubeModel() *rl.Model {
+	cube := rl.LoadModelFromMesh(rl.GenMeshCube(1.0, 1.0, 1.0))
+	configureShadowReceiverMaterial(&cube, assets)
+	return &cube
+}
+
+func (assets *AssetManager) loadUnitSphereModel() *rl.Model {
+	sphere := rl.LoadModelFromMesh(rl.GenMeshSphere(0.5, 24, 24))
+	configureShadowReceiverMaterial(&sphere, assets)
+	return &sphere
+}
+
+func configureShadowReceiverMaterial(model *rl.Model, assets *AssetManager) {
+	model.Materials.Shader = assets.shaders["shadow_receiver"]
+	rl.SetMaterialTexture(model.Materials, rl.MapAlbedo, assets.Texture("white"))
+	model.Materials.Shader.UpdateLocation(
+		rl.ShaderLocMapHeight,
+		rl.GetShaderLocation(model.Materials.Shader, "shadowMap"),
+	)
 }
 
 type shaderFiles struct {

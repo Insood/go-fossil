@@ -18,6 +18,12 @@ type Renderable struct {
 	receivesShadow bool
 }
 
+type HoverMotion struct {
+	baseY        float32
+	amplitude    float32
+	angularSpeed float32
+}
+
 type Light struct {
 	origin           rl.Vector3
 	target           rl.Vector3

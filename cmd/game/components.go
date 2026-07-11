@@ -19,7 +19,6 @@ type Renderable struct {
 }
 
 type HoverMotion struct {
-	baseY        float32
 	amplitude    float32
 	angularSpeed float32
 }

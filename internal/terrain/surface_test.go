@@ -127,6 +127,26 @@ func TestWorldToUVAndOverlayPixel(t *testing.T) {
 	}
 }
 
+func TestSampleHeight(t *testing.T) {
+	t.Parallel()
+
+	surface := &Surface{
+		Width:  2,
+		Height: 2,
+		HeightSamples: [][]float32{
+			{0, 1, 2},
+			{1, 2, 3},
+			{2, 3, 4},
+		},
+	}
+
+	assertClose(t, surface.SampleHeight(0, 0), 0)
+	assertClose(t, surface.SampleHeight(2, 2), 4)
+	assertClose(t, surface.SampleHeight(0.5, 0.5), 1)
+	assertClose(t, surface.SampleHeight(1.25, 0.75), 2)
+	assertClose(t, surface.SampleHeight(-1, 3), 2)
+}
+
 func solidImage(width, height int, fill color.RGBA) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	for y := 0; y < height; y++ {

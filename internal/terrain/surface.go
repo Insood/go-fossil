@@ -10,6 +10,7 @@ type Surface struct {
 	Width         int
 	Height        int
 	PixelsPerTile int
+	HeightSamples [][]float32
 	Vertices      []float32
 	Normals       []float32
 	Texcoords     []float32
@@ -32,6 +33,7 @@ func BuildSurface(level LevelData, tileImages map[string]image.Image, pixelsPerT
 		Width:         level.Width,
 		Height:        level.Height,
 		PixelsPerTile: pixelsPerTile,
+		HeightSamples: level.HeightSamples,
 		Vertices:      make([]float32, 0, vertexCount*3),
 		Normals:       make([]float32, vertexCount*3),
 		Texcoords:     make([]float32, 0, vertexCount*2),
@@ -82,6 +84,32 @@ func BuildSurface(level LevelData, tileImages map[string]image.Image, pixelsPerT
 	return surface, nil
 }
 
+func (surface *Surface) SampleHeight(worldX, worldZ float32) float32 {
+	if len(surface.HeightSamples) == 0 {
+		return 0
+	}
+
+	x := clampRange(worldX, 0, float32(surface.Width))
+	z := clampRange(worldZ, 0, float32(surface.Height))
+
+	x0 := int(math.Floor(float64(x)))
+	z0 := int(math.Floor(float64(z)))
+	x1 := minInt(x0+1, surface.Width)
+	z1 := minInt(z0+1, surface.Height)
+
+	tx := x - float32(x0)
+	tz := z - float32(z0)
+
+	h00 := surface.HeightSamples[z0][x0]
+	h10 := surface.HeightSamples[z0][x1]
+	h01 := surface.HeightSamples[z1][x0]
+	h11 := surface.HeightSamples[z1][x1]
+
+	h0 := h00 + (h10-h00)*tx
+	h1 := h01 + (h11-h01)*tx
+	return h0 + (h1-h0)*tz
+}
+
 func (surface *Surface) WorldToUV(worldX, worldZ float32) (float32, float32) {
 	return clampUnit(worldX / float32(surface.Width)), clampUnit(worldZ / float32(surface.Height))
 }
@@ -94,13 +122,24 @@ func (surface *Surface) WorldToOverlayPixel(worldX, worldZ float32) (int, int) {
 }
 
 func clampUnit(value float32) float32 {
-	if value < 0 {
-		return 0
+	return clampRange(value, 0, 1)
+}
+
+func clampRange(value, minValue, maxValue float32) float32 {
+	if value < minValue {
+		return minValue
 	}
-	if value > 1 {
-		return 1
+	if value > maxValue {
+		return maxValue
 	}
 	return value
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func drawScaledTile(dst *image.RGBA, dstX, dstY, size int, src image.Image) {

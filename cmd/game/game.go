@@ -51,13 +51,14 @@ func newCamera(level terrain.LevelData) rl.Camera3D {
 func (game *Game) spawnInitialEntities() {
 	game.spawnGroundPlane()
 	game.spawnDrone()
-	game.spawnSceneProps()
+	// game.spawnSceneProps()
 	game.spawnLight()
 }
 
 func (game *Game) registerSystems() {
 	game.AddSystem(&DroneInputSystem{})
 	game.AddSystem(&PhysicsSystem{})
+	game.AddSystem(&DroneHeightSystem{})
 	game.AddSystem(&LightSystem{})
 	game.AddSystem(&RenderSystem3D{})
 	game.AddSystem(&DebugRender3DSystem{})
@@ -80,9 +81,10 @@ func (game *Game) spawnGroundPlane() {
 }
 
 func (game *Game) spawnDrone() {
+	baseY := game.assets.Terrain(defaultLevelName).Surface.SampleHeight(game.level.SpawnX, game.level.SpawnZ) + droneCenterY
 	droneMapper := ecs.NewMap5[Position3, Velocity3, Renderable, Drone, HoverMotion](game.world)
 	droneMapper.NewEntity(
-		&Position3{X: game.level.SpawnX, Y: droneCenterY, Z: game.level.SpawnZ},
+		&Position3{X: game.level.SpawnX, Y: baseY, Z: game.level.SpawnZ},
 		&Velocity3{},
 		&Renderable{
 			model:          game.assets.Model("drone"),
@@ -93,7 +95,6 @@ func (game *Game) spawnDrone() {
 		},
 		&Drone{},
 		&HoverMotion{
-			baseY:        droneCenterY,
 			amplitude:    droneHoverAmplitude,
 			angularSpeed: droneHoverAngularSpeed,
 		},

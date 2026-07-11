@@ -8,7 +8,7 @@ build:
 
 build-windows:
 	mkdir -p bin/win .gocache-local
-	GOOS=windows GOARCH=amd64 GOCACHE=$${GOCACHE:-$(CURDIR)/.gocache-local} go build -o bin/win/go-fossil.exe ./cmd/game
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=$${CC:-x86_64-w64-mingw32-gcc} GOCACHE=$${GOCACHE:-$(CURDIR)/.gocache-local} go build -o bin/win/go-fossil.exe ./cmd/game
 
 run: build
 	./bin/go-fossil

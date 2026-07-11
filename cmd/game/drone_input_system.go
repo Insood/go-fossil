@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
 )
@@ -35,12 +37,41 @@ func (system *DroneInputSystem) Update(game *Game) {
 			input.Z += 1
 		}
 
-		if rl.Vector3Length(input) > 0 {
+		if rl.IsGamepadAvailable(droneGamepadIndex) {
+			input.X += applyGamepadDeadzone(rl.GetGamepadAxisMovement(droneGamepadIndex, droneGamepadAxisX))
+			input.Z += applyGamepadDeadzone(rl.GetGamepadAxisMovement(droneGamepadIndex, droneGamepadAxisZ))
+		}
+
+		input.X = clampFloat32(input.X, -1, 1)
+		input.Z = clampFloat32(input.Z, -1, 1)
+
+		if length := rl.Vector3Length(input); length > 1 {
 			input = rl.Vector3Scale(rl.Vector3Normalize(input), droneTopSpeed)
+		} else if length > 0 {
+			input = rl.Vector3Scale(input, droneTopSpeed)
 		}
 
 		velocity.X = input.X
 		velocity.Y = input.Y
 		velocity.Z = input.Z
 	}
+}
+
+func applyGamepadDeadzone(value float32) float32 {
+	if float32(math.Abs(float64(value))) < droneGamepadDeadzone {
+		return 0
+	}
+
+	return value
+}
+
+func clampFloat32(value, min, max float32) float32 {
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+
+	return value
 }

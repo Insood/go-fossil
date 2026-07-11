@@ -21,6 +21,11 @@ const (
 	droneHoverAmplitude    = 0.05
 	droneHoverCyclesPerSec = 0.2
 
+	droneGamepadIndex    = 0
+	droneGamepadAxisX    = 0
+	droneGamepadAxisZ    = 1
+	droneGamepadDeadzone = 0.10
+
 	cameraDistance         = 15.0
 	cameraHeight           = 15.0
 	cameraOrthographicSize = 10.0

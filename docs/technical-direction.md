@@ -27,6 +27,12 @@ Desired properties:
 - compatible with terrain modification experiments
 - simple to validate from authored content files
 
+Current terrain rendering approach:
+
+- one terrain mesh generated from the level height samples
+- one baked albedo texture composed from tile textures
+- a matching overlay texture can be added later for cut marks and painted state
+
 Open question for future implementation:
 
 - whether terrain cutting mutates the heightmap itself, a secondary mask, or a localized voxel/submesh structure

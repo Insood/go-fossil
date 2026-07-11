@@ -3,15 +3,16 @@ package main
 import "math"
 
 const (
-	screenWidth            = 1280
-	screenHeight           = 800
-	windowTitle            = "go-fossil"
-	targetFPS              = 60
-	defaultLevelName       = "level01"
-	gridSize               = 8.0
-	gridSubdivisions       = 8
-	gridLineWidth          = 0.03
-	axisLength             = 3.0
+	screenWidth  = 1280
+	screenHeight = 800
+	windowTitle  = "go-fossil"
+	targetFPS    = 60
+
+	defaultLevelName            = "level01"
+	terrainTexturePixelsPerTile = 64
+
+	debugAxisLength = 3.0
+
 	droneWidth             = 1.0
 	droneHeight            = 0.2
 	droneDepth             = 1.0
@@ -19,15 +20,17 @@ const (
 	droneTopSpeed          = 4.0
 	droneHoverAmplitude    = 0.05
 	droneHoverCyclesPerSec = 0.2
+
 	cameraDistance         = 15.0
 	cameraHeight           = 15.0
 	cameraOrthographicSize = 10.0
-	lightHeight            = 10
-	defaultLightOffsetX    = -0.75
-	defaultLightOffsetZ    = -0.75
-	defaultLightSize       = 10.0
-	shadowDarkness         = 0.55
-	shadowMapSize          = 2048
+
+	lightHeight         = 10
+	defaultLightOffsetX = -0.75
+	defaultLightOffsetZ = -0.75
+	defaultLightSize    = 10.0
+	shadowDarkness      = 0.55
+	shadowMapSize       = 2048
 )
 
 var (

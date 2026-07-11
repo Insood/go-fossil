@@ -53,6 +53,7 @@ Current terrain content format:
 - tile layout stays in JSON
 - vertex heights come from a referenced grayscale PNG sized `(width+1) x (height+1)`
 - `AssetManager` loads embedded level assets and `internal/terrain` validates/parses them
+- terrain rendering now uses one mesh generated from the height samples plus one baked world texture assembled from the level tile textures
 
 ## Build
 

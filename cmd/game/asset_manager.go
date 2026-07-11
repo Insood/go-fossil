@@ -1,13 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"embed"
 	"fmt"
+	"image"
+	_ "image/jpeg"
+	"image/png"
 	"path"
 	"path/filepath"
 	"slices"
 	"strings"
-	"unsafe"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 
@@ -28,6 +31,14 @@ type AssetManager struct {
 	shaders  map[string]rl.Shader
 	textures map[string]rl.Texture2D
 	levels   map[string]terrain.LevelData
+	terrains map[string]*TerrainAsset
+}
+
+type TerrainAsset struct {
+	Model       *rl.Model
+	Mesh        rl.Mesh
+	BaseTexture rl.Texture2D
+	Surface     *terrain.Surface
 }
 
 func NewAssetManager() *AssetManager {
@@ -36,6 +47,7 @@ func NewAssetManager() *AssetManager {
 		shaders:  make(map[string]rl.Shader),
 		textures: make(map[string]rl.Texture2D),
 		levels:   make(map[string]terrain.LevelData),
+		terrains: make(map[string]*TerrainAsset),
 	}
 }
 
@@ -66,8 +78,24 @@ func (assets *AssetManager) Level(name string) terrain.LevelData {
 	return level
 }
 
+func (assets *AssetManager) Terrain(name string) *TerrainAsset {
+	terrainAsset, ok := assets.terrains[name]
+	if !ok {
+		panic(fmt.Errorf("terrain asset %q not loaded", name))
+	}
+	return terrainAsset
+}
+
 func (assets *AssetManager) Unload() {
+	for _, terrainAsset := range assets.terrains {
+		rl.UnloadTexture(terrainAsset.BaseTexture)
+		rl.UnloadMesh(&terrainAsset.Mesh)
+	}
+
 	for _, model := range assets.models {
+		if assets.isTerrainModel(model) {
+			continue
+		}
 		rl.UnloadModel(*model)
 	}
 	for _, texture := range assets.textures {
@@ -100,7 +128,9 @@ func (assets *AssetManager) loadTextures() {
 }
 
 func (assets *AssetManager) loadModels() {
-	assets.models["ground"] = assets.loadGroundModel()
+	terrainAsset := assets.loadGroundAsset(defaultLevelName)
+	assets.terrains[defaultLevelName] = terrainAsset
+	assets.models["ground"] = terrainAsset.Model
 	assets.models["drone"] = assets.loadDroneModel()
 	assets.models["prop_cube"] = assets.loadUnitCubeModel()
 	assets.models["prop_sphere"] = assets.loadUnitSphereModel()
@@ -122,18 +152,39 @@ func (assets *AssetManager) loadLevels() {
 	}
 }
 
-func (assets *AssetManager) loadGroundModel() *rl.Model {
-	mesh := rl.GenMeshPlane(gridSize, gridSize, gridSubdivisions, gridSubdivisions)
-	tileMeshTexcoords(&mesh, float32(gridSize), float32(gridSize))
+func (assets *AssetManager) loadGroundAsset(levelName string) *TerrainAsset {
+	level := assets.Level(levelName)
+	tileImages := make(map[string]image.Image, len(level.TileDefinitions))
+	for _, tileDefinition := range level.TileDefinitions {
+		tileImage, err := loadTextureImageAsset(path.Join("assets/textures", tileDefinition))
+		if err != nil {
+			panic(fmt.Errorf("load terrain tile image %q: %w", tileDefinition, err))
+		}
+		tileImages[tileDefinition] = tileImage
+	}
 
+	surface, err := terrain.BuildSurface(level, tileImages, terrainTexturePixelsPerTile)
+	if err != nil {
+		panic(fmt.Errorf("build terrain surface for level %q: %w", levelName, err))
+	}
+
+	mesh := newTerrainMesh(surface)
+	rl.UploadMesh(&mesh, false)
 	ground := rl.LoadModelFromMesh(mesh)
 	ground.Materials.Shader = assets.shaders["shadow_receiver"]
-	rl.SetMaterialTexture(ground.Materials, rl.MapAlbedo, assets.Texture("ground_grid"))
+	baseTexture := loadTextureFromImage(surface.BaseImage)
+	rl.SetMaterialTexture(ground.Materials, rl.MapAlbedo, baseTexture)
 	ground.Materials.Shader.UpdateLocation(
 		rl.ShaderLocMapHeight,
 		rl.GetShaderLocation(ground.Materials.Shader, "shadowMap"),
 	)
-	return &ground
+
+	return &TerrainAsset{
+		Model:       &ground,
+		Mesh:        mesh,
+		BaseTexture: baseTexture,
+		Surface:     surface,
+	}
 }
 
 func (assets *AssetManager) loadDroneModel() *rl.Model {
@@ -242,6 +293,20 @@ func loadTextureAsset(assetPath string) rl.Texture2D {
 	return rl.LoadTextureFromImage(image)
 }
 
+func loadTextureImageAsset(assetPath string) (image.Image, error) {
+	data, err := textureAssets.ReadFile(assetPath)
+	if err != nil {
+		return nil, fmt.Errorf("read texture asset %q: %w", assetPath, err)
+	}
+
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("decode texture asset %q: %w", assetPath, err)
+	}
+
+	return img, nil
+}
+
 func loadSolidTexture(color rl.Color) rl.Texture2D {
 	image := rl.GenImageColor(1, 1, color)
 	if image == nil {
@@ -252,20 +317,38 @@ func loadSolidTexture(color rl.Color) rl.Texture2D {
 	return rl.LoadTextureFromImage(image)
 }
 
-func tileMeshTexcoords(mesh *rl.Mesh, uScale, vScale float32) {
-	if mesh.Texcoords == nil {
-		return
+func loadTextureFromImage(src image.Image) rl.Texture2D {
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, src); err != nil {
+		panic(fmt.Errorf("encode texture image: %w", err))
 	}
 
-	texcoords := unsafe.Slice(mesh.Texcoords, mesh.VertexCount*2)
-	for i := int32(0); i < mesh.VertexCount; i++ {
-		texcoords[i*2] *= uScale
-		texcoords[i*2+1] *= vScale
+	image := rl.LoadImageFromMemory(".png", encoded.Bytes(), int32(encoded.Len()))
+	if image == nil {
+		panic("load texture image from encoded memory")
 	}
+	defer rl.UnloadImage(image)
 
-	texcoordBytes := unsafe.Slice(
-		(*byte)(unsafe.Pointer(mesh.Texcoords)),
-		int(mesh.VertexCount*2)*int(unsafe.Sizeof(float32(0))),
-	)
-	rl.UpdateMeshBuffer(*mesh, 1, texcoordBytes, 0)
+	return rl.LoadTextureFromImage(image)
+}
+
+func newTerrainMesh(surface *terrain.Surface) rl.Mesh {
+	mesh := rl.Mesh{
+		VertexCount:   int32(len(surface.Vertices) / 3),
+		TriangleCount: int32(len(surface.Indices) / 3),
+		Vertices:      &surface.Vertices[0],
+		Texcoords:     &surface.Texcoords[0],
+		Normals:       &surface.Normals[0],
+		Indices:       &surface.Indices[0],
+	}
+	return mesh
+}
+
+func (assets *AssetManager) isTerrainModel(model *rl.Model) bool {
+	for _, terrainAsset := range assets.terrains {
+		if terrainAsset.Model == model {
+			return true
+		}
+	}
+	return false
 }

@@ -28,9 +28,9 @@ func (system *DebugRender3DSystem) Update(game *Game) {
 }
 
 func (system *DebugRender3DSystem) drawCoordinateSystemAt(origin rl.Vector3) {
-	rl.DrawLine3D(origin, rl.Vector3Add(origin, rl.NewVector3(axisLength, 0, 0)), rl.Red)
-	rl.DrawLine3D(origin, rl.Vector3Add(origin, rl.NewVector3(0, axisLength, 0)), rl.Green)
-	rl.DrawLine3D(origin, rl.Vector3Add(origin, rl.NewVector3(0, 0, axisLength)), rl.Blue)
+	rl.DrawLine3D(origin, rl.Vector3Add(origin, rl.NewVector3(debugAxisLength, 0, 0)), rl.Red)
+	rl.DrawLine3D(origin, rl.Vector3Add(origin, rl.NewVector3(0, debugAxisLength, 0)), rl.Green)
+	rl.DrawLine3D(origin, rl.Vector3Add(origin, rl.NewVector3(0, 0, debugAxisLength)), rl.Blue)
 }
 
 func (system *DebugRender3DSystem) drawDroneGroundRay() {

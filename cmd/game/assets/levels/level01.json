@@ -11,12 +11,13 @@
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 2, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0]
   ],
   "tile_definitions": [
     "ground_grid.png",
-    "cellphone.png"
+    "phone.png",
+    "fossil.png"
   ],
   "heightmap_image": "level01.png",
   "min_height": 0,

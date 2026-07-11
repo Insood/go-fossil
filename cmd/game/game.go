@@ -3,11 +3,14 @@ package main
 import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
+
+	"go-fossil/internal/terrain"
 )
 
 type Game struct {
 	assets            *AssetManager
 	camera            rl.Camera3D
+	level             terrain.LevelData
 	shadowFramebuffer *Framebuffer
 	world             *ecs.World
 	systems           []System
@@ -16,10 +19,12 @@ type Game struct {
 func InitializeGame() *Game {
 	assets := NewAssetManager()
 	assets.Load()
+	level := assets.Level(defaultLevelName)
 
 	game := &Game{
 		assets:            assets,
-		camera:            newCamera(),
+		camera:            newCamera(level),
+		level:             level,
 		shadowFramebuffer: NewFramebuffer(shadowMapSize, shadowMapSize),
 		world:             ecs.NewWorld(),
 	}
@@ -32,8 +37,8 @@ func InitializeGame() *Game {
 	return game
 }
 
-func newCamera() rl.Camera3D {
-	cameraTarget := rl.NewVector3(gridSize/2, 0, gridSize/2)
+func newCamera(level terrain.LevelData) rl.Camera3D {
+	cameraTarget := levelCenter(level)
 	return rl.NewCamera3D(
 		rl.NewVector3(cameraDistance, cameraHeight, cameraDistance),
 		cameraTarget,
@@ -60,9 +65,10 @@ func (game *Game) registerSystems() {
 }
 
 func (game *Game) spawnGroundPlane() {
+	center := levelCenter(game.level)
 	groundMapper := ecs.NewMap2[Position3, Renderable](game.world)
 	groundMapper.NewEntity(
-		&Position3{X: gridSize / 2, Y: 0, Z: gridSize / 2},
+		&Position3{X: center.X, Y: 0, Z: center.Z},
 		&Renderable{
 			model:          game.assets.Model("ground"),
 			scale:          1.0,
@@ -76,7 +82,7 @@ func (game *Game) spawnGroundPlane() {
 func (game *Game) spawnDrone() {
 	droneMapper := ecs.NewMap5[Position3, Velocity3, Renderable, Drone, HoverMotion](game.world)
 	droneMapper.NewEntity(
-		&Position3{X: gridSize / 2, Y: droneCenterY, Z: gridSize / 2},
+		&Position3{X: game.level.SpawnX, Y: droneCenterY, Z: game.level.SpawnZ},
 		&Velocity3{},
 		&Renderable{
 			model:          game.assets.Model("drone"),
@@ -141,18 +147,22 @@ func (game *Game) spawnSceneProps() {
 func (game *Game) spawnLight() {
 	lightMapper := ecs.NewMap1[Light](game.world)
 	lightMapper.NewEntity(
-		newLight(),
+		game.newLight(),
 	)
 }
 
-func newLight() *Light {
-	center := rl.NewVector3(gridSize/2, 0, gridSize/2)
+func (game *Game) newLight() *Light {
+	center := levelCenter(game.level)
 	return &Light{
 		origin:           rl.NewVector3(center.X+defaultLightOffsetX, lightHeight, center.Z+defaultLightOffsetZ),
 		target:           center,
 		up:               rl.NewVector3(0, 0, -1),
 		orthographicSize: defaultLightSize,
 	}
+}
+
+func levelCenter(level terrain.LevelData) rl.Vector3 {
+	return rl.NewVector3(float32(level.Width)/2, 0, float32(level.Height)/2)
 }
 
 func (game *Game) AddSystem(system System) {

@@ -18,13 +18,14 @@ Implications:
 
 ## Terrain Model
 
-Initial terrain is a mesh generated from a heightmap.
+Initial terrain is a mesh generated from level metadata plus a grayscale heightmap image.
 
 Desired properties:
 
 - easy to render
 - easy to inspect visually
 - compatible with terrain modification experiments
+- simple to validate from authored content files
 
 Open question for future implementation:
 
@@ -97,7 +98,7 @@ Guidelines:
 
 Likely early internal package candidates:
 
-- `internal/terrain` for terrain generation and mutation rules
+- `internal/terrain` for level loading, terrain generation, and mutation rules
 - `internal/world` for coordinate helpers or spatial rules if they outgrow `cmd/game`
 - `internal/salvage` for extraction-specific logic if it becomes distinct from rendering and ECS wiring
 

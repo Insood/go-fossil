@@ -10,6 +10,8 @@ import (
 	"unsafe"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
+
+	"go-fossil/internal/terrain"
 )
 
 //go:embed assets/shaders/*
@@ -18,10 +20,14 @@ var shaderAssets embed.FS
 //go:embed assets/textures/*
 var textureAssets embed.FS
 
+//go:embed assets/levels/*
+var levelAssets embed.FS
+
 type AssetManager struct {
 	models   map[string]*rl.Model
 	shaders  map[string]rl.Shader
 	textures map[string]rl.Texture2D
+	levels   map[string]terrain.LevelData
 }
 
 func NewAssetManager() *AssetManager {
@@ -29,12 +35,14 @@ func NewAssetManager() *AssetManager {
 		models:   make(map[string]*rl.Model),
 		shaders:  make(map[string]rl.Shader),
 		textures: make(map[string]rl.Texture2D),
+		levels:   make(map[string]terrain.LevelData),
 	}
 }
 
 func (assets *AssetManager) Load() {
 	assets.loadShaders()
 	assets.loadTextures()
+	assets.loadLevels()
 	assets.loadModels()
 }
 
@@ -48,6 +56,14 @@ func (assets *AssetManager) Shader(name string) rl.Shader {
 
 func (assets *AssetManager) Texture(name string) rl.Texture2D {
 	return assets.textures[name]
+}
+
+func (assets *AssetManager) Level(name string) terrain.LevelData {
+	level, ok := assets.levels[name]
+	if !ok {
+		panic(fmt.Errorf("level asset %q not loaded", name))
+	}
+	return level
 }
 
 func (assets *AssetManager) Unload() {
@@ -88,6 +104,22 @@ func (assets *AssetManager) loadModels() {
 	assets.models["drone"] = assets.loadDroneModel()
 	assets.models["prop_cube"] = assets.loadUnitCubeModel()
 	assets.models["prop_sphere"] = assets.loadUnitSphereModel()
+}
+
+func (assets *AssetManager) loadLevels() {
+	const levelDir = "assets/levels"
+
+	for _, fileName := range embeddedAssetNames(levelAssets, levelDir, ".json") {
+		levelPath := path.Join(levelDir, fileName)
+		levelName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+
+		level, err := terrain.LoadLevel(levelAssets, levelPath)
+		if err != nil {
+			panic(fmt.Errorf("load level asset %q: %w", levelPath, err))
+		}
+
+		assets.levels[levelName] = level
+	}
 }
 
 func (assets *AssetManager) loadGroundModel() *rl.Model {

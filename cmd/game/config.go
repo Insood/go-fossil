@@ -7,6 +7,7 @@ const (
 	screenHeight           = 800
 	windowTitle            = "go-fossil"
 	targetFPS              = 60
+	defaultLevelName       = "level01"
 	gridSize               = 8.0
 	gridSubdivisions       = 8
 	gridLineWidth          = 0.03

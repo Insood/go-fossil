@@ -26,7 +26,7 @@ This project is intended to follow the same overall structure as `go-towerdefens
 
 - The game uses an ECS architecture with `mlange-42/ark`.
 - The world is 3D and rendered with an orthographic camera to feel isometric.
-- Terrain starts as a heightmap-derived mesh.
+- Terrain starts as a mesh derived from level metadata and a grayscale heightmap image.
 - The core loop is movement, discovery, cutting, and pickup under light pressure.
 - Gameplay code should stay small and easy to follow.
 
@@ -52,7 +52,7 @@ Use this as the default change map:
 | System order changes | `cmd/game/game.go` |
 | Gameplay constants | `cmd/game/config.go` |
 | Shared small helpers | `cmd/game/utils.go` |
-| Terrain generation or mutation rules | `internal/terrain/*` |
+| Terrain loading, generation, or mutation rules | `internal/terrain/*` |
 | Salvage/extraction rules that outgrow `cmd/game` | `internal/salvage/*` |
 
 ## Implementation Pattern
@@ -67,6 +67,7 @@ When adding a feature, prefer this order:
 
 ## Current Implementation Notes
 
+- `AssetManager` owns loading embedded level assets. `internal/terrain` owns level JSON + PNG parsing and validation. Level JSON stores tile metadata, spawn coordinates, references a grayscale heightmap image, and defines the per-level min/max world height range.
 - There is a dedicated `Framebuffer` wrapper in `cmd/game/framebuffer.go` for off-screen render targets.
 - The scene currently has a single `Light` entity. `LightSystem` rebuilds its camera from component data, and the render pipeline consumes that camera.
 - `Renderable` carries `castsShadow` and `receivesShadow` flags so future render passes can filter participation without adding extra ECS components.

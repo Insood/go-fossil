@@ -13,7 +13,7 @@ Fly low through a dead-tech graveyard, scan the landscape, carve out buried reli
 - Engine language: Go
 - Rendering library: raylib
 - World presentation: 3D scene rendered with an orthographic camera
-- Terrain: mesh generated from a heightmap
+- Terrain: mesh generated from level metadata plus a grayscale heightmap image
 - Gameplay interaction: the drone can cut terrain to expose and extract embedded objects
 - Entity model: ECS using [`mlange-42/ark`](https://github.com/mlange-42/ark)
 - Development style: extremely small, testable implementation slices
@@ -22,7 +22,7 @@ Fly low through a dead-tech graveyard, scan the landscape, carve out buried reli
 
 1. Establish the application shell and game loop.
 2. Render a simple orthographic 3D scene.
-3. Load or generate a small heightmap-based terrain mesh.
+3. Load or generate a small terrain mesh from level metadata and a heightmap image.
 4. Spawn a controllable drone entity.
 5. Define the first ECS components and systems.
 6. Add one interactive salvageable object.
@@ -46,6 +46,13 @@ This project is expected to follow the same general structure as the earlier `go
 - `cmd/game/config.go` stores gameplay constants and tuning values
 - `cmd/game/game.go` owns bootstrapping, system wiring, and asset lifecycle
 - `internal/*` packages are used sparingly for focused domain logic that deserves isolation
+
+Current terrain content format:
+
+- level metadata lives in `cmd/game/assets/levels/*.json`
+- tile layout stays in JSON
+- vertex heights come from a referenced grayscale PNG sized `(width+1) x (height+1)`
+- `AssetManager` loads embedded level assets and `internal/terrain` validates/parses them
 
 ## Build
 

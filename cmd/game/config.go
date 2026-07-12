@@ -30,6 +30,12 @@ const (
 	cameraHeight           = 15.0
 	cameraOrthographicSize = 10.0
 
+	droneViewSizeWorld = 1.0
+	droneViewPixels    = 256
+	droneViewMargin    = 16
+	droneViewNearPlane = 0.01
+	droneViewFarPlane  = 16.0
+
 	lightHeight         = 10
 	defaultLightOffsetX = -0.75
 	defaultLightOffsetZ = -0.75

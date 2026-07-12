@@ -10,6 +10,7 @@ import (
 type Game struct {
 	assets            *AssetManager
 	camera            rl.Camera3D
+	droneFramebuffer  *Framebuffer
 	level             terrain.LevelData
 	shadowFramebuffer *Framebuffer
 	world             *ecs.World
@@ -24,6 +25,7 @@ func InitializeGame() *Game {
 	game := &Game{
 		assets:            assets,
 		camera:            newCamera(level),
+		droneFramebuffer:  NewFramebuffer(droneViewPixels, droneViewPixels),
 		level:             level,
 		shadowFramebuffer: NewFramebuffer(shadowMapSize, shadowMapSize),
 		world:             ecs.NewWorld(),
@@ -183,6 +185,7 @@ func (game *Game) UpdateSystems() {
 }
 
 func (game *Game) UnloadAssets() {
+	game.droneFramebuffer.Unload()
 	game.shadowFramebuffer.Unload()
 	game.assets.Unload()
 }

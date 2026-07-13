@@ -220,6 +220,7 @@ func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCam
 	lightDirectionLoc := rl.GetShaderLocation(shadowShader, "lightDirection")
 	shadowBiasLoc := rl.GetShaderLocation(shadowShader, "shadowBias")
 	shadowSlopeBiasLoc := rl.GetShaderLocation(shadowShader, "shadowSlopeBias")
+	shadowNormalBiasLoc := rl.GetShaderLocation(shadowShader, "shadowNormalBias")
 	shadowDarknessLoc := rl.GetShaderLocation(shadowShader, "shadowDarkness")
 
 	query := system.filter.Query()
@@ -239,6 +240,7 @@ func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCam
 	rl.SetShaderValue(shadowShader, lightDirectionLoc, []float32{lightDirection.X, lightDirection.Y, lightDirection.Z}, rl.ShaderUniformVec3)
 	rl.SetShaderValue(shadowShader, shadowBiasLoc, []float32{shadowBias}, rl.ShaderUniformFloat)
 	rl.SetShaderValue(shadowShader, shadowSlopeBiasLoc, []float32{shadowSlopeBias}, rl.ShaderUniformFloat)
+	rl.SetShaderValue(shadowShader, shadowNormalBiasLoc, []float32{shadowNormalBias}, rl.ShaderUniformFloat)
 	rl.SetShaderValue(shadowShader, shadowDarknessLoc, []float32{darkness}, rl.ShaderUniformFloat)
 }
 

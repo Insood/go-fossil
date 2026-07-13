@@ -2,11 +2,12 @@ package main
 
 import (
 	"bytes"
-	"embed"
 	"fmt"
 	"image"
 	_ "image/jpeg"
 	"image/png"
+	"io/fs"
+	"os"
 	"path"
 	"path/filepath"
 	"slices"
@@ -17,21 +18,14 @@ import (
 	"go-fossil/internal/terrain"
 )
 
-//go:embed assets/shaders/*
-var shaderAssets embed.FS
-
-//go:embed assets/textures/*
-var textureAssets embed.FS
-
-//go:embed assets/levels/*
-var levelAssets embed.FS
-
 type AssetManager struct {
-	models   map[string]*rl.Model
-	shaders  map[string]rl.Shader
-	textures map[string]rl.Texture2D
-	levels   map[string]terrain.LevelData
-	terrains map[string]*TerrainAsset
+	models    map[string]*rl.Model
+	shaders   map[string]rl.Shader
+	textures  map[string]rl.Texture2D
+	levels    map[string]terrain.LevelData
+	terrains  map[string]*TerrainAsset
+	assetRoot string
+	assetFS   fs.FS
 }
 
 type TerrainAsset struct {
@@ -42,12 +36,15 @@ type TerrainAsset struct {
 }
 
 func NewAssetManager() *AssetManager {
+	assetRoot := runtimeAssetRoot()
 	return &AssetManager{
-		models:   make(map[string]*rl.Model),
-		shaders:  make(map[string]rl.Shader),
-		textures: make(map[string]rl.Texture2D),
-		levels:   make(map[string]terrain.LevelData),
-		terrains: make(map[string]*TerrainAsset),
+		models:    make(map[string]*rl.Model),
+		shaders:   make(map[string]rl.Shader),
+		textures:  make(map[string]rl.Texture2D),
+		levels:    make(map[string]terrain.LevelData),
+		terrains:  make(map[string]*TerrainAsset),
+		assetRoot: assetRoot,
+		assetFS:   os.DirFS(assetRoot),
 	}
 }
 
@@ -107,21 +104,21 @@ func (assets *AssetManager) Unload() {
 }
 
 func (assets *AssetManager) loadShaders() {
-	for name, sources := range shaderAssetSources() {
+	for name, sources := range assets.shaderAssetSources() {
 		assets.shaders[name] = rl.LoadShaderFromMemory(sources.vertex, sources.fragment)
 	}
 }
 
 func (assets *AssetManager) loadTextures() {
-	const textureDir = "assets/textures"
+	const textureDir = "textures"
 
 	assets.textures["white"] = loadSolidTexture(rl.White)
 
-	for _, fileName := range embeddedAssetNames(textureAssets, textureDir, ".png", ".jpg", ".jpeg") {
+	for _, fileName := range embeddedAssetNames(assets.assetFS, textureDir, ".png", ".jpg", ".jpeg") {
 		assetPath := path.Join(textureDir, fileName)
 		textureName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 
-		texture := loadTextureAsset(assetPath)
+		texture := loadTextureAsset(assets.assetPath(assetPath))
 		rl.SetTextureWrap(texture, rl.WrapRepeat)
 		assets.textures[textureName] = texture
 	}
@@ -137,13 +134,13 @@ func (assets *AssetManager) loadModels() {
 }
 
 func (assets *AssetManager) loadLevels() {
-	const levelDir = "assets/levels"
+	const levelDir = "levels"
 
-	for _, fileName := range embeddedAssetNames(levelAssets, levelDir, ".json") {
+	for _, fileName := range embeddedAssetNames(assets.assetFS, levelDir, ".json") {
 		levelPath := path.Join(levelDir, fileName)
 		levelName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 
-		level, err := terrain.LoadLevel(levelAssets, levelPath)
+		level, err := terrain.LoadLevel(assets.assetFS, levelPath)
 		if err != nil {
 			panic(fmt.Errorf("load level asset %q: %w", levelPath, err))
 		}
@@ -156,7 +153,7 @@ func (assets *AssetManager) loadGroundAsset(levelName string) *TerrainAsset {
 	level := assets.Level(levelName)
 	tileImages := make(map[string]image.Image, len(level.TileDefinitions))
 	for _, tileDefinition := range level.TileDefinitions {
-		tileImage, err := loadTextureImageAsset(path.Join("assets/textures", tileDefinition))
+		tileImage, err := loadTextureImageAsset(assets.assetPath("textures", tileDefinition))
 		if err != nil {
 			panic(fmt.Errorf("load terrain tile image %q: %w", tileDefinition, err))
 		}
@@ -188,7 +185,7 @@ func (assets *AssetManager) loadGroundAsset(levelName string) *TerrainAsset {
 }
 
 func (assets *AssetManager) loadDroneModel() *rl.Model {
-	drone := rl.LoadModelFromMesh(rl.GenMeshCube(droneWidth, droneHeight, droneDepth))
+	drone := rl.LoadModel(assets.assetPath("models", "drone.glb"))
 	configureShadowReceiverMaterial(&drone, assets)
 	return &drone
 }
@@ -206,12 +203,18 @@ func (assets *AssetManager) loadUnitSphereModel() *rl.Model {
 }
 
 func configureShadowReceiverMaterial(model *rl.Model, assets *AssetManager) {
-	model.Materials.Shader = assets.shaders["shadow_receiver"]
-	rl.SetMaterialTexture(model.Materials, rl.MapAlbedo, assets.Texture("white"))
-	model.Materials.Shader.UpdateLocation(
-		rl.ShaderLocMapHeight,
-		rl.GetShaderLocation(model.Materials.Shader, "shadowMap"),
-	)
+	materials := model.GetMaterials()
+	for i := range materials {
+		materials[i].Shader = assets.shaders["shadow_receiver"]
+		materials[i].GetMap(rl.MapAlbedo).Color = rl.White
+		if materials[i].GetMap(rl.MapAlbedo).Texture.ID == 0 {
+			rl.SetMaterialTexture(&materials[i], rl.MapAlbedo, assets.Texture("white"))
+		}
+		materials[i].Shader.UpdateLocation(
+			rl.ShaderLocMapHeight,
+			rl.GetShaderLocation(materials[i].Shader, "shadowMap"),
+		)
+	}
 }
 
 type shaderFiles struct {
@@ -219,8 +222,22 @@ type shaderFiles struct {
 	fragment string
 }
 
-func embeddedAssetNames(fs embed.FS, dir string, extensions ...string) []string {
-	entries, err := fs.ReadDir(dir)
+func runtimeAssetRoot() string {
+	executablePath, err := os.Executable()
+	if err != nil {
+		panic(fmt.Errorf("resolve executable path: %w", err))
+	}
+
+	resolvedPath, err := filepath.EvalSymlinks(executablePath)
+	if err == nil {
+		executablePath = resolvedPath
+	}
+
+	return filepath.Join(filepath.Dir(executablePath), "assets")
+}
+
+func embeddedAssetNames(assetFS fs.FS, dir string, extensions ...string) []string {
+	entries, err := fs.ReadDir(assetFS, dir)
 	if err != nil {
 		panic(fmt.Errorf("read asset dir %q: %w", dir, err))
 	}
@@ -243,15 +260,15 @@ func embeddedAssetNames(fs embed.FS, dir string, extensions ...string) []string 
 	return names
 }
 
-func shaderAssetSources() map[string]shaderFiles {
-	const shaderDir = "assets/shaders"
+func (assets *AssetManager) shaderAssetSources() map[string]shaderFiles {
+	const shaderDir = "shaders"
 
 	sources := make(map[string]shaderFiles)
-	for _, fileName := range embeddedAssetNames(shaderAssets, shaderDir, ".vs", ".vert", ".fs", ".frag") {
+	for _, fileName := range embeddedAssetNames(assets.assetFS, shaderDir, ".vs", ".vert", ".fs", ".frag") {
 		ext := strings.ToLower(filepath.Ext(fileName))
 		stem := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 		sourcePath := path.Join(shaderDir, fileName)
-		sourceBytes, err := shaderAssets.ReadFile(sourcePath)
+		sourceBytes, err := fs.ReadFile(assets.assetFS, sourcePath)
 		if err != nil {
 			panic(fmt.Errorf("read shader source %q: %w", sourcePath, err))
 		}
@@ -279,7 +296,7 @@ func shaderAssetSources() map[string]shaderFiles {
 }
 
 func loadTextureAsset(assetPath string) rl.Texture2D {
-	data, err := textureAssets.ReadFile(assetPath)
+	data, err := os.ReadFile(assetPath)
 	if err != nil {
 		panic(fmt.Errorf("read texture asset %q: %w", assetPath, err))
 	}
@@ -294,7 +311,7 @@ func loadTextureAsset(assetPath string) rl.Texture2D {
 }
 
 func loadTextureImageAsset(assetPath string) (image.Image, error) {
-	data, err := textureAssets.ReadFile(assetPath)
+	data, err := os.ReadFile(assetPath)
 	if err != nil {
 		return nil, fmt.Errorf("read texture asset %q: %w", assetPath, err)
 	}
@@ -351,4 +368,8 @@ func (assets *AssetManager) isTerrainModel(model *rl.Model) bool {
 		}
 	}
 	return false
+}
+
+func (assets *AssetManager) assetPath(parts ...string) string {
+	return filepath.Join(append([]string{assets.assetRoot}, parts...)...)
 }

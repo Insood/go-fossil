@@ -92,7 +92,7 @@ func (game *Game) spawnDrone() {
 		&Renderable{
 			model:          game.assets.Model("drone"),
 			scale:          1.0,
-			tint:           rl.Gray,
+			tint:           rl.White,
 			castsShadow:    true,
 			receivesShadow: true,
 		},

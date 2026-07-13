@@ -67,7 +67,7 @@ When adding a feature, prefer this order:
 
 ## Current Implementation Notes
 
-- `AssetManager` owns loading embedded level assets and building the current ground terrain asset. `internal/terrain` owns level JSON + PNG parsing, validation, terrain mesh data generation, baked terrain image composition, and world-to-terrain UV helpers.
+- `AssetManager` owns loading runtime assets from disk beside the built executable and building the current ground terrain asset. `internal/terrain` owns level JSON + PNG parsing, validation, terrain mesh data generation, baked terrain image composition, and world-to-terrain UV helpers.
 - There is a dedicated `Framebuffer` wrapper in `cmd/game/framebuffer.go` for off-screen render targets.
 - The scene currently has a single `Light` entity. `LightSystem` rebuilds its camera from component data, and the render pipeline consumes that camera.
 - `Renderable` carries `castsShadow` and `receivesShadow` flags so future render passes can filter participation without adding extra ECS components.

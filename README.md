@@ -52,7 +52,7 @@ Current terrain content format:
 - level metadata lives in `cmd/game/assets/levels/*.json`
 - tile layout stays in JSON
 - vertex heights come from a referenced grayscale PNG sized `(width+1) x (height+1)`
-- `AssetManager` loads embedded level assets and `internal/terrain` validates/parses them
+- `AssetManager` loads runtime assets from disk beside the built executable, and `internal/terrain` validates/parses terrain content
 - terrain rendering now uses one mesh generated from the height samples plus one baked world texture assembled from the level tile textures
 
 ## Build
@@ -63,8 +63,7 @@ On WSL/Ubuntu, build the game with:
 make build
 ```
 
-The build writes the Linux binary to `bin/go-fossil` and uses a repo-local Go build cache.
-Shader assets are embedded into the binary with `go:embed`, so no extra asset copy step is required for builds.
+The build writes the Linux binary to `bin/linux/go-fossil`, copies `cmd/game/assets` to `bin/linux/assets`, and uses a repo-local Go build cache. The target platform output directory is rebuilt each time so removed assets do not linger in output.
 
 To cross-compile a Windows executable from the same setup:
 
@@ -72,7 +71,7 @@ To cross-compile a Windows executable from the same setup:
 make build-windows
 ```
 
-That writes the executable to `bin/win/go-fossil.exe`.
+That writes the executable to `bin/win/go-fossil.exe` and copies the asset tree to `bin/win/assets`.
 
 To build and run in one command:
 

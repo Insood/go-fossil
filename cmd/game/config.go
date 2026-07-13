@@ -51,6 +51,7 @@ var (
 	shadowFarPlane         float32 = 20.0
 	shadowBias             float32 = 0.0008
 	shadowSlopeBias        float32 = 0.002
+	shadowNormalBias       float32 = 0.02
 	debugOverlayVisible            = false
 	droneHoverAngularSpeed         = float32(2 * math.Pi * droneHoverCyclesPerSec)
 )

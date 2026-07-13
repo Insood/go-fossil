@@ -36,6 +36,8 @@ const (
 	droneViewNearPlane = 0.01
 	droneViewFarPlane  = 16.0
 
+	laserHitMarkerRadius = 0.035
+
 	lightHeight         = 10
 	defaultLightOffsetX = -0.75
 	defaultLightOffsetZ = -0.75

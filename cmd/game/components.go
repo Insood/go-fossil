@@ -31,4 +31,9 @@ type Light struct {
 	camera           rl.Camera3D
 }
 
+type Laser struct {
+	active bool
+	target rl.Vector3
+}
+
 type Drone struct{}

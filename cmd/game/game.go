@@ -62,6 +62,7 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&PhysicsSystem{})
 	game.AddSystem(&DroneHeightSystem{})
 	game.AddSystem(&LightSystem{})
+	game.AddSystem(&LaserSystem{})
 	game.AddSystem(&RenderSystem3D{})
 	game.AddSystem(&DebugRender3DSystem{})
 	game.AddSystem(&DebugRenderSystem2D{})
@@ -84,7 +85,7 @@ func (game *Game) spawnGroundPlane() {
 
 func (game *Game) spawnDrone() {
 	baseY := game.assets.Terrain(defaultLevelName).Surface.SampleHeight(game.level.SpawnX, game.level.SpawnZ) + droneCenterY
-	droneMapper := ecs.NewMap5[Position3, Velocity3, Renderable, Drone, HoverMotion](game.world)
+	droneMapper := ecs.NewMap6[Position3, Velocity3, Renderable, Drone, HoverMotion, Laser](game.world)
 	droneMapper.NewEntity(
 		&Position3{X: game.level.SpawnX, Y: baseY, Z: game.level.SpawnZ},
 		&Velocity3{},
@@ -100,6 +101,7 @@ func (game *Game) spawnDrone() {
 			amplitude:    droneHoverAmplitude,
 			angularSpeed: droneHoverAngularSpeed,
 		},
+		&Laser{},
 	)
 }
 

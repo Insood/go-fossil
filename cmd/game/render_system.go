@@ -13,12 +13,14 @@ type RenderSystem3D struct {
 	filter      *ecs.Filter2[Position3, Renderable]
 	lightFilter *ecs.Filter1[Light]
 	droneFilter *ecs.Filter2[Position3, Drone]
+	laserFilter *ecs.Filter3[Position3, Drone, Laser]
 }
 
 func (system *RenderSystem3D) Initialize(game *Game) {
 	system.filter = ecs.NewFilter2[Position3, Renderable](game.world)
 	system.lightFilter = ecs.NewFilter1[Light](game.world)
 	system.droneFilter = ecs.NewFilter2[Position3, Drone](game.world)
+	system.laserFilter = ecs.NewFilter3[Position3, Drone, Laser](game.world)
 }
 
 func (system *RenderSystem3D) Update(game *Game) {
@@ -59,6 +61,7 @@ func (system *RenderSystem3D) renderScenePass(game *Game) {
 
 	rl.BeginMode3D(game.camera)
 	system.renderModels(false)
+	system.renderLasers()
 	rl.EndMode3D()
 }
 
@@ -79,6 +82,7 @@ func (system *RenderSystem3D) renderDroneViewportPass(game *Game) {
 
 		rl.BeginMode3D(droneCamera)
 		system.renderModels(false)
+		system.renderLasers()
 		rl.EndMode3D()
 
 		rl.EndTextureMode()
@@ -86,14 +90,11 @@ func (system *RenderSystem3D) renderDroneViewportPass(game *Game) {
 }
 
 func (system *RenderSystem3D) drawDroneViewport(game *Game) {
-	panelSize := float32(droneViewPixels)
-	margin := float32(droneViewMargin)
-	panelX := float32(screenWidth) - panelSize - margin
-	panelY := float32(screenHeight) - panelSize - margin
+	viewport := droneViewportRectangle()
 
 	rl.DrawRectangle(
-		int32(panelX-2),
-		int32(panelY-2),
+		int32(viewport.X-2),
+		int32(viewport.Y-2),
 		droneViewPixels+4,
 		droneViewPixels+4,
 		rl.Fade(rl.Black, 0.8),
@@ -102,7 +103,7 @@ func (system *RenderSystem3D) drawDroneViewport(game *Game) {
 	rl.DrawTexturePro(
 		game.droneFramebuffer.Target.Texture,
 		rl.NewRectangle(0, 0, float32(game.droneFramebuffer.Width), -float32(game.droneFramebuffer.Height)),
-		rl.NewRectangle(panelX, panelY, panelSize, panelSize),
+		viewport,
 		rl.Vector2{},
 		0,
 		rl.White,
@@ -130,17 +131,7 @@ func (system *RenderSystem3D) droneCamera() (rl.Camera3D, bool) {
 	}
 
 	position, _ := query.Get()
-	dronePosition := rl.Vector3(*position)
-	cameraPosition := rl.NewVector3(dronePosition.X, dronePosition.Y-droneHeight/2, dronePosition.Z)
-	cameraTarget := rl.NewVector3(cameraPosition.X, cameraPosition.Y-1, cameraPosition.Z)
-
-	return rl.NewCamera3D(
-		cameraPosition,
-		cameraTarget,
-		rl.NewVector3(0, 0, -1),
-		droneViewSizeWorld,
-		rl.CameraOrthographic,
-	), true
+	return droneCameraForPosition(rl.Vector3(*position)), true
 }
 
 func (system *RenderSystem3D) renderModels(onlyShadowCasters bool) {
@@ -154,6 +145,22 @@ func (system *RenderSystem3D) renderModels(onlyShadowCasters bool) {
 		}
 
 		rl.DrawModel(*renderable.model, rl.Vector3(*position), renderable.scale, renderable.tint)
+	}
+}
+
+func (system *RenderSystem3D) renderLasers() {
+	query := system.laserFilter.Query()
+	defer query.Close()
+
+	for query.Next() {
+		position, _, laser := query.Get()
+		if !laser.active {
+			continue
+		}
+
+		start := droneLaserEmitterPosition(rl.Vector3(*position))
+		rl.DrawLine3D(start, laser.target, rl.Red)
+		rl.DrawSphere(laser.target, laserHitMarkerRadius, rl.Red)
 	}
 }
 

@@ -19,7 +19,7 @@ import (
 )
 
 type AssetManager struct {
-	images    map[string]image.Image
+	artifactDefinitions map[string]*ArtifactDefinition
 	models    map[string]*rl.Model
 	shaders   map[string]rl.Shader
 	textures  map[string]rl.Texture2D
@@ -39,8 +39,8 @@ type TerrainAsset struct {
 func NewAssetManager() *AssetManager {
 	assetRoot := runtimeAssetRoot()
 	return &AssetManager{
-		images:    make(map[string]image.Image),
-		models:    make(map[string]*rl.Model),
+		artifactDefinitions: make(map[string]*ArtifactDefinition),
+		images:              make(map[string]image.Image),
 		shaders:   make(map[string]rl.Shader),
 		textures:  make(map[string]rl.Texture2D),
 		levels:    make(map[string]terrain.LevelData),
@@ -53,13 +53,22 @@ func NewAssetManager() *AssetManager {
 func (assets *AssetManager) Load() {
 	assets.loadShaders()
 	assets.loadImages()
+	assets.loadArtifactDefinitions()
 	assets.loadTextures()
 	assets.loadLevels()
 	assets.loadModels()
 }
 
-func (assets *AssetManager) Image(name string) image.Image {
-	img, ok := assets.images[name]
+func (assets *AssetManager) ArtifactDefinition(name string) *ArtifactDefinition {
+	definition, ok := assets.artifactDefinitions[name]
+	if !ok {
+		panic(fmt.Errorf("artifact definition %q not loaded", name))
+	}
+	return definition
+}
+
+func (assets *AssetManager) Image(assetPath string) image.Image {
+	normalizedPath := path.Clean(assetPath)
 	if !ok {
 		panic(fmt.Errorf("image asset %q not loaded", name))
 	}
@@ -125,13 +134,26 @@ func (assets *AssetManager) loadImages() {
 
 	for _, fileName := range assetFileNames(assets.assetFS, textureDir, ".png", ".jpg", ".jpeg") {
 		assetPath := path.Join(textureDir, fileName)
-		imageName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+		assets.images[assetPath] = assets.mustLoadImage(assetPath)
+	}
+}
 
-		img, err := loadTextureImageAsset(assets.assetPath(assetPath))
+func (assets *AssetManager) loadArtifactDefinitions() {
+	const artifactDir = "artifacts"
+
+	for _, fileName := range assetFileNames(assets.assetFS, artifactDir, ".json") {
+		definitionPath := path.Join(artifactDir, fileName)
+		definition, err := loadArtifactDefinitionAsset(assets.assetFS, definitionPath)
 		if err != nil {
-			panic(fmt.Errorf("load image asset %q: %w", assetPath, err))
+			panic(fmt.Errorf("load artifact definition asset %q: %w", definitionPath, err))
 		}
-		assets.images[imageName] = img
+		if _, exists := assets.artifactDefinitions[definition.Name]; exists {
+			panic(fmt.Errorf("artifact definition %q declared more than once", definition.Name))
+		}
+
+		assets.Image(definition.ImagePath)
+		definitionCopy := definition
+		assets.artifactDefinitions[definitionCopy.Name] = &definitionCopy
 	}
 }
 

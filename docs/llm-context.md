@@ -27,6 +27,7 @@ This project is intended to follow the same overall structure as `go-towerdefens
 - The game uses an ECS architecture with `mlange-42/ark`.
 - The world is 3D and rendered with an orthographic camera to feel isometric.
 - Terrain starts as a mesh derived from level metadata and a grayscale heightmap image.
+- Each authored level currently represents a single 8x8 terrain chunk with a 9x9 heightmap sample grid.
 - The core loop is movement, discovery, cutting, and pickup under light pressure.
 - Gameplay code should stay small and easy to follow.
 

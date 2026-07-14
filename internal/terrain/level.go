@@ -12,6 +12,11 @@ import (
 	_ "image/png"
 )
 
+const (
+	ChunkWidthTiles  = 8
+	ChunkHeightTiles = 8
+)
+
 type LevelData struct {
 	Name            string
 	Width           int
@@ -118,11 +123,11 @@ func (metadata levelMetadata) validate(levelPath string) error {
 		return fmt.Errorf("%s: missing required key %q", levelPath, "spawn_z")
 	}
 
-	if *metadata.Width <= 0 {
-		return fmt.Errorf("%s: width must be positive, got %d", levelPath, *metadata.Width)
+	if *metadata.Width != ChunkWidthTiles {
+		return fmt.Errorf("%s: width must be %d for terrain chunks, got %d", levelPath, ChunkWidthTiles, *metadata.Width)
 	}
-	if *metadata.Height <= 0 {
-		return fmt.Errorf("%s: height must be positive, got %d", levelPath, *metadata.Height)
+	if *metadata.Height != ChunkHeightTiles {
+		return fmt.Errorf("%s: height must be %d for terrain chunks, got %d", levelPath, ChunkHeightTiles, *metadata.Height)
 	}
 	if *metadata.MinHeight > *metadata.MaxHeight {
 		return fmt.Errorf("%s: min_height %.3f must be less than or equal to max_height %.3f", levelPath, *metadata.MinHeight, *metadata.MaxHeight)

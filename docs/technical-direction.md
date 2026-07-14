@@ -18,7 +18,7 @@ Implications:
 
 ## Terrain Model
 
-Initial terrain is a mesh generated from level metadata plus a grayscale heightmap image.
+Initial terrain is a mesh generated from level metadata plus a grayscale heightmap image. Authored levels currently define one fixed-size terrain chunk: 8x8 tiles with a matching 9x9 heightmap.
 
 Desired properties:
 
@@ -29,7 +29,7 @@ Desired properties:
 
 Current terrain rendering approach:
 
-- one terrain mesh generated from the level height samples
+- one terrain mesh generated from the level height samples for a single 8x8 chunk
 - one baked albedo texture composed from tile textures
 - a matching overlay texture can be added later for cut marks and painted state
 

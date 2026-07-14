@@ -18,11 +18,17 @@ func TestLoadLevelSuccess(t *testing.T) {
 		"levels/level01.json": &fstest.MapFile{
 			Data: []byte(`{
   "name": "Level 1",
-  "width": 2,
-  "height": 2,
+  "width": 8,
+  "height": 8,
   "tiles": [
-    [0, 1],
-    [1, 0]
+    [0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 1, 0, 1, 0, 1, 0],
+    [0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 1, 0, 1, 0, 1, 0],
+    [0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 1, 0, 1, 0, 1, 0],
+    [0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 1, 0, 1, 0, 1, 0]
   ],
   "tile_definitions": [
     "ground_grid.png",
@@ -37,9 +43,15 @@ func TestLoadLevelSuccess(t *testing.T) {
 		},
 		"levels/level01_height.png": &fstest.MapFile{
 			Data: grayscalePNG(t, [][]uint8{
-				{0, 128, 255},
-				{64, 128, 192},
-				{255, 128, 0},
+				{0, 32, 64, 96, 128, 160, 192, 224, 255},
+				{16, 48, 80, 112, 144, 176, 208, 240, 255},
+				{32, 64, 96, 128, 160, 192, 224, 240, 255},
+				{48, 80, 112, 144, 176, 208, 224, 240, 255},
+				{64, 96, 128, 160, 192, 208, 224, 240, 255},
+				{80, 112, 144, 176, 192, 208, 224, 240, 255},
+				{96, 128, 160, 176, 192, 208, 224, 240, 255},
+				{112, 144, 160, 176, 192, 208, 224, 240, 255},
+				{128, 160, 176, 192, 208, 224, 240, 248, 255},
 			}),
 		},
 	}
@@ -49,7 +61,7 @@ func TestLoadLevelSuccess(t *testing.T) {
 		t.Fatalf("LoadLevel() error = %v", err)
 	}
 
-	if level.Width != 2 || level.Height != 2 {
+	if level.Width != ChunkWidthTiles || level.Height != ChunkHeightTiles {
 		t.Fatalf("unexpected level size: got %dx%d", level.Width, level.Height)
 	}
 
@@ -57,12 +69,12 @@ func TestLoadLevelSuccess(t *testing.T) {
 		t.Fatalf("height at [0][0] = %v, want 1.5", got)
 	}
 
-	if got := level.HeightSamples[0][2]; got != 3.5 {
-		t.Fatalf("height at [0][2] = %v, want 3.5", got)
+	if got := level.HeightSamples[0][8]; got != 3.5 {
+		t.Fatalf("height at [0][8] = %v, want 3.5", got)
 	}
 
-	if got := level.HeightSamples[0][1]; !roughlyEqual(got, 1.5+(float32(128)/255.0)*2.0) {
-		t.Fatalf("height at [0][1] = %v, want midpoint mapping", got)
+	if got := level.HeightSamples[0][4]; !roughlyEqual(got, 1.5+(float32(128)/255.0)*2.0) {
+		t.Fatalf("height at [0][4] = %v, want midpoint mapping", got)
 	}
 	if level.SpawnX != 1 || level.SpawnZ != 2 {
 		t.Fatalf("unexpected spawn position: got (%v, %v)", level.SpawnX, level.SpawnZ)
@@ -83,9 +95,9 @@ func TestLoadLevelValidationErrors(t *testing.T) {
 				"levels/level.json": &fstest.MapFile{
 					Data: []byte(`{
   "name": "Level",
-  "width": 1,
-  "height": 1,
-  "tiles": [[0]],
+  "width": 8,
+  "height": 8,
+  "tiles": [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]],
   "tile_definitions": ["ground_grid.png"],
   "min_height": 0,
   "max_height": 1,
@@ -96,14 +108,34 @@ func TestLoadLevelValidationErrors(t *testing.T) {
 			wantErr: `missing required key "heightmap_image"`,
 		},
 		{
+			name: "width must match chunk width",
+			levelFS: fstest.MapFS{
+				"levels/level.json": &fstest.MapFile{
+					Data: []byte(validMetadataJSON(7, 8, tiledRowsJSON(8, 7), `"level_height.png"`, 0, 1, 0, 0)),
+				},
+				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, zeroRows(9, 8))},
+			},
+			wantErr: `width must be 8 for terrain chunks, got 7`,
+		},
+		{
+			name: "height must match chunk height",
+			levelFS: fstest.MapFS{
+				"levels/level.json": &fstest.MapFile{
+					Data: []byte(validMetadataJSON(8, 7, tiledRowsJSON(7, 8), `"level_height.png"`, 0, 1, 0, 0)),
+				},
+				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, zeroRows(8, 9))},
+			},
+			wantErr: `height must be 8 for terrain chunks, got 7`,
+		},
+		{
 			name: "missing spawn x key",
 			levelFS: fstest.MapFS{
 				"levels/level.json": &fstest.MapFile{
 					Data: []byte(`{
   "name": "Level",
-  "width": 1,
-  "height": 1,
-  "tiles": [[0]],
+  "width": 8,
+  "height": 8,
+  "tiles": [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]],
   "tile_definitions": ["ground_grid.png"],
   "heightmap_image": "level.png",
   "min_height": 0,
@@ -111,7 +143,7 @@ func TestLoadLevelValidationErrors(t *testing.T) {
   "spawn_z": 0
 }`),
 				},
-				"levels/level.png": &fstest.MapFile{Data: grayscalePNG(t, [][]uint8{{0, 0}, {0, 0}})},
+				"levels/level.png": &fstest.MapFile{Data: grayscalePNG(t, zeroRows(ChunkHeightTiles+1, ChunkWidthTiles+1))},
 			},
 			wantErr: `missing required key "spawn_x"`,
 		},
@@ -119,39 +151,39 @@ func TestLoadLevelValidationErrors(t *testing.T) {
 			name: "spawn z out of bounds",
 			levelFS: fstest.MapFS{
 				"levels/level.json": &fstest.MapFile{
-					Data: []byte(validMetadataJSON(1, 1, `[[0]]`, `"level_height.png"`, 0, 1, 0, 2)),
+					Data: []byte(validMetadataJSON(ChunkWidthTiles, ChunkHeightTiles, tiledRowsJSON(ChunkHeightTiles, ChunkWidthTiles), `"level_height.png"`, 0, 1, 0, ChunkHeightTiles+1)),
 				},
-				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, [][]uint8{{0, 0}, {0, 0}})},
+				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, zeroRows(ChunkHeightTiles+1, ChunkWidthTiles+1))},
 			},
-			wantErr: `spawn_z 2.000 must be within 0..1`,
+			wantErr: `spawn_z 9.000 must be within 0..8`,
 		},
 		{
 			name: "tiles wrong row count",
 			levelFS: fstest.MapFS{
 				"levels/level.json": &fstest.MapFile{
-					Data: []byte(validMetadataJSON(2, 2, `[[0,0]]`, `"level_height.png"`, 0, 1, 0, 0)),
+					Data: []byte(validMetadataJSON(ChunkWidthTiles, ChunkHeightTiles, tiledRowsJSON(ChunkHeightTiles-1, ChunkWidthTiles), `"level_height.png"`, 0, 1, 0, 0)),
 				},
-				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, [][]uint8{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}})},
+				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, zeroRows(ChunkHeightTiles+1, ChunkWidthTiles+1))},
 			},
-			wantErr: "tiles has 1 rows, want 2",
+			wantErr: "tiles has 7 rows, want 8",
 		},
 		{
 			name: "tiles wrong column count",
 			levelFS: fstest.MapFS{
 				"levels/level.json": &fstest.MapFile{
-					Data: []byte(validMetadataJSON(2, 2, `[[0,0],[0]]`, `"level_height.png"`, 0, 1, 0, 0)),
+					Data: []byte(validMetadataJSON(ChunkWidthTiles, ChunkHeightTiles, `[[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]`, `"level_height.png"`, 0, 1, 0, 0)),
 				},
-				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, [][]uint8{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}})},
+				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, zeroRows(ChunkHeightTiles+1, ChunkWidthTiles+1))},
 			},
-			wantErr: "tiles row 1 has 1 columns, want 2",
+			wantErr: "tiles row 1 has 7 columns, want 8",
 		},
 		{
 			name: "tile index out of range",
 			levelFS: fstest.MapFS{
 				"levels/level.json": &fstest.MapFile{
-					Data: []byte(validMetadataJSON(1, 1, `[[2]]`, `"level_height.png"`, 0, 1, 0, 0)),
+					Data: []byte(validMetadataJSON(ChunkWidthTiles, ChunkHeightTiles, `[[2,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]`, `"level_height.png"`, 0, 1, 0, 0)),
 				},
-				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, [][]uint8{{0, 0}, {0, 0}})},
+				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, zeroRows(ChunkHeightTiles+1, ChunkWidthTiles+1))},
 			},
 			wantErr: "tiles[0][0] references tile definition 2",
 		},
@@ -159,9 +191,9 @@ func TestLoadLevelValidationErrors(t *testing.T) {
 			name: "min height exceeds max height",
 			levelFS: fstest.MapFS{
 				"levels/level.json": &fstest.MapFile{
-					Data: []byte(validMetadataJSON(1, 1, `[[0]]`, `"level_height.png"`, 2, 1, 0, 0)),
+					Data: []byte(validMetadataJSON(ChunkWidthTiles, ChunkHeightTiles, tiledRowsJSON(ChunkHeightTiles, ChunkWidthTiles), `"level_height.png"`, 2, 1, 0, 0)),
 				},
-				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, [][]uint8{{0, 0}, {0, 0}})},
+				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, zeroRows(ChunkHeightTiles+1, ChunkWidthTiles+1))},
 			},
 			wantErr: "min_height 2.000 must be less than or equal to max_height 1.000",
 		},
@@ -169,7 +201,7 @@ func TestLoadLevelValidationErrors(t *testing.T) {
 			name: "missing heightmap image asset",
 			levelFS: fstest.MapFS{
 				"levels/level.json": &fstest.MapFile{
-					Data: []byte(validMetadataJSON(1, 1, `[[0]]`, `"missing.png"`, 0, 1, 0, 0)),
+					Data: []byte(validMetadataJSON(ChunkWidthTiles, ChunkHeightTiles, tiledRowsJSON(ChunkHeightTiles, ChunkWidthTiles), `"missing.png"`, 0, 1, 0, 0)),
 				},
 			},
 			wantErr: `read heightmap image "levels/missing.png"`,
@@ -178,7 +210,7 @@ func TestLoadLevelValidationErrors(t *testing.T) {
 			name: "malformed heightmap image asset",
 			levelFS: fstest.MapFS{
 				"levels/level.json": &fstest.MapFile{
-					Data: []byte(validMetadataJSON(1, 1, `[[0]]`, `"broken.png"`, 0, 1, 0, 0)),
+					Data: []byte(validMetadataJSON(ChunkWidthTiles, ChunkHeightTiles, tiledRowsJSON(ChunkHeightTiles, ChunkWidthTiles), `"broken.png"`, 0, 1, 0, 0)),
 				},
 				"levels/broken.png": &fstest.MapFile{Data: []byte("not a png")},
 			},
@@ -188,11 +220,11 @@ func TestLoadLevelValidationErrors(t *testing.T) {
 			name: "heightmap dimensions mismatch",
 			levelFS: fstest.MapFS{
 				"levels/level.json": &fstest.MapFile{
-					Data: []byte(validMetadataJSON(2, 2, `[[0,0],[0,0]]`, `"level_height.png"`, 0, 1, 0, 0)),
+					Data: []byte(validMetadataJSON(ChunkWidthTiles, ChunkHeightTiles, tiledRowsJSON(ChunkHeightTiles, ChunkWidthTiles), `"level_height.png"`, 0, 1, 0, 0)),
 				},
 				"levels/level_height.png": &fstest.MapFile{Data: grayscalePNG(t, [][]uint8{{0, 0}, {0, 0}})},
 			},
-			wantErr: `heightmap image "levels/level_height.png" is 2x2, want 3x3`,
+			wantErr: `heightmap image "levels/level_height.png" is 2x2, want 9x9`,
 		},
 	}
 
@@ -245,6 +277,26 @@ func validMetadataJSON(width, height int, tilesJSON, heightmapImage string, minH
   "spawn_x": %g,
   "spawn_z": %g
 }`, width, height, tilesJSON, heightmapImage, minHeight, maxHeight, spawnX, spawnZ)
+}
+
+func tiledRowsJSON(rowCount, columnCount int) string {
+	rows := make([]string, rowCount)
+	for row := range rowCount {
+		columns := make([]string, columnCount)
+		for column := range columnCount {
+			columns[column] = "0"
+		}
+		rows[row] = "[" + strings.Join(columns, ",") + "]"
+	}
+	return "[" + strings.Join(rows, ",") + "]"
+}
+
+func zeroRows(rowCount, columnCount int) [][]uint8 {
+	rows := make([][]uint8, rowCount)
+	for row := range rowCount {
+		rows[row] = make([]uint8, columnCount)
+	}
+	return rows
 }
 
 func roughlyEqual(a, b float32) bool {

@@ -37,9 +37,9 @@ float sampleShadow(vec4 lightClipPosition, vec3 worldNormal) {
 
 void main() {
     vec4 albedo = texture(texture0, fragTexCoord);
-    vec3 baseColor = colDiffuse.rgb * fragColor.rgb * albedo.rgb;
+    vec3 baseColor = colDiffuse.rgb * albedo.rgb;
     float shadow = sampleShadow(fragLightClipPosition, fragWorldNormal);
     vec3 shadedColor = baseColor * (1.0 - shadow);
 
-    finalColor = vec4(shadedColor, colDiffuse.a * fragColor.a * albedo.a);
+    finalColor = vec4(shadedColor, colDiffuse.a * albedo.a);
 }

@@ -186,7 +186,6 @@ func (assets *AssetManager) loadGroundAsset(levelName string) *TerrainAsset {
 
 func (assets *AssetManager) loadDroneModel() *rl.Model {
 	drone := rl.LoadModel(assets.assetPath("models", "drone.glb"))
-	configureShadowReceiverMaterial(&drone, assets)
 	return &drone
 }
 

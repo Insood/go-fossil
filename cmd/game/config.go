@@ -39,8 +39,8 @@ const (
 	laserHitMarkerRadius = 0.035
 
 	lightHeight         = 10
-	defaultLightOffsetX = -0.75
-	defaultLightOffsetZ = -0.75
+	defaultLightOffsetX = 0
+	defaultLightOffsetZ = 0
 	defaultLightSize    = 10.0
 	shadowDarkness      = 0.55
 	shadowMapSize       = 2048

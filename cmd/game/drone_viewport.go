@@ -47,8 +47,8 @@ func droneViewportWorldTarget(mouse rl.Vector2, dronePosition rl.Vector3, surfac
 
 func droneLaserEmitterPosition(dronePosition rl.Vector3) rl.Vector3 {
 	return rl.NewVector3(
-		dronePosition.X+droneWidth/2,
-		dronePosition.Y-droneHeight/2,
+		dronePosition.X-droneWidth/2,
+		dronePosition.Y+droneHeight/2,
 		dronePosition.Z-droneDepth/2,
 	)
 }

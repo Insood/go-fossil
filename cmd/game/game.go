@@ -94,7 +94,7 @@ func (game *Game) spawnDrone() {
 			scale:          1.0,
 			tint:           rl.White,
 			castsShadow:    true,
-			receivesShadow: true,
+			receivesShadow: false,
 		},
 		&Drone{},
 		&HoverMotion{

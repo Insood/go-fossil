@@ -20,33 +20,26 @@ import (
 
 type AssetManager struct {
 	artifactDefinitions map[string]*ArtifactDefinition
+	chunks              map[string]*TerrainChunk
 	images              map[string]image.Image
 	levels              map[string]terrain.LevelData
 	models              map[string]*rl.Model
 	shaders             map[string]rl.Shader
 	textures            map[string]rl.Texture2D
-	terrains            map[string]*TerrainAsset
 	assetRoot           string
 	assetFS             fs.FS
-}
-
-type TerrainAsset struct {
-	Model       *rl.Model
-	Mesh        rl.Mesh
-	BaseTexture rl.Texture2D
-	Surface     *terrain.Surface
 }
 
 func NewAssetManager() *AssetManager {
 	assetRoot := runtimeAssetRoot()
 	return &AssetManager{
 		artifactDefinitions: make(map[string]*ArtifactDefinition),
+		chunks:              make(map[string]*TerrainChunk),
 		images:              make(map[string]image.Image),
 		levels:              make(map[string]terrain.LevelData),
 		models:              make(map[string]*rl.Model),
 		shaders:             make(map[string]rl.Shader),
 		textures:            make(map[string]rl.Texture2D),
-		terrains:            make(map[string]*TerrainAsset),
 		assetRoot:           assetRoot,
 		assetFS:             os.DirFS(assetRoot),
 	}
@@ -98,18 +91,18 @@ func (assets *AssetManager) Level(name string) terrain.LevelData {
 	return level
 }
 
-func (assets *AssetManager) Terrain(name string) *TerrainAsset {
-	terrainAsset, ok := assets.terrains[name]
+func (assets *AssetManager) TerrainChunk(name string) *TerrainChunk {
+	chunk, ok := assets.chunks[name]
 	if !ok {
-		panic(fmt.Errorf("terrain asset %q not loaded", name))
+		panic(fmt.Errorf("terrain chunk %q not loaded", name))
 	}
-	return terrainAsset
+	return chunk
 }
 
 func (assets *AssetManager) Unload() {
-	for _, terrainAsset := range assets.terrains {
-		rl.UnloadTexture(terrainAsset.BaseTexture)
-		rl.UnloadMesh(&terrainAsset.Mesh)
+	for _, chunk := range assets.chunks {
+		rl.UnloadTexture(chunk.BaseTexture)
+		rl.UnloadMesh(&chunk.Mesh)
 	}
 
 	for _, model := range assets.models {
@@ -173,8 +166,8 @@ func (assets *AssetManager) loadTextures() {
 }
 
 func (assets *AssetManager) loadModels() {
-	terrainAsset := assets.loadGroundAsset(defaultLevelName)
-	assets.terrains[defaultLevelName] = terrainAsset
+	chunk := assets.loadTerrainChunk(defaultLevelName)
+	assets.chunks[defaultLevelName] = chunk
 	assets.models["drone"] = assets.loadDroneModel()
 	assets.models["prop_cube"] = assets.loadUnitCubeModel()
 	assets.models["prop_sphere"] = assets.loadUnitSphereModel()
@@ -196,7 +189,7 @@ func (assets *AssetManager) loadLevels() {
 	}
 }
 
-func (assets *AssetManager) loadGroundAsset(levelName string) *TerrainAsset {
+func (assets *AssetManager) loadTerrainChunk(levelName string) *TerrainChunk {
 	level := assets.Level(levelName)
 	tileImages := make(map[string]image.Image, len(level.TileDefinitions))
 	for _, tileDefinition := range level.TileDefinitions {
@@ -204,27 +197,35 @@ func (assets *AssetManager) loadGroundAsset(levelName string) *TerrainAsset {
 		tileImages[tileDefinition] = tileImage
 	}
 
-	surface, err := terrain.BuildSurface(level, tileImages, terrainTexturePixelsPerTile)
+	surfaceMesh, err := terrain.BuildSurfaceMesh(level)
 	if err != nil {
-		panic(fmt.Errorf("build terrain surface for level %q: %w", levelName, err))
+		panic(fmt.Errorf("build terrain mesh for level %q: %w", levelName, err))
 	}
 
-	mesh := newTerrainMesh(surface)
+	surfaceTexture, err := terrain.BuildSurfaceTexture(level, tileImages, terrainTexturePixelsPerTile)
+	if err != nil {
+		panic(fmt.Errorf("build terrain texture for level %q: %w", levelName, err))
+	}
+
+	mesh := newTerrainMesh(surfaceMesh)
 	rl.UploadMesh(&mesh, false)
 	ground := rl.LoadModelFromMesh(mesh)
 	ground.Materials.Shader = assets.shaders["shadow_receiver"]
-	baseTexture := loadTextureFromImage(surface.BaseImage)
+	baseTexture := loadTextureFromImage(surfaceTexture.BaseImage)
 	rl.SetMaterialTexture(ground.Materials, rl.MapAlbedo, baseTexture)
 	ground.Materials.Shader.UpdateLocation(
 		rl.ShaderLocMapHeight,
 		rl.GetShaderLocation(ground.Materials.Shader, "shadowMap"),
 	)
 
-	return &TerrainAsset{
-		Model:       &ground,
-		Mesh:        mesh,
-		BaseTexture: baseTexture,
-		Surface:     surface,
+	return &TerrainChunk{
+		Level:          level,
+		SurfaceMesh:    surfaceMesh,
+		SurfaceTexture: surfaceTexture,
+		Model:          &ground,
+		Mesh:           mesh,
+		BaseTexture:    baseTexture,
+		OverlayImage:   image.NewRGBA(surfaceTexture.BaseImage.Bounds()),
 	}
 }
 
@@ -387,7 +388,7 @@ func loadTextureFromImage(src image.Image) rl.Texture2D {
 	return rl.LoadTextureFromImage(image)
 }
 
-func newTerrainMesh(surface *terrain.Surface) rl.Mesh {
+func newTerrainMesh(surface *terrain.SurfaceMesh) rl.Mesh {
 	mesh := rl.Mesh{
 		VertexCount:   int32(len(surface.Vertices) / 3),
 		TriangleCount: int32(len(surface.Indices) / 3),

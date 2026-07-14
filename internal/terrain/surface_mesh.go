@@ -2,44 +2,33 @@ package terrain
 
 import (
 	"fmt"
-	"image"
 	"math"
 )
 
-type Surface struct {
+type SurfaceMesh struct {
 	Width         int
 	Height        int
-	PixelsPerTile int
 	HeightSamples [][]float32
 	Vertices      []float32
 	Normals       []float32
 	Texcoords     []float32
 	Indices       []uint16
-	BaseImage     *image.RGBA
-	OverlayImage  *image.RGBA
 }
 
-func BuildSurface(level LevelData, tileImages map[string]image.Image, pixelsPerTile int) (*Surface, error) {
-	if pixelsPerTile <= 0 {
-		return nil, fmt.Errorf("pixelsPerTile must be positive, got %d", pixelsPerTile)
-	}
-
+func BuildSurfaceMesh(level LevelData) (*SurfaceMesh, error) {
 	vertexCount := (level.Width + 1) * (level.Height + 1)
 	if vertexCount > math.MaxUint16+1 {
 		return nil, fmt.Errorf("level %q has %d vertices, exceeds uint16 mesh index limit", level.Name, vertexCount)
 	}
 
-	surface := &Surface{
+	surface := &SurfaceMesh{
 		Width:         level.Width,
 		Height:        level.Height,
-		PixelsPerTile: pixelsPerTile,
 		HeightSamples: level.HeightSamples,
 		Vertices:      make([]float32, 0, vertexCount*3),
 		Normals:       make([]float32, vertexCount*3),
 		Texcoords:     make([]float32, 0, vertexCount*2),
 		Indices:       make([]uint16, 0, level.Width*level.Height*6),
-		BaseImage:     image.NewRGBA(image.Rect(0, 0, level.Width*pixelsPerTile, level.Height*pixelsPerTile)),
-		OverlayImage:  image.NewRGBA(image.Rect(0, 0, level.Width*pixelsPerTile, level.Height*pixelsPerTile)),
 	}
 
 	halfWidth := float32(level.Width) / 2
@@ -69,14 +58,6 @@ func BuildSurface(level LevelData, tileImages map[string]image.Image, pixelsPerT
 				topLeft, bottomLeft, topRight,
 				topRight, bottomLeft, bottomRight,
 			)
-
-			tileDefinition := level.TileDefinitions[level.Tiles[z][x]]
-			tileImage, ok := tileImages[tileDefinition]
-			if !ok {
-				return nil, fmt.Errorf("level %q: missing tile image %q", level.Name, tileDefinition)
-			}
-
-			drawScaledTile(surface.BaseImage, x*pixelsPerTile, z*pixelsPerTile, pixelsPerTile, tileImage)
 		}
 	}
 
@@ -84,7 +65,7 @@ func BuildSurface(level LevelData, tileImages map[string]image.Image, pixelsPerT
 	return surface, nil
 }
 
-func (surface *Surface) SampleHeight(worldX, worldZ float32) float32 {
+func (surface *SurfaceMesh) SampleHeight(worldX, worldZ float32) float32 {
 	if len(surface.HeightSamples) == 0 {
 		return 0
 	}
@@ -110,53 +91,7 @@ func (surface *Surface) SampleHeight(worldX, worldZ float32) float32 {
 	return h0 + (h1-h0)*tz
 }
 
-func (surface *Surface) WorldToUV(worldX, worldZ float32) (float32, float32) {
-	return clampUnit(worldX / float32(surface.Width)), clampUnit(worldZ / float32(surface.Height))
-}
-
-func (surface *Surface) WorldToOverlayPixel(worldX, worldZ float32) (int, int) {
-	u, v := surface.WorldToUV(worldX, worldZ)
-	maxX := surface.OverlayImage.Bounds().Dx() - 1
-	maxY := surface.OverlayImage.Bounds().Dy() - 1
-	return int(math.Round(float64(u * float32(maxX)))), int(math.Round(float64(v * float32(maxY))))
-}
-
-func clampUnit(value float32) float32 {
-	return clampRange(value, 0, 1)
-}
-
-func clampRange(value, minValue, maxValue float32) float32 {
-	if value < minValue {
-		return minValue
-	}
-	if value > maxValue {
-		return maxValue
-	}
-	return value
-}
-
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func drawScaledTile(dst *image.RGBA, dstX, dstY, size int, src image.Image) {
-	srcBounds := src.Bounds()
-	srcWidth := srcBounds.Dx()
-	srcHeight := srcBounds.Dy()
-
-	for y := 0; y < size; y++ {
-		srcY := srcBounds.Min.Y + (y*srcHeight)/size
-		for x := 0; x < size; x++ {
-			srcX := srcBounds.Min.X + (x*srcWidth)/size
-			dst.Set(dstX+x, dstY+y, src.At(srcX, srcY))
-		}
-	}
-}
-
-func accumulateNormals(surface *Surface) {
+func accumulateNormals(surface *SurfaceMesh) {
 	for i := 0; i < len(surface.Indices); i += 3 {
 		a := int(surface.Indices[i]) * 3
 		b := int(surface.Indices[i+1]) * 3
@@ -197,4 +132,21 @@ func accumulateNormals(surface *Surface) {
 		surface.Normals[i+1] /= length
 		surface.Normals[i+2] /= length
 	}
+}
+
+func clampRange(value, minValue, maxValue float32) float32 {
+	if value < minValue {
+		return minValue
+	}
+	if value > maxValue {
+		return maxValue
+	}
+	return value
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

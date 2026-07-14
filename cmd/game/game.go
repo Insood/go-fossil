@@ -3,16 +3,14 @@ package main
 import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
-
-	"go-fossil/internal/terrain"
 )
 
 type Game struct {
 	assets            *AssetManager
 	camera            rl.Camera3D
 	droneFramebuffer  *Framebuffer
-	level             terrain.LevelData
 	shadowFramebuffer *Framebuffer
+	terrainChunk      *TerrainChunk
 	world             *ecs.World
 	systems           []System
 }
@@ -20,14 +18,14 @@ type Game struct {
 func InitializeGame() *Game {
 	assets := NewAssetManager()
 	assets.Load()
-	level := assets.Level(defaultLevelName)
+	terrainChunk := assets.TerrainChunk(defaultLevelName)
 
 	game := &Game{
 		assets:            assets,
-		camera:            newCamera(level),
+		camera:            newCamera(terrainChunk),
 		droneFramebuffer:  NewFramebuffer(droneViewPixels, droneViewPixels),
-		level:             level,
 		shadowFramebuffer: NewFramebuffer(shadowMapSize, shadowMapSize),
+		terrainChunk:      terrainChunk,
 		world:             ecs.NewWorld(),
 	}
 
@@ -39,8 +37,8 @@ func InitializeGame() *Game {
 	return game
 }
 
-func newCamera(level terrain.LevelData) rl.Camera3D {
-	cameraTarget := levelCenter(level)
+func newCamera(chunk *TerrainChunk) rl.Camera3D {
+	cameraTarget := chunk.Center()
 	return rl.NewCamera3D(
 		rl.NewVector3(cameraDistance, cameraHeight, cameraDistance),
 		cameraTarget,
@@ -69,12 +67,12 @@ func (game *Game) registerSystems() {
 }
 
 func (game *Game) spawnGroundPlane() {
-	center := levelCenter(game.level)
+	center := game.terrainChunk.Center()
 	groundMapper := ecs.NewMap2[Position3, Renderable](game.world)
 	groundMapper.NewEntity(
 		&Position3{X: center.X, Y: 0, Z: center.Z},
 		&Renderable{
-			model:          game.assets.Terrain(defaultLevelName).Model,
+			model:          game.terrainChunk.Model,
 			scale:          1.0,
 			tint:           rl.White,
 			castsShadow:    false,
@@ -84,10 +82,10 @@ func (game *Game) spawnGroundPlane() {
 }
 
 func (game *Game) spawnDrone() {
-	baseY := game.assets.Terrain(defaultLevelName).Surface.SampleHeight(game.level.SpawnX, game.level.SpawnZ) + droneCenterY
+	baseY := game.terrainChunk.SurfaceMesh.SampleHeight(game.terrainChunk.Level.SpawnX, game.terrainChunk.Level.SpawnZ) + droneCenterY
 	droneMapper := ecs.NewMap6[Position3, Velocity3, Renderable, Drone, HoverMotion, Laser](game.world)
 	droneMapper.NewEntity(
-		&Position3{X: game.level.SpawnX, Y: baseY, Z: game.level.SpawnZ},
+		&Position3{X: game.terrainChunk.Level.SpawnX, Y: baseY, Z: game.terrainChunk.Level.SpawnZ},
 		&Velocity3{},
 		&Renderable{
 			model:          game.assets.Model("drone"),
@@ -157,17 +155,13 @@ func (game *Game) spawnLight() {
 }
 
 func (game *Game) newLight() *Light {
-	center := levelCenter(game.level)
+	center := game.terrainChunk.Center()
 	return &Light{
 		origin:           rl.NewVector3(center.X+defaultLightOffsetX, lightHeight, center.Z+defaultLightOffsetZ),
 		target:           center,
 		up:               rl.NewVector3(0, 0, -1),
 		orthographicSize: defaultLightSize,
 	}
-}
-
-func levelCenter(level terrain.LevelData) rl.Vector3 {
-	return rl.NewVector3(float32(level.Width)/2, 0, float32(level.Height)/2)
 }
 
 func (game *Game) AddSystem(system System) {

@@ -23,12 +23,9 @@ func TestBuildSurfaceGeometry(t *testing.T) {
 		},
 	}
 
-	surface, err := BuildSurface(level, map[string]image.Image{
-		"red.png":  solidImage(2, 2, color.RGBA{R: 255, A: 255}),
-		"blue.png": solidImage(2, 2, color.RGBA{B: 255, A: 255}),
-	}, 4)
+	surface, err := BuildSurfaceMesh(level)
 	if err != nil {
-		t.Fatalf("BuildSurface() error = %v", err)
+		t.Fatalf("BuildSurfaceMesh() error = %v", err)
 	}
 
 	if got, want := len(surface.Vertices)/3, 6; got != want {
@@ -73,12 +70,12 @@ func TestBuildSurfaceTextureComposition(t *testing.T) {
 		},
 	}
 
-	surface, err := BuildSurface(level, map[string]image.Image{
+	surface, err := BuildSurfaceTexture(level, map[string]image.Image{
 		"left.png":  solidImage(1, 1, color.RGBA{R: 255, A: 255}),
 		"right.png": solidImage(1, 1, color.RGBA{G: 255, A: 255}),
 	}, 2)
 	if err != nil {
-		t.Fatalf("BuildSurface() error = %v", err)
+		t.Fatalf("BuildSurfaceTexture() error = %v", err)
 	}
 
 	if got, want := surface.BaseImage.Bounds().Dx(), 4; got != want {
@@ -94,43 +91,12 @@ func TestBuildSurfaceTextureComposition(t *testing.T) {
 	if got := color.RGBAModel.Convert(surface.BaseImage.At(3, 0)).(color.RGBA); got.G != 255 || got.R != 0 {
 		t.Fatalf("right tile pixel = %#v, want green tile", got)
 	}
-	if got := color.RGBAModel.Convert(surface.OverlayImage.At(1, 1)).(color.RGBA); got.A != 0 {
-		t.Fatalf("overlay pixel alpha = %d, want transparent", got.A)
-	}
-}
-
-func TestWorldToUVAndOverlayPixel(t *testing.T) {
-	t.Parallel()
-
-	surface := &Surface{
-		Width:         8,
-		Height:        10,
-		PixelsPerTile: 4,
-		OverlayImage:  image.NewRGBA(image.Rect(0, 0, 32, 40)),
-	}
-
-	u, v := surface.WorldToUV(0, 0)
-	assertClose(t, u, 0)
-	assertClose(t, v, 0)
-
-	u, v = surface.WorldToUV(4, 5)
-	assertClose(t, u, 0.5)
-	assertClose(t, v, 0.5)
-
-	u, v = surface.WorldToUV(8, 10)
-	assertClose(t, u, 1)
-	assertClose(t, v, 1)
-
-	x, y := surface.WorldToOverlayPixel(8, 10)
-	if x != 31 || y != 39 {
-		t.Fatalf("edge overlay pixel = (%d, %d), want (31, 39)", x, y)
-	}
 }
 
 func TestSampleHeight(t *testing.T) {
 	t.Parallel()
 
-	surface := &Surface{
+	surface := &SurfaceMesh{
 		Width:  2,
 		Height: 2,
 		HeightSamples: [][]float32{

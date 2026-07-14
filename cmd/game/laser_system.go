@@ -14,7 +14,7 @@ func (system *LaserSystem) Initialize(game *Game) {
 }
 
 func (system *LaserSystem) Update(game *Game) {
-	surface := game.assets.Terrain(defaultLevelName).Surface
+	surface := game.terrainChunk.SurfaceMesh
 	mouse := rl.GetMousePosition()
 	query := system.filter.Query()
 	defer query.Close()

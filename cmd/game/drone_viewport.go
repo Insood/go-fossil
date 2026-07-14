@@ -30,7 +30,7 @@ func droneCameraForPosition(dronePosition rl.Vector3) rl.Camera3D {
 	)
 }
 
-func droneViewportWorldTarget(mouse rl.Vector2, dronePosition rl.Vector3, surface *terrain.Surface) (rl.Vector3, bool) {
+func droneViewportWorldTarget(mouse rl.Vector2, dronePosition rl.Vector3, surface *terrain.SurfaceMesh) (rl.Vector3, bool) {
 	viewport := droneViewportRectangle()
 	if !rl.CheckCollisionPointRec(mouse, viewport) {
 		return rl.Vector3{}, false

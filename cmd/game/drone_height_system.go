@@ -16,7 +16,7 @@ func (system *DroneHeightSystem) Initialize(game *Game) {
 }
 
 func (system *DroneHeightSystem) Update(game *Game) {
-	surface := game.assets.Terrain(defaultLevelName).Surface
+	surface := game.terrainChunk.SurfaceMesh
 	query := system.filter.Query()
 	defer query.Close()
 

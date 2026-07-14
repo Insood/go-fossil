@@ -136,7 +136,7 @@ func (assets *AssetManager) loadModels() {
 func (assets *AssetManager) loadLevels() {
 	const levelDir = "levels"
 
-	for _, fileName := range embeddedAssetNames(assets.assetFS, levelDir, ".json") {
+	for _, fileName := range assetFileNames(assets.assetFS, levelDir, ".json") {
 		levelPath := path.Join(levelDir, fileName)
 		levelName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 
@@ -235,7 +235,7 @@ func runtimeAssetRoot() string {
 	return filepath.Join(filepath.Dir(executablePath), "assets")
 }
 
-func embeddedAssetNames(assetFS fs.FS, dir string, extensions ...string) []string {
+func assetFileNames(assetFS fs.FS, dir string, extensions ...string) []string {
 	entries, err := fs.ReadDir(assetFS, dir)
 	if err != nil {
 		panic(fmt.Errorf("read asset dir %q: %w", dir, err))
@@ -263,7 +263,7 @@ func (assets *AssetManager) shaderAssetSources() map[string]shaderFiles {
 	const shaderDir = "shaders"
 
 	sources := make(map[string]shaderFiles)
-	for _, fileName := range embeddedAssetNames(assets.assetFS, shaderDir, ".vs", ".vert", ".fs", ".frag") {
+	for _, fileName := range assetFileNames(assets.assetFS, shaderDir, ".vs", ".vert", ".fs", ".frag") {
 		ext := strings.ToLower(filepath.Ext(fileName))
 		stem := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 		sourcePath := path.Join(shaderDir, fileName)

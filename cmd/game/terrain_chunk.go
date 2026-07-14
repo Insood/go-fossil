@@ -22,3 +22,12 @@ type TerrainChunk struct {
 func (chunk *TerrainChunk) Center() rl.Vector3 {
 	return rl.NewVector3(float32(chunk.Level.Width)/2, 0, float32(chunk.Level.Height)/2)
 }
+
+func (chunk *TerrainChunk) Unload() {
+	if chunk == nil {
+		return
+	}
+
+	rl.UnloadTexture(chunk.BaseTexture)
+	rl.UnloadMesh(&chunk.Mesh)
+}

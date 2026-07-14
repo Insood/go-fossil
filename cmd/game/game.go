@@ -8,9 +8,9 @@ import (
 type Game struct {
 	assets            *AssetManager
 	camera            rl.Camera3D
+	chunkManager      *ChunkManager
 	droneFramebuffer  *Framebuffer
 	shadowFramebuffer *Framebuffer
-	terrainChunk      *TerrainChunk
 	world             *ecs.World
 	systems           []System
 }
@@ -18,14 +18,15 @@ type Game struct {
 func InitializeGame() *Game {
 	assets := NewAssetManager()
 	assets.Load()
-	terrainChunk := assets.TerrainChunk(defaultLevelName)
+	chunkManager := NewChunkManager(assets)
+	terrainChunk := chunkManager.LoadChunk(defaultLevelName)
 
 	game := &Game{
 		assets:            assets,
 		camera:            newCamera(terrainChunk),
+		chunkManager:      chunkManager,
 		droneFramebuffer:  NewFramebuffer(droneViewPixels, droneViewPixels),
 		shadowFramebuffer: NewFramebuffer(shadowMapSize, shadowMapSize),
-		terrainChunk:      terrainChunk,
 		world:             ecs.NewWorld(),
 	}
 
@@ -67,12 +68,13 @@ func (game *Game) registerSystems() {
 }
 
 func (game *Game) spawnGroundPlane() {
-	center := game.terrainChunk.Center()
+	chunk := game.primaryChunk()
+	center := chunk.Center()
 	groundMapper := ecs.NewMap2[Position3, Renderable](game.world)
 	groundMapper.NewEntity(
 		&Position3{X: center.X, Y: 0, Z: center.Z},
 		&Renderable{
-			model:          game.terrainChunk.Model,
+			model:          chunk.Model,
 			scale:          1.0,
 			tint:           rl.White,
 			castsShadow:    false,
@@ -82,10 +84,11 @@ func (game *Game) spawnGroundPlane() {
 }
 
 func (game *Game) spawnDrone() {
-	baseY := game.terrainChunk.SurfaceMesh.SampleHeight(game.terrainChunk.Level.SpawnX, game.terrainChunk.Level.SpawnZ) + droneCenterY
+	chunk := game.primaryChunk()
+	baseY := chunk.SurfaceMesh.SampleHeight(chunk.Level.SpawnX, chunk.Level.SpawnZ) + droneCenterY
 	droneMapper := ecs.NewMap6[Position3, Velocity3, Renderable, Drone, HoverMotion, Laser](game.world)
 	droneMapper.NewEntity(
-		&Position3{X: game.terrainChunk.Level.SpawnX, Y: baseY, Z: game.terrainChunk.Level.SpawnZ},
+		&Position3{X: chunk.Level.SpawnX, Y: baseY, Z: chunk.Level.SpawnZ},
 		&Velocity3{},
 		&Renderable{
 			model:          game.assets.Model("drone"),
@@ -155,7 +158,7 @@ func (game *Game) spawnLight() {
 }
 
 func (game *Game) newLight() *Light {
-	center := game.terrainChunk.Center()
+	center := game.primaryChunk().Center()
 	return &Light{
 		origin:           rl.NewVector3(center.X+defaultLightOffsetX, lightHeight, center.Z+defaultLightOffsetZ),
 		target:           center,
@@ -181,7 +184,12 @@ func (game *Game) UpdateSystems() {
 }
 
 func (game *Game) UnloadAssets() {
+	game.chunkManager.Unload()
 	game.droneFramebuffer.Unload()
 	game.shadowFramebuffer.Unload()
 	game.assets.Unload()
+}
+
+func (game *Game) primaryChunk() *TerrainChunk {
+	return game.chunkManager.Chunk(defaultLevelName)
 }

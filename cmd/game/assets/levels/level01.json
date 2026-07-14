@@ -15,20 +15,6 @@
   "tile_definitions": [
     "ground_grid.png"
   ],
-  "artifacts": [
-    {
-      "definition": "fossil",
-      "tile_x": 2,
-      "tile_z": 2,
-      "orientation": 0
-    },
-    {
-      "definition": "phone",
-      "tile_x": 5,
-      "tile_z": 4,
-      "orientation": 90
-    }
-  ],
   "heightmap_image": "level01.png",
   "min_height": 0,
   "max_height": 2,

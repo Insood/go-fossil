@@ -113,9 +113,6 @@ func (assets *AssetManager) Unload() {
 	}
 
 	for _, model := range assets.models {
-		if assets.isTerrainModel(model) {
-			continue
-		}
 		rl.UnloadModel(*model)
 	}
 	for _, texture := range assets.textures {
@@ -178,7 +175,6 @@ func (assets *AssetManager) loadTextures() {
 func (assets *AssetManager) loadModels() {
 	terrainAsset := assets.loadGroundAsset(defaultLevelName)
 	assets.terrains[defaultLevelName] = terrainAsset
-	assets.models["ground"] = terrainAsset.Model
 	assets.models["drone"] = assets.loadDroneModel()
 	assets.models["prop_cube"] = assets.loadUnitCubeModel()
 	assets.models["prop_sphere"] = assets.loadUnitSphereModel()
@@ -401,15 +397,6 @@ func newTerrainMesh(surface *terrain.Surface) rl.Mesh {
 		Indices:       &surface.Indices[0],
 	}
 	return mesh
-}
-
-func (assets *AssetManager) isTerrainModel(model *rl.Model) bool {
-	for _, terrainAsset := range assets.terrains {
-		if terrainAsset.Model == model {
-			return true
-		}
-	}
-	return false
 }
 
 func (assets *AssetManager) assetPath(parts ...string) string {

@@ -74,7 +74,7 @@ func (game *Game) spawnGroundPlane() {
 	groundMapper.NewEntity(
 		&Position3{X: center.X, Y: 0, Z: center.Z},
 		&Renderable{
-			model:          game.assets.Model("ground"),
+			model:          game.assets.Terrain(defaultLevelName).Model,
 			scale:          1.0,
 			tint:           rl.White,
 			castsShadow:    false,

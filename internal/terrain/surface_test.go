@@ -9,7 +9,7 @@ import (
 func TestBuildSurfaceGeometry(t *testing.T) {
 	t.Parallel()
 
-	level := LevelData{
+	chunk := ChunkData{
 		Name:   "Geometry Test",
 		Width:  2,
 		Height: 1,
@@ -23,7 +23,7 @@ func TestBuildSurfaceGeometry(t *testing.T) {
 		},
 	}
 
-	surface, err := BuildSurfaceMesh(level)
+	surface, err := BuildSurfaceMesh(chunk)
 	if err != nil {
 		t.Fatalf("BuildSurfaceMesh() error = %v", err)
 	}
@@ -56,7 +56,7 @@ func TestBuildSurfaceGeometry(t *testing.T) {
 func TestBuildSurfaceTextureComposition(t *testing.T) {
 	t.Parallel()
 
-	level := LevelData{
+	chunk := ChunkData{
 		Name:   "Texture Test",
 		Width:  2,
 		Height: 1,
@@ -70,7 +70,7 @@ func TestBuildSurfaceTextureComposition(t *testing.T) {
 		},
 	}
 
-	surface, err := BuildSurfaceTexture(level, map[string]image.Image{
+	surface, err := BuildSurfaceTexture(chunk, map[string]image.Image{
 		"left.png":  solidImage(1, 1, color.RGBA{R: 255, A: 255}),
 		"right.png": solidImage(1, 1, color.RGBA{G: 255, A: 255}),
 	}, 2)

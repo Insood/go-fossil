@@ -12,24 +12,24 @@ type SurfaceTexture struct {
 	BaseImage     *image.RGBA
 }
 
-func BuildSurfaceTexture(level LevelData, tileImages map[string]image.Image, pixelsPerTile int) (*SurfaceTexture, error) {
+func BuildSurfaceTexture(chunk ChunkData, tileImages map[string]image.Image, pixelsPerTile int) (*SurfaceTexture, error) {
 	if pixelsPerTile <= 0 {
 		return nil, fmt.Errorf("pixelsPerTile must be positive, got %d", pixelsPerTile)
 	}
 
 	surface := &SurfaceTexture{
-		Width:         level.Width,
-		Height:        level.Height,
+		Width:         chunk.Width,
+		Height:        chunk.Height,
 		PixelsPerTile: pixelsPerTile,
-		BaseImage:     image.NewRGBA(image.Rect(0, 0, level.Width*pixelsPerTile, level.Height*pixelsPerTile)),
+		BaseImage:     image.NewRGBA(image.Rect(0, 0, chunk.Width*pixelsPerTile, chunk.Height*pixelsPerTile)),
 	}
 
-	for z := 0; z < level.Height; z++ {
-		for x := 0; x < level.Width; x++ {
-			tileDefinition := level.TileDefinitions[level.Tiles[z][x]]
+	for z := 0; z < chunk.Height; z++ {
+		for x := 0; x < chunk.Width; x++ {
+			tileDefinition := chunk.TileDefinitions[chunk.Tiles[z][x]]
 			tileImage, ok := tileImages[tileDefinition]
 			if !ok {
-				return nil, fmt.Errorf("level %q: missing tile image %q", level.Name, tileDefinition)
+				return nil, fmt.Errorf("chunk %q: missing tile image %q", chunk.Name, tileDefinition)
 			}
 
 			drawScaledTile(surface.BaseImage, x*pixelsPerTile, z*pixelsPerTile, pixelsPerTile, tileImage)

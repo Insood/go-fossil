@@ -8,10 +8,13 @@ const (
 	windowTitle  = "go-fossil"
 	targetFPS    = 60
 
-	defaultLevelName            = "level01"
+	defaultChunkName            = "default"
 	terrainTexturePixelsPerTile = 64
 
 	debugAxisLength = 3.0
+
+	droneWorldSpawnX = 4.0
+	droneWorldSpawnZ = 4.0
 
 	droneWidth             = 1.0
 	droneHeight            = 0.2

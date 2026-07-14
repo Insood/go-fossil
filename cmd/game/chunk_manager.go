@@ -11,31 +11,33 @@ import (
 )
 
 type ChunkManager struct {
-	assets *AssetManager
-	chunks map[string]*TerrainChunk
+	assets    *AssetManager
+	chunkData map[string]terrain.ChunkData
+	chunks    map[string]*TerrainChunk
 }
 
 func NewChunkManager(assets *AssetManager) *ChunkManager {
 	return &ChunkManager{
-		assets: assets,
-		chunks: make(map[string]*TerrainChunk),
+		assets:    assets,
+		chunkData: make(map[string]terrain.ChunkData),
+		chunks:    make(map[string]*TerrainChunk),
 	}
 }
 
-func (manager *ChunkManager) LoadChunk(levelName string) *TerrainChunk {
-	if chunk, ok := manager.chunks[levelName]; ok {
+func (manager *ChunkManager) LoadChunk(chunkName string) *TerrainChunk {
+	if chunk, ok := manager.chunks[chunkName]; ok {
 		return chunk
 	}
 
-	chunk := manager.buildChunk(levelName)
-	manager.chunks[levelName] = chunk
+	chunk := manager.buildChunk(chunkName)
+	manager.chunks[chunkName] = chunk
 	return chunk
 }
 
-func (manager *ChunkManager) Chunk(levelName string) *TerrainChunk {
-	chunk, ok := manager.chunks[levelName]
+func (manager *ChunkManager) Chunk(chunkName string) *TerrainChunk {
+	chunk, ok := manager.chunks[chunkName]
 	if !ok {
-		panic("terrain chunk not loaded: " + levelName)
+		panic("terrain chunk not loaded: " + chunkName)
 	}
 	return chunk
 }
@@ -46,21 +48,21 @@ func (manager *ChunkManager) Unload() {
 	}
 }
 
-func (manager *ChunkManager) buildChunk(levelName string) *TerrainChunk {
-	level := manager.assets.Level(levelName)
-	tileImages := make(map[string]image.Image, len(level.TileDefinitions))
-	for _, tileDefinition := range level.TileDefinitions {
+func (manager *ChunkManager) buildChunk(chunkName string) *TerrainChunk {
+	chunk := manager.loadChunkData(chunkName)
+	tileImages := make(map[string]image.Image, len(chunk.TileDefinitions))
+	for _, tileDefinition := range chunk.TileDefinitions {
 		tileImages[tileDefinition] = manager.assets.Image(path.Join("textures", tileDefinition))
 	}
 
-	surfaceMesh, err := terrain.BuildSurfaceMesh(level)
+	surfaceMesh, err := terrain.BuildSurfaceMesh(chunk)
 	if err != nil {
-		panic(fmt.Errorf("build terrain mesh for level %q: %w", levelName, err))
+		panic(fmt.Errorf("build terrain mesh for chunk %q: %w", chunkName, err))
 	}
 
-	surfaceTexture, err := terrain.BuildSurfaceTexture(level, tileImages, terrainTexturePixelsPerTile)
+	surfaceTexture, err := terrain.BuildSurfaceTexture(chunk, tileImages, terrainTexturePixelsPerTile)
 	if err != nil {
-		panic(fmt.Errorf("build terrain texture for level %q: %w", levelName, err))
+		panic(fmt.Errorf("build terrain texture for chunk %q: %w", chunkName, err))
 	}
 
 	mesh := newTerrainMesh(surfaceMesh)
@@ -75,7 +77,7 @@ func (manager *ChunkManager) buildChunk(levelName string) *TerrainChunk {
 	)
 
 	return &TerrainChunk{
-		Level:          level,
+		Data:           chunk,
 		SurfaceMesh:    surfaceMesh,
 		SurfaceTexture: surfaceTexture,
 		Model:          &model,
@@ -83,6 +85,21 @@ func (manager *ChunkManager) buildChunk(levelName string) *TerrainChunk {
 		BaseTexture:    baseTexture,
 		OverlayImage:   image.NewRGBA(surfaceTexture.BaseImage.Bounds()),
 	}
+}
+
+func (manager *ChunkManager) loadChunkData(chunkName string) terrain.ChunkData {
+	if chunk, ok := manager.chunkData[chunkName]; ok {
+		return chunk
+	}
+
+	chunkPath := path.Join("terrain_chunks", chunkName+".json")
+	chunk, err := terrain.LoadChunkData(manager.assets.assetFS, chunkPath)
+	if err != nil {
+		panic(fmt.Errorf("load terrain chunk %q: %w", chunkPath, err))
+	}
+
+	manager.chunkData[chunkName] = chunk
+	return chunk
 }
 
 func newTerrainMesh(surface *terrain.SurfaceMesh) rl.Mesh {

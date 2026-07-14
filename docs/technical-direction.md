@@ -18,7 +18,7 @@ Implications:
 
 ## Terrain Model
 
-Initial terrain is a mesh generated from level metadata plus a grayscale heightmap image. Authored levels currently define one fixed-size terrain chunk: 8x8 tiles with a matching 9x9 heightmap.
+Initial terrain is a mesh generated from chunk metadata plus inline height samples. Authored chunks currently map to one fixed-size terrain chunk: 8x8 tiles with a matching 9x9 height sample grid.
 
 Desired properties:
 
@@ -29,13 +29,13 @@ Desired properties:
 
 Current terrain rendering approach:
 
-- one terrain mesh generated from the level height samples for a single 8x8 chunk
+- one terrain mesh generated from the chunk height samples for a single 8x8 chunk
 - one baked albedo texture composed from tile textures
 - a matching overlay texture can be added later for cut marks and painted state
 
 Open question for future implementation:
 
-- whether terrain cutting mutates the heightmap itself, a secondary mask, or a localized voxel/submesh structure
+- whether terrain cutting mutates the stored height samples themselves, a secondary mask, or a localized voxel/submesh structure
 
 For early slices, prefer a fake or simplified cutting representation if it helps validate the gameplay loop faster.
 
@@ -104,7 +104,7 @@ Guidelines:
 
 Likely early internal package candidates:
 
-- `internal/terrain` for level loading, terrain generation, and mutation rules
+- `internal/terrain` for chunk loading, terrain generation, and mutation rules
 - `internal/world` for coordinate helpers or spatial rules if they outgrow `cmd/game`
 - `internal/salvage` for extraction-specific logic if it becomes distinct from rendering and ECS wiring
 

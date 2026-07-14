@@ -9,7 +9,7 @@ import (
 )
 
 type TerrainChunk struct {
-	Level          terrain.LevelData
+	Data           terrain.ChunkData
 	SurfaceMesh    *terrain.SurfaceMesh
 	SurfaceTexture *terrain.SurfaceTexture
 	Model          *rl.Model
@@ -20,7 +20,7 @@ type TerrainChunk struct {
 }
 
 func (chunk *TerrainChunk) Center() rl.Vector3 {
-	return rl.NewVector3(float32(chunk.Level.Width)/2, 0, float32(chunk.Level.Height)/2)
+	return rl.NewVector3(float32(chunk.Data.Width)/2, 0, float32(chunk.Data.Height)/2)
 }
 
 func (chunk *TerrainChunk) Unload() {

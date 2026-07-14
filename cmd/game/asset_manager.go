@@ -14,14 +14,11 @@ import (
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-
-	"go-fossil/internal/terrain"
 )
 
 type AssetManager struct {
 	artifactDefinitions map[string]*ArtifactDefinition
 	images              map[string]image.Image
-	levels              map[string]terrain.LevelData
 	models              map[string]*rl.Model
 	shaders             map[string]rl.Shader
 	textures            map[string]rl.Texture2D
@@ -34,7 +31,6 @@ func NewAssetManager() *AssetManager {
 	return &AssetManager{
 		artifactDefinitions: make(map[string]*ArtifactDefinition),
 		images:              make(map[string]image.Image),
-		levels:              make(map[string]terrain.LevelData),
 		models:              make(map[string]*rl.Model),
 		shaders:             make(map[string]rl.Shader),
 		textures:            make(map[string]rl.Texture2D),
@@ -48,7 +44,6 @@ func (assets *AssetManager) Load() {
 	assets.loadImages()
 	assets.loadArtifactDefinitions()
 	assets.loadTextures()
-	assets.loadLevels()
 	assets.loadModels()
 }
 
@@ -79,14 +74,6 @@ func (assets *AssetManager) Shader(name string) rl.Shader {
 
 func (assets *AssetManager) Texture(name string) rl.Texture2D {
 	return assets.textures[name]
-}
-
-func (assets *AssetManager) Level(name string) terrain.LevelData {
-	level, ok := assets.levels[name]
-	if !ok {
-		panic(fmt.Errorf("level asset %q not loaded", name))
-	}
-	return level
 }
 
 func (assets *AssetManager) Unload() {
@@ -154,22 +141,6 @@ func (assets *AssetManager) loadModels() {
 	assets.models["drone"] = assets.loadDroneModel()
 	assets.models["prop_cube"] = assets.loadUnitCubeModel()
 	assets.models["prop_sphere"] = assets.loadUnitSphereModel()
-}
-
-func (assets *AssetManager) loadLevels() {
-	const levelDir = "levels"
-
-	for _, fileName := range assetFileNames(assets.assetFS, levelDir, ".json") {
-		levelPath := path.Join(levelDir, fileName)
-		levelName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-
-		level, err := terrain.LoadLevel(assets.assetFS, levelPath)
-		if err != nil {
-			panic(fmt.Errorf("load level asset %q: %w", levelPath, err))
-		}
-
-		assets.levels[levelName] = level
-	}
 }
 
 func (assets *AssetManager) mustLoadImage(assetPath string) image.Image {

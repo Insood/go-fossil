@@ -19,7 +19,7 @@ func InitializeGame() *Game {
 	assets := NewAssetManager()
 	assets.Load()
 	chunkManager := NewChunkManager(assets)
-	terrainChunk := chunkManager.LoadChunk(defaultLevelName)
+	terrainChunk := chunkManager.LoadChunk(defaultChunkName)
 
 	game := &Game{
 		assets:            assets,
@@ -85,10 +85,10 @@ func (game *Game) spawnGroundPlane() {
 
 func (game *Game) spawnDrone() {
 	chunk := game.primaryChunk()
-	baseY := chunk.SurfaceMesh.SampleHeight(chunk.Level.SpawnX, chunk.Level.SpawnZ) + droneCenterY
+	baseY := chunk.SurfaceMesh.SampleHeight(droneWorldSpawnX, droneWorldSpawnZ) + droneCenterY
 	droneMapper := ecs.NewMap6[Position3, Velocity3, Renderable, Drone, HoverMotion, Laser](game.world)
 	droneMapper.NewEntity(
-		&Position3{X: chunk.Level.SpawnX, Y: baseY, Z: chunk.Level.SpawnZ},
+		&Position3{X: droneWorldSpawnX, Y: baseY, Z: droneWorldSpawnZ},
 		&Velocity3{},
 		&Renderable{
 			model:          game.assets.Model("drone"),
@@ -191,5 +191,5 @@ func (game *Game) UnloadAssets() {
 }
 
 func (game *Game) primaryChunk() *TerrainChunk {
-	return game.chunkManager.Chunk(defaultLevelName)
+	return game.chunkManager.Chunk(defaultChunkName)
 }

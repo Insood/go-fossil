@@ -15,42 +15,42 @@ type SurfaceMesh struct {
 	Indices       []uint16
 }
 
-func BuildSurfaceMesh(level LevelData) (*SurfaceMesh, error) {
-	vertexCount := (level.Width + 1) * (level.Height + 1)
+func BuildSurfaceMesh(chunk ChunkData) (*SurfaceMesh, error) {
+	vertexCount := (chunk.Width + 1) * (chunk.Height + 1)
 	if vertexCount > math.MaxUint16+1 {
-		return nil, fmt.Errorf("level %q has %d vertices, exceeds uint16 mesh index limit", level.Name, vertexCount)
+		return nil, fmt.Errorf("chunk %q has %d vertices, exceeds uint16 mesh index limit", chunk.Name, vertexCount)
 	}
 
 	surface := &SurfaceMesh{
-		Width:         level.Width,
-		Height:        level.Height,
-		HeightSamples: level.HeightSamples,
+		Width:         chunk.Width,
+		Height:        chunk.Height,
+		HeightSamples: chunk.HeightSamples,
 		Vertices:      make([]float32, 0, vertexCount*3),
 		Normals:       make([]float32, vertexCount*3),
 		Texcoords:     make([]float32, 0, vertexCount*2),
-		Indices:       make([]uint16, 0, level.Width*level.Height*6),
+		Indices:       make([]uint16, 0, chunk.Width*chunk.Height*6),
 	}
 
-	halfWidth := float32(level.Width) / 2
-	halfHeight := float32(level.Height) / 2
-	for z := 0; z <= level.Height; z++ {
-		for x := 0; x <= level.Width; x++ {
+	halfWidth := float32(chunk.Width) / 2
+	halfHeight := float32(chunk.Height) / 2
+	for z := 0; z <= chunk.Height; z++ {
+		for x := 0; x <= chunk.Width; x++ {
 			surface.Vertices = append(surface.Vertices,
 				float32(x)-halfWidth,
-				level.HeightSamples[z][x],
+				chunk.HeightSamples[z][x],
 				float32(z)-halfHeight,
 			)
 			surface.Texcoords = append(surface.Texcoords,
-				float32(x)/float32(level.Width),
-				float32(z)/float32(level.Height),
+				float32(x)/float32(chunk.Width),
+				float32(z)/float32(chunk.Height),
 			)
 		}
 	}
 
-	for z := 0; z < level.Height; z++ {
-		for x := 0; x < level.Width; x++ {
-			topLeft := uint16(z*(level.Width+1) + x)
-			bottomLeft := uint16((z+1)*(level.Width+1) + x)
+	for z := 0; z < chunk.Height; z++ {
+		for x := 0; x < chunk.Width; x++ {
+			topLeft := uint16(z*(chunk.Width+1) + x)
+			bottomLeft := uint16((z+1)*(chunk.Width+1) + x)
 			topRight := topLeft + 1
 			bottomRight := bottomLeft + 1
 

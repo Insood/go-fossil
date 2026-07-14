@@ -19,6 +19,7 @@ import (
 )
 
 type AssetManager struct {
+	images    map[string]image.Image
 	models    map[string]*rl.Model
 	shaders   map[string]rl.Shader
 	textures  map[string]rl.Texture2D
@@ -38,6 +39,7 @@ type TerrainAsset struct {
 func NewAssetManager() *AssetManager {
 	assetRoot := runtimeAssetRoot()
 	return &AssetManager{
+		images:    make(map[string]image.Image),
 		models:    make(map[string]*rl.Model),
 		shaders:   make(map[string]rl.Shader),
 		textures:  make(map[string]rl.Texture2D),
@@ -50,9 +52,18 @@ func NewAssetManager() *AssetManager {
 
 func (assets *AssetManager) Load() {
 	assets.loadShaders()
+	assets.loadImages()
 	assets.loadTextures()
 	assets.loadLevels()
 	assets.loadModels()
+}
+
+func (assets *AssetManager) Image(name string) image.Image {
+	img, ok := assets.images[name]
+	if !ok {
+		panic(fmt.Errorf("image asset %q not loaded", name))
+	}
+	return img
 }
 
 func (assets *AssetManager) Model(name string) *rl.Model {
@@ -109,16 +120,30 @@ func (assets *AssetManager) loadShaders() {
 	}
 }
 
+func (assets *AssetManager) loadImages() {
+	const textureDir = "textures"
+
+	for _, fileName := range assetFileNames(assets.assetFS, textureDir, ".png", ".jpg", ".jpeg") {
+		assetPath := path.Join(textureDir, fileName)
+		imageName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+
+		img, err := loadTextureImageAsset(assets.assetPath(assetPath))
+		if err != nil {
+			panic(fmt.Errorf("load image asset %q: %w", assetPath, err))
+		}
+		assets.images[imageName] = img
+	}
+}
+
 func (assets *AssetManager) loadTextures() {
 	const textureDir = "textures"
 
 	assets.textures["white"] = loadSolidTexture(rl.White)
 
-	for _, fileName := range embeddedAssetNames(assets.assetFS, textureDir, ".png", ".jpg", ".jpeg") {
-		assetPath := path.Join(textureDir, fileName)
+	for _, fileName := range assetFileNames(assets.assetFS, textureDir, ".png", ".jpg", ".jpeg") {
 		textureName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 
-		texture := loadTextureAsset(assets.assetPath(assetPath))
+		texture := loadTextureFromImage(assets.Image(textureName))
 		rl.SetTextureWrap(texture, rl.WrapRepeat)
 		assets.textures[textureName] = texture
 	}
@@ -153,10 +178,7 @@ func (assets *AssetManager) loadGroundAsset(levelName string) *TerrainAsset {
 	level := assets.Level(levelName)
 	tileImages := make(map[string]image.Image, len(level.TileDefinitions))
 	for _, tileDefinition := range level.TileDefinitions {
-		tileImage, err := loadTextureImageAsset(assets.assetPath("textures", tileDefinition))
-		if err != nil {
-			panic(fmt.Errorf("load terrain tile image %q: %w", tileDefinition, err))
-		}
+		tileImage := assets.Image(strings.TrimSuffix(tileDefinition, filepath.Ext(tileDefinition)))
 		tileImages[tileDefinition] = tileImage
 	}
 
@@ -292,21 +314,6 @@ func (assets *AssetManager) shaderAssetSources() map[string]shaderFiles {
 	}
 
 	return sources
-}
-
-func loadTextureAsset(assetPath string) rl.Texture2D {
-	data, err := os.ReadFile(assetPath)
-	if err != nil {
-		panic(fmt.Errorf("read texture asset %q: %w", assetPath, err))
-	}
-
-	image := rl.LoadImageFromMemory(".png", data, int32(len(data)))
-	if image == nil {
-		panic(fmt.Errorf("load texture image %q from memory", assetPath))
-	}
-	defer rl.UnloadImage(image)
-
-	return rl.LoadTextureFromImage(image)
 }
 
 func loadTextureImageAsset(assetPath string) (image.Image, error) {

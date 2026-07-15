@@ -7,18 +7,32 @@ import (
 
 type LightSystem struct {
 	lightFilter *ecs.Filter1[Light]
+	droneFilter *ecs.Filter2[Position3, Drone]
 }
 
 func (system *LightSystem) Initialize(game *Game) {
 	system.lightFilter = ecs.NewFilter1[Light](game.world)
+	system.droneFilter = ecs.NewFilter2[Position3, Drone](game.world)
 }
 
 func (system *LightSystem) Update(game *Game) {
-	query := system.lightFilter.Query()
-	defer query.Close()
+	droneQuery := system.droneFilter.Query()
+	defer droneQuery.Close()
 
-	for query.Next() {
-		light := query.Get()
+	if !droneQuery.Next() {
+		return
+	}
+
+	position, _ := droneQuery.Get()
+	dronePosition := rl.Vector3(*position)
+
+	lightQuery := system.lightFilter.Query()
+	defer lightQuery.Close()
+
+	for lightQuery.Next() {
+		light := lightQuery.Get()
+		light.origin = rl.NewVector3(dronePosition.X, lightHeight, dronePosition.Z)
+		light.target = rl.NewVector3(dronePosition.X, 0, dronePosition.Z)
 		light.camera.Position = light.origin
 		light.camera.Target = light.target
 		light.camera.Up = light.up

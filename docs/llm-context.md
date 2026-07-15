@@ -27,6 +27,7 @@ This project is intended to follow the same overall structure as `go-towerdefens
 - The game uses an ECS architecture with `mlange-42/ark`.
 - The world is 3D and rendered with an orthographic camera to feel isometric.
 - The main camera uses a sliding dead zone so it only follows the drone once the drone moves far enough from center.
+- The shadow-casting light tracks the drone overhead so the shadow map stays centered on the active area.
 - Terrain starts as a mesh derived from chunk metadata and inline height samples.
 - The current bootstrap loads the authored default chunk at `(0,0)` and a generated flat neighbor at `(0,-1)`.
 - The core loop is movement, discovery, cutting, and pickup under light pressure.

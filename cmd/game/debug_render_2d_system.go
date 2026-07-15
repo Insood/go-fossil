@@ -60,9 +60,9 @@ func (system *DebugRenderSystem2D) drawShadowControls() {
 	rowY := panelY + panelPadding + 24
 	system.drawTuningRow(panelX+panelPadding, rowY, labelWidth, buttonWidth, valueWidth, "Light Size", &light.orthographicSize)
 	rowY += rowHeight + rowGap
-	system.drawTuningRow(panelX+panelPadding, rowY, labelWidth, buttonWidth, valueWidth, "Light X", &light.origin.X)
+	system.drawValueRow(panelX+panelPadding, rowY, labelWidth, valueWidth, "Shadow X", light.origin.X)
 	rowY += rowHeight + rowGap
-	system.drawTuningRow(panelX+panelPadding, rowY, labelWidth, buttonWidth, valueWidth, "Light Z", &light.origin.Z)
+	system.drawValueRow(panelX+panelPadding, rowY, labelWidth, valueWidth, "Shadow Z", light.origin.Z)
 	rowY += rowHeight + rowGap
 	system.drawTuningRow(panelX+panelPadding, rowY, labelWidth, buttonWidth, valueWidth, "Near Plane", &shadowNearPlane)
 	rowY += rowHeight + rowGap
@@ -94,6 +94,13 @@ func (system *DebugRenderSystem2D) drawDroneCoordinates(x, y, labelWidth, valueW
 
 	position, _ := query.Get()
 	rg.Label(rl.NewRectangle(x+labelWidth+spacing, y, valueWidth, 28), fmt.Sprintf("%.2f, %.2f, %.2f", position.X, position.Y, position.Z))
+}
+
+func (system *DebugRenderSystem2D) drawValueRow(x, y, labelWidth, valueWidth float32, label string, value float32) {
+	const spacing = 8
+
+	rg.Label(rl.NewRectangle(x, y, labelWidth, 28), label)
+	rg.Label(rl.NewRectangle(x+labelWidth+spacing, y, valueWidth, 28), fmt.Sprintf("%.2f", value))
 }
 
 func (system *DebugRenderSystem2D) drawTuningRow(x, y, labelWidth, buttonWidth, valueWidth float32, label string, value *float32) {

@@ -11,6 +11,7 @@
 The game is fundamentally 3D, but presented with an orthographic camera to achieve an isometric feel.
 
 The main camera should feel dynamic without being locked to the player at all times. A sliding dead zone works well for keeping the drone readable while letting the camera remain still during small local moves.
+Shadow casting should stay centered on the drone's current area so the active terrain chunks remain within the shadow map.
 
 Implications:
 

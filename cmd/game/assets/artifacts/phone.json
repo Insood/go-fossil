@@ -1,4 +1,7 @@
 {
   "name": "phone",
-  "image_path": "textures/phone.png"
+  "image_path": "textures/phone.png",
+  "width": 64,
+  "height": 64,
+  "value": 10
 }

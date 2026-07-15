@@ -13,7 +13,10 @@ func TestLoadArtifactDefinitionAsset(t *testing.T) {
 		"artifacts/fossil.json": &fstest.MapFile{
 			Data: []byte(`{
   "name": "fossil",
-  "image_path": "textures/fossil.png"
+  "image_path": "textures/fossil.png",
+  "width": 64,
+  "height": 64,
+  "value": 5
 }`),
 		},
 	}
@@ -28,6 +31,15 @@ func TestLoadArtifactDefinitionAsset(t *testing.T) {
 	}
 	if definition.ImagePath != "textures/fossil.png" {
 		t.Fatalf("definition.ImagePath = %q, want textures/fossil.png", definition.ImagePath)
+	}
+	if definition.Width != 64 {
+		t.Fatalf("definition.Width = %d, want 64", definition.Width)
+	}
+	if definition.Height != 64 {
+		t.Fatalf("definition.Height = %d, want 64", definition.Height)
+	}
+	if definition.Value != 5 {
+		t.Fatalf("definition.Value = %d, want 5", definition.Value)
 	}
 }
 
@@ -46,12 +58,27 @@ func TestLoadArtifactDefinitionAssetValidation(t *testing.T) {
 		},
 		{
 			name:    "missing image path",
-			json:    `{"name":"fossil"}`,
+			json:    `{"name":"fossil","width":64,"height":64,"value":5}`,
 			wantErr: "artifact image_path must not be empty",
 		},
 		{
+			name:    "missing width",
+			json:    `{"name":"fossil","image_path":"textures/fossil.png","height":64,"value":5}`,
+			wantErr: "artifact width must be positive",
+		},
+		{
+			name:    "missing height",
+			json:    `{"name":"fossil","image_path":"textures/fossil.png","width":64,"value":5}`,
+			wantErr: "artifact height must be positive",
+		},
+		{
+			name:    "missing value",
+			json:    `{"name":"fossil","image_path":"textures/fossil.png","width":64,"height":64}`,
+			wantErr: "artifact value must be positive",
+		},
+		{
 			name:    "unknown field",
-			json:    `{"name":"fossil","image_path":"textures/fossil.png","extra":true}`,
+			json:    `{"name":"fossil","image_path":"textures/fossil.png","width":64,"height":64,"value":5,"extra":true}`,
 			wantErr: "decode artifact definition",
 		},
 	}

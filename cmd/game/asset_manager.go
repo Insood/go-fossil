@@ -126,6 +126,7 @@ func (assets *AssetManager) loadTextures() {
 	const textureDir = "textures"
 
 	assets.textures["white"] = loadSolidTexture(rl.White)
+	assets.textures["blank"] = loadSolidTexture(rl.Blank)
 
 	for _, fileName := range assetFileNames(assets.assetFS, textureDir, ".png", ".jpg", ".jpeg") {
 		assetPath := path.Join(textureDir, fileName)
@@ -178,9 +179,17 @@ func configureShadowReceiverMaterial(model *rl.Model, assets *AssetManager) {
 		if materials[i].GetMap(rl.MapAlbedo).Texture.ID == 0 {
 			rl.SetMaterialTexture(&materials[i], rl.MapAlbedo, assets.Texture("white"))
 		}
+		materials[i].GetMap(rl.MapEmission).Color = rl.White
+		if materials[i].GetMap(rl.MapEmission).Texture.ID == 0 {
+			rl.SetMaterialTexture(&materials[i], rl.MapEmission, assets.Texture("blank"))
+		}
 		materials[i].Shader.UpdateLocation(
 			rl.ShaderLocMapHeight,
 			rl.GetShaderLocation(materials[i].Shader, "shadowMap"),
+		)
+		materials[i].Shader.UpdateLocation(
+			rl.ShaderLocMapEmission,
+			rl.GetShaderLocation(materials[i].Shader, "texture1"),
 		)
 	}
 }

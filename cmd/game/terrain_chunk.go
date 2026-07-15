@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"image/color"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 
@@ -9,17 +10,17 @@ import (
 )
 
 type TerrainChunk struct {
-	Coords         ChunkCoords
-	OriginX        float32
-	OriginZ        float32
-	Data           terrain.ChunkData
-	SurfaceMesh    *terrain.SurfaceMesh
-	SurfaceTexture *terrain.SurfaceTexture
-	Model          *rl.Model
-	Mesh           rl.Mesh
-	BaseTexture    rl.Texture2D
-	OverlayImage   *image.RGBA
-	OverlayTexture rl.Texture2D
+	Coords             ChunkCoords
+	OriginX            float32
+	OriginZ            float32
+	Data               terrain.ChunkData
+	SurfaceMesh        *terrain.SurfaceMesh
+	SurfaceTexture     *terrain.SurfaceTexture
+	Model              *rl.Model
+	Mesh               rl.Mesh
+	BaseTexture        rl.Texture2D
+	BurnOverlayImage   *image.RGBA
+	BurnOverlayTexture rl.Texture2D
 }
 
 func (chunk *TerrainChunk) Center() rl.Vector3 {
@@ -47,5 +48,102 @@ func (chunk *TerrainChunk) Unload() {
 	}
 
 	rl.UnloadTexture(chunk.BaseTexture)
+	rl.UnloadTexture(chunk.BurnOverlayTexture)
 	rl.UnloadMesh(&chunk.Mesh)
+}
+
+func (chunk *TerrainChunk) BurnOverlayBounds() image.Rectangle {
+	if chunk == nil || chunk.BurnOverlayImage == nil {
+		return image.Rectangle{}
+	}
+
+	return chunk.BurnOverlayImage.Bounds()
+}
+
+func (chunk *TerrainChunk) AddBurnMark(worldX, worldZ float32) bool {
+	if chunk == nil || chunk.BurnOverlayImage == nil {
+		return false
+	}
+
+	bounds := chunk.BurnOverlayImage.Bounds()
+	if bounds.Empty() {
+		return false
+	}
+
+	localX := worldX - chunk.OriginX
+	localZ := worldZ - chunk.OriginZ
+	if localX < 0 || localZ < 0 || localX > float32(chunk.Data.Width) || localZ > float32(chunk.Data.Height) {
+		return false
+	}
+
+	pixelX := int(localX * float32(bounds.Dx()) / float32(chunk.Data.Width))
+	pixelY := int(localZ * float32(bounds.Dy()) / float32(chunk.Data.Height))
+	pixelX = clampInt(pixelX, bounds.Min.X, bounds.Max.X-1)
+	pixelY = clampInt(pixelY, bounds.Min.Y, bounds.Max.Y-1)
+	return chunk.paintBurnMark(pixelX, pixelY, burnOverlayBrushRadius)
+}
+
+func (chunk *TerrainChunk) paintBurnMark(centerX, centerY, radius int) bool {
+	if radius < 0 {
+		return false
+	}
+
+	bounds := chunk.BurnOverlayImage.Bounds()
+	minX := clampInt(centerX-radius, bounds.Min.X, bounds.Max.X-1)
+	maxX := clampInt(centerX+radius, bounds.Min.X, bounds.Max.X-1)
+	minY := clampInt(centerY-radius, bounds.Min.Y, bounds.Max.Y-1)
+	maxY := clampInt(centerY+radius, bounds.Min.Y, bounds.Max.Y-1)
+	if minX > maxX || minY > maxY {
+		return false
+	}
+
+	changed := false
+	for y := minY; y <= maxY; y++ {
+		for x := minX; x <= maxX; x++ {
+			dx := x - centerX
+			dy := y - centerY
+			if dx*dx+dy*dy > radius*radius {
+				continue
+			}
+
+			chunk.BurnOverlayImage.SetRGBA(x, y, color.RGBA{A: 255})
+			changed = true
+		}
+	}
+
+	if !changed {
+		return false
+	}
+
+	chunk.uploadBurnOverlayRect(image.Rect(minX, minY, maxX+1, maxY+1))
+	return true
+}
+
+func (chunk *TerrainChunk) uploadBurnOverlayRect(rect image.Rectangle) {
+	if chunk.BurnOverlayTexture.ID == 0 || rect.Empty() {
+		return
+	}
+
+	pixels := make([]color.RGBA, 0, rect.Dx()*rect.Dy())
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			pixels = append(pixels, chunk.BurnOverlayImage.RGBAAt(x, y))
+		}
+	}
+
+	rl.UpdateTextureRec(
+		chunk.BurnOverlayTexture,
+		rl.NewRectangle(float32(rect.Min.X), float32(rect.Min.Y), float32(rect.Dx()), float32(rect.Dy())),
+		pixels,
+	)
+}
+
+func clampInt(value, minValue, maxValue int) int {
+	if value < minValue {
+		return minValue
+	}
+	if value > maxValue {
+		return maxValue
+	}
+	return value
 }

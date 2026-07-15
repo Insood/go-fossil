@@ -34,7 +34,7 @@ Current terrain rendering approach:
 
 - one or more terrain meshes generated from chunk height samples on an 8x8 footprint
 - one baked albedo texture composed from tile textures
-- a matching overlay texture can be added later for cut marks and painted state
+- a matching burn overlay texture tracks laser marks and other painted state
 
 Open question for future implementation:
 

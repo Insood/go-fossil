@@ -28,5 +28,6 @@ func (system *LaserSystem) Update(game *Game) {
 
 		laser.active = true
 		laser.target = target
+		game.chunkManager.BurnAtWorldPosition(target.X, target.Z)
 	}
 }

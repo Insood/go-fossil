@@ -152,23 +152,40 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 	model.Materials.Shader = manager.assets.Shader("shadow_receiver")
 	baseTexture := loadTextureFromImage(surfaceTexture.BaseImage)
 	rl.SetMaterialTexture(model.Materials, rl.MapAlbedo, baseTexture)
+	burnOverlayImage := image.NewRGBA(surfaceTexture.BaseImage.Bounds())
+	burnOverlayTexture := loadTextureFromImage(burnOverlayImage)
+	rl.SetMaterialTexture(model.Materials, rl.MapEmission, burnOverlayTexture)
 	model.Materials.Shader.UpdateLocation(
 		rl.ShaderLocMapHeight,
 		rl.GetShaderLocation(model.Materials.Shader, "shadowMap"),
 	)
+	model.Materials.Shader.UpdateLocation(
+		rl.ShaderLocMapEmission,
+		rl.GetShaderLocation(model.Materials.Shader, "texture1"),
+	)
 
 	return &TerrainChunk{
-		Coords:         coords,
-		OriginX:        originX,
-		OriginZ:        originZ,
-		Data:           chunkData,
-		SurfaceMesh:    surfaceMesh,
-		SurfaceTexture: surfaceTexture,
-		Model:          &model,
-		Mesh:           mesh,
-		BaseTexture:    baseTexture,
-		OverlayImage:   image.NewRGBA(surfaceTexture.BaseImage.Bounds()),
+		Coords:             coords,
+		OriginX:            originX,
+		OriginZ:            originZ,
+		Data:               chunkData,
+		SurfaceMesh:        surfaceMesh,
+		SurfaceTexture:     surfaceTexture,
+		Model:              &model,
+		Mesh:               mesh,
+		BaseTexture:        baseTexture,
+		BurnOverlayImage:   burnOverlayImage,
+		BurnOverlayTexture: burnOverlayTexture,
 	}
+}
+
+func (manager *ChunkManager) BurnAtWorldPosition(worldX, worldZ float32) bool {
+	chunk, ok := manager.ChunkForWorldPosition(worldX, worldZ)
+	if !ok {
+		return false
+	}
+
+	return chunk.AddBurnMark(worldX, worldZ)
 }
 
 func (manager *ChunkManager) loadChunkData(coords ChunkCoords, chunkName string) terrain.ChunkData {

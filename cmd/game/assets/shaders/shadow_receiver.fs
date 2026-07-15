@@ -7,6 +7,7 @@ in vec3 fragWorldNormal;
 
 uniform vec4 colDiffuse;
 uniform sampler2D texture0;
+uniform sampler2D texture1;
 uniform sampler2D shadowMap;
 uniform vec3 lightDirection;
 uniform float shadowBias;
@@ -37,7 +38,9 @@ float sampleShadow(vec4 lightClipPosition, vec3 worldNormal) {
 
 void main() {
     vec4 albedo = texture(texture0, fragTexCoord);
+    vec4 burnOverlay = texture(texture1, fragTexCoord);
     vec3 baseColor = colDiffuse.rgb * albedo.rgb;
+    baseColor = mix(baseColor, burnOverlay.rgb, burnOverlay.a);
     float shadow = sampleShadow(fragLightClipPosition, fragWorldNormal);
     vec3 shadedColor = baseColor * (1.0 - shadow);
 

@@ -74,7 +74,7 @@ When adding a feature, prefer this order:
 - There is a dedicated `Framebuffer` wrapper in `cmd/game/framebuffer.go` for off-screen render targets.
 - The scene currently has a single `Light` entity. `LightSystem` rebuilds its camera from component data, and the render pipeline consumes that camera.
 - `Renderable` carries `castsShadow` and `receivesShadow` flags so future render passes can filter participation without adding extra ECS components.
-- `LaserSystem` maps held left-click input inside the drone viewport to a terrain-sampled target point for the player drone's `Laser` component.
+- `LaserSystem` maps held left-click input inside the drone viewport to a terrain-sampled target point for the player drone's `Laser` component and stamps the chunk burn overlay at that point.
 - `RenderSystem3D` currently owns the main scene render flow, the drone bottom-camera viewport pass, and the temporary shadow-depth debug pass.
 - `DebugRenderSystem2D` owns the top-right raygui overlay for live shadow tuning controls, including the current light origin and orthographic size.
 - `F10` toggles the debug overlays, and `F11` exports the framebuffer depth texture for inspection.

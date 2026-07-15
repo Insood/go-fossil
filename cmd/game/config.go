@@ -32,6 +32,8 @@ const (
 	cameraDistance         = 15.0
 	cameraHeight           = 15.0
 	cameraOrthographicSize = 10.0
+	cameraFollowDeadZoneXZ = 4.0
+	cameraFollowDeadZoneY  = 1.5
 
 	droneViewSizeWorld = 1.0
 	droneViewPixels    = 256

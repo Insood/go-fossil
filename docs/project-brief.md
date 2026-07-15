@@ -46,7 +46,7 @@ Finding unusual buried artifacts should be rewarding even before a full progress
 
 Keep the first playable loop extremely small:
 
-- one terrain patch
+- one small chunk pair
 - one drone
 - one collectible object type
 - one cutting interaction

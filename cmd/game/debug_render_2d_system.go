@@ -10,10 +10,12 @@ import (
 
 type DebugRenderSystem2D struct {
 	lightFilter *ecs.Filter1[Light]
+	droneFilter *ecs.Filter2[Position3, Drone]
 }
 
 func (system *DebugRenderSystem2D) Initialize(game *Game) {
 	system.lightFilter = ecs.NewFilter1[Light](game.world)
+	system.droneFilter = ecs.NewFilter2[Position3, Drone](game.world)
 }
 
 func (system *DebugRenderSystem2D) Update(game *Game) {
@@ -39,7 +41,7 @@ func (system *DebugRenderSystem2D) drawShadowControls() {
 		valueWidth   = 148
 	)
 
-	rows := 7
+	rows := 8
 	panelHeight := float32(panelPadding*2 + 28 + rows*rowHeight + (rows-1)*rowGap)
 	panelX := float32(screenWidth) - panelWidth - panelPadding
 	panelY := float32(panelPadding)
@@ -69,10 +71,29 @@ func (system *DebugRenderSystem2D) drawShadowControls() {
 	system.drawTuningRow(panelX+panelPadding, rowY, labelWidth, buttonWidth, valueWidth, "Shadow Bias", &shadowBias)
 	rowY += rowHeight + rowGap
 	system.drawTuningRow(panelX+panelPadding, rowY, labelWidth, buttonWidth, valueWidth, "Slope Bias", &shadowSlopeBias)
+	rowY += rowHeight + rowGap
+	system.drawDroneCoordinates(panelX+panelPadding, rowY, labelWidth, valueWidth)
 
 	if shadowNearPlane >= shadowFarPlane {
 		shadowFarPlane = shadowNearPlane * 1.25
 	}
+}
+
+func (system *DebugRenderSystem2D) drawDroneCoordinates(x, y, labelWidth, valueWidth float32) {
+	const spacing = 8
+
+	rg.Label(rl.NewRectangle(x, y, labelWidth, 28), "Drone Pos")
+
+	query := system.droneFilter.Query()
+	defer query.Close()
+
+	if !query.Next() {
+		rg.Label(rl.NewRectangle(x+labelWidth+spacing, y, valueWidth, 28), "n/a")
+		return
+	}
+
+	position, _ := query.Get()
+	rg.Label(rl.NewRectangle(x+labelWidth+spacing, y, valueWidth, 28), fmt.Sprintf("%.2f, %.2f, %.2f", position.X, position.Y, position.Z))
 }
 
 func (system *DebugRenderSystem2D) drawTuningRow(x, y, labelWidth, buttonWidth, valueWidth float32, label string, value *float32) {

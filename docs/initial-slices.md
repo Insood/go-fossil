@@ -28,7 +28,7 @@ Why it matters:
 
 Goal:
 
-- render a small terrain mesh generated from a simple heightmap
+- render a small terrain mesh generated from simple chunk data and height samples
 
 Why it matters:
 

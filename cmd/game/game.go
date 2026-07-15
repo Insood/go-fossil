@@ -64,6 +64,7 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&DroneInputSystem{})
 	game.AddSystem(&PhysicsSystem{})
 	game.AddSystem(&DroneHeightSystem{})
+	game.AddSystem(&CameraSystem{})
 	game.AddSystem(&LightSystem{})
 	game.AddSystem(&LaserSystem{})
 	game.AddSystem(&RenderSystem3D{})

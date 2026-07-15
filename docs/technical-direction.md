@@ -10,6 +10,8 @@
 
 The game is fundamentally 3D, but presented with an orthographic camera to achieve an isometric feel.
 
+The main camera should feel dynamic without being locked to the player at all times. A sliding dead zone works well for keeping the drone readable while letting the camera remain still during small local moves.
+
 Implications:
 
 - world positions should remain fully 3D
@@ -18,7 +20,7 @@ Implications:
 
 ## Terrain Model
 
-Initial terrain is a mesh generated from chunk metadata plus inline height samples. Authored chunks currently map to one fixed-size terrain chunk: 8x8 tiles with a matching 9x9 height sample grid.
+Initial terrain is a mesh generated from chunk metadata plus inline height samples. The bootstrap currently loads one authored chunk at `(0,0)` and one generated flat neighbor at `(0,-1)`, each using the same 8x8 tile footprint and 9x9 height sample grid.
 
 Desired properties:
 
@@ -29,7 +31,7 @@ Desired properties:
 
 Current terrain rendering approach:
 
-- one terrain mesh generated from the chunk height samples for a single 8x8 chunk
+- one or more terrain meshes generated from chunk height samples on an 8x8 footprint
 - one baked albedo texture composed from tile textures
 - a matching overlay texture can be added later for cut marks and painted state
 

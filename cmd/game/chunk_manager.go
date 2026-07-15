@@ -54,10 +54,10 @@ func (manager *ChunkManager) Chunk(coords ChunkCoords) *TerrainChunk {
 	return chunk
 }
 
-func (manager *ChunkManager) ChunkAtWorldPosition(worldX, worldZ float32) *TerrainChunk {
+func (manager *ChunkManager) ChunkForWorldPosition(worldX, worldZ float32) (*TerrainChunk, bool) {
 	preferredCoords := chunkCoordsForWorldPosition(worldX, worldZ)
 	if chunk, ok := manager.chunks[preferredCoords]; ok && chunk.ContainsWorldPosition(worldX, worldZ) {
-		return chunk
+		return chunk, true
 	}
 
 	var candidate *TerrainChunk
@@ -72,30 +72,19 @@ func (manager *ChunkManager) ChunkAtWorldPosition(worldX, worldZ float32) *Terra
 	}
 
 	if candidate == nil {
-		var nearest *TerrainChunk
-		bestDistance := int(^uint(0) >> 1)
-		for _, chunk := range manager.chunks {
-			dx := absInt(chunk.Coords.X - preferredCoords.X)
-			dz := absInt(chunk.Coords.Z - preferredCoords.Z)
-			distance := dx + dz
-			if nearest == nil || distance < bestDistance || (distance == bestDistance && (chunk.Coords.Z > nearest.Coords.Z || (chunk.Coords.Z == nearest.Coords.Z && chunk.Coords.X > nearest.Coords.X))) {
-				nearest = chunk
-				bestDistance = distance
-			}
-		}
-
-		if nearest == nil {
-			panic(fmt.Sprintf("terrain chunk not loaded for world position %.3f, %.3f", worldX, worldZ))
-		}
-
-		return nearest
+		return nil, false
 	}
 
-	return candidate
+	return candidate, true
 }
 
 func (manager *ChunkManager) SampleHeight(worldX, worldZ float32) float32 {
-	return manager.ChunkAtWorldPosition(worldX, worldZ).SampleHeight(worldX, worldZ)
+	chunk, ok := manager.ChunkForWorldPosition(worldX, worldZ)
+	if !ok {
+		return 0
+	}
+
+	return chunk.HeightAtWorldPosition(worldX, worldZ)
 }
 
 func (manager *ChunkManager) Chunks() []*TerrainChunk {
@@ -186,11 +175,4 @@ func newTerrainMesh(surface *terrain.SurfaceMesh) rl.Mesh {
 		Normals:       &surface.Normals[0],
 		Indices:       &surface.Indices[0],
 	}
-}
-
-func absInt(value int) int {
-	if value < 0 {
-		return -value
-	}
-	return value
 }

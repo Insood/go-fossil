@@ -61,12 +61,13 @@ func TestChunkManagerChunkLookupUsesWorldPosition(t *testing.T) {
 		worldZ float32
 		want   ChunkCoords
 		wantY  float32
+		wantOK bool
 	}{
-		{name: "default chunk", worldX: 4, worldZ: 4, want: ChunkCoords{X: 0, Z: 0}, wantY: 1},
-		{name: "north chunk", worldX: 4, worldZ: -4, want: ChunkCoords{X: 0, Z: -1}, wantY: 2},
-		{name: "seam on north edge", worldX: 4, worldZ: 0, want: ChunkCoords{X: 0, Z: 0}, wantY: 1},
-		{name: "default east edge", worldX: 8, worldZ: 0, want: ChunkCoords{X: 0, Z: 0}, wantY: 1},
-		{name: "missing chunk falls back", worldX: 100, worldZ: 100, want: ChunkCoords{X: 0, Z: 0}, wantY: 1},
+		{name: "default chunk", worldX: 4, worldZ: 4, want: ChunkCoords{X: 0, Z: 0}, wantY: 1, wantOK: true},
+		{name: "north chunk", worldX: 4, worldZ: -4, want: ChunkCoords{X: 0, Z: -1}, wantY: 2, wantOK: true},
+		{name: "seam on north edge", worldX: 4, worldZ: 0, want: ChunkCoords{X: 0, Z: 0}, wantY: 1, wantOK: true},
+		{name: "default east edge", worldX: 8, worldZ: 0, want: ChunkCoords{X: 0, Z: 0}, wantY: 1, wantOK: true},
+		{name: "missing chunk falls back to zero", worldX: 100, worldZ: 100, wantY: 0, wantOK: false},
 	}
 
 	for _, test := range tests {
@@ -74,8 +75,11 @@ func TestChunkManagerChunkLookupUsesWorldPosition(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			chunk := manager.ChunkAtWorldPosition(test.worldX, test.worldZ)
-			if chunk.Coords != test.want {
+			chunk, ok := manager.ChunkForWorldPosition(test.worldX, test.worldZ)
+			if ok != test.wantOK {
+				t.Fatalf("chunk lookup ok = %v, want %v", ok, test.wantOK)
+			}
+			if ok && chunk.Coords != test.want {
 				t.Fatalf("chunk coords = %#v, want %#v", chunk.Coords, test.want)
 			}
 

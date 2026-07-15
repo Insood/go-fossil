@@ -37,7 +37,7 @@ func (chunk *TerrainChunk) ContainsWorldPosition(worldX, worldZ float32) bool {
 		worldZ <= chunk.OriginZ+float32(chunk.Data.Height)
 }
 
-func (chunk *TerrainChunk) SampleHeight(worldX, worldZ float32) float32 {
+func (chunk *TerrainChunk) HeightAtWorldPosition(worldX, worldZ float32) float32 {
 	return chunk.SurfaceMesh.SampleHeight(worldX-chunk.OriginX, worldZ-chunk.OriginZ)
 }
 

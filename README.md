@@ -51,9 +51,9 @@ Current terrain content format:
 
 - chunk metadata lives in `cmd/game/assets/terrain_chunks/*.json`
 - tile layout stays in JSON
-- vertex heights come from a referenced grayscale PNG sized `(width+1) x (height+1)`
+- vertex heights come from inline height samples sized `(width+1) x (height+1)`
 - `AssetManager` loads runtime assets from disk beside the built executable, and `internal/terrain` validates/parses terrain chunk content
-- terrain rendering now uses one mesh generated from the height samples plus one baked world texture assembled from the chunk tile textures
+- terrain rendering now uses terrain meshes generated from the height samples plus baked world textures assembled from the chunk tile textures
 
 ## Build
 

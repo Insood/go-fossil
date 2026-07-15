@@ -16,13 +16,12 @@ func (system *DroneHeightSystem) Initialize(game *Game) {
 }
 
 func (system *DroneHeightSystem) Update(game *Game) {
-	surface := game.primaryChunk().SurfaceMesh
 	query := system.filter.Query()
 	defer query.Close()
 
 	for query.Next() {
 		position, hover, _ := query.Get()
 		hoverOffset := hover.amplitude * float32(math.Sin(float64(float32(rl.GetTime())*hover.angularSpeed)))
-		position.Y = surface.SampleHeight(position.X, position.Z) + droneCenterY + hoverOffset
+		position.Y = game.chunkManager.SampleHeight(position.X, position.Z) + droneCenterY + hoverOffset
 	}
 }

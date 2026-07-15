@@ -27,7 +27,7 @@ This project is intended to follow the same overall structure as `go-towerdefens
 - The game uses an ECS architecture with `mlange-42/ark`.
 - The world is 3D and rendered with an orthographic camera to feel isometric.
 - Terrain starts as a mesh derived from chunk metadata and inline height samples.
-- Each authored chunk currently maps to one 8x8 terrain chunk with a 9x9 height sample grid.
+- The current bootstrap loads the authored default chunk at `(0,0)` and a generated flat neighbor at `(0,-1)`.
 - The core loop is movement, discovery, cutting, and pickup under light pressure.
 - Gameplay code should stay small and easy to follow.
 
@@ -68,7 +68,7 @@ When adding a feature, prefer this order:
 
 ## Current Implementation Notes
 
-- `AssetManager` owns loading runtime assets from disk beside the built executable. `ChunkManager` owns loading terrain chunk JSON from disk, converting it into runtime terrain chunks, and caching the built meshes/textures. `internal/terrain` owns chunk JSON parsing, validation, terrain mesh data generation, baked terrain image composition, and world-to-terrain UV helpers.
+- `AssetManager` owns loading runtime assets from disk beside the built executable. `ChunkManager` owns loading terrain chunk JSON from disk, generating simple runtime chunks, converting them into terrain meshes/textures, and caching the built chunks. `internal/terrain` owns chunk JSON parsing, validation, terrain mesh data generation, baked terrain image composition, and world-to-terrain UV helpers.
 - There is a dedicated `Framebuffer` wrapper in `cmd/game/framebuffer.go` for off-screen render targets.
 - The scene currently has a single `Light` entity. `LightSystem` rebuilds its camera from component data, and the render pipeline consumes that camera.
 - `Renderable` carries `castsShadow` and `receivesShadow` flags so future render passes can filter participation without adding extra ECS components.

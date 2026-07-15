@@ -60,6 +60,7 @@ func (system *RenderSystem3D) renderScenePass(game *Game) {
 	}
 
 	rl.BeginMode3D(game.camera)
+	system.renderTerrainChunks(game)
 	system.renderModels(false)
 	system.renderLasers()
 	rl.EndMode3D()
@@ -81,6 +82,7 @@ func (system *RenderSystem3D) renderDroneViewportPass(game *Game) {
 		rl.ClearBackground(rl.SkyBlue)
 
 		rl.BeginMode3D(droneCamera)
+		system.renderTerrainChunks(game)
 		system.renderModels(false)
 		system.renderLasers()
 		rl.EndMode3D()
@@ -145,6 +147,12 @@ func (system *RenderSystem3D) renderModels(onlyShadowCasters bool) {
 		}
 
 		rl.DrawModel(*renderable.model, rl.Vector3(*position), renderable.scale, renderable.tint)
+	}
+}
+
+func (system *RenderSystem3D) renderTerrainChunks(game *Game) {
+	for _, chunk := range game.chunkManager.Chunks() {
+		rl.DrawModel(*chunk.Model, chunk.Center(), 1.0, rl.White)
 	}
 }
 
@@ -233,6 +241,10 @@ func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCam
 		}
 
 		rl.SetMaterialTexture(renderable.model.Materials, rl.MapHeight, game.shadowFramebuffer.Target.Depth)
+	}
+
+	for _, chunk := range game.chunkManager.Chunks() {
+		rl.SetMaterialTexture(chunk.Model.Materials, rl.MapHeight, game.shadowFramebuffer.Target.Depth)
 	}
 
 	lightDirection := rl.Vector3Normalize(rl.Vector3Subtract(lightCamera.Target, lightCamera.Position))

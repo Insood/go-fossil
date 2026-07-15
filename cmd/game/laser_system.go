@@ -14,14 +14,13 @@ func (system *LaserSystem) Initialize(game *Game) {
 }
 
 func (system *LaserSystem) Update(game *Game) {
-	surface := game.primaryChunk().SurfaceMesh
 	mouse := rl.GetMousePosition()
 	query := system.filter.Query()
 	defer query.Close()
 
 	for query.Next() {
 		position, _, laser := query.Get()
-		target, ok := droneViewportWorldTarget(mouse, rl.Vector3(*position), surface)
+		target, ok := droneViewportWorldTarget(mouse, rl.Vector3(*position), game.chunkManager.SampleHeight)
 		if !rl.IsMouseButtonDown(rl.MouseLeftButton) || !ok {
 			laser.active = false
 			continue

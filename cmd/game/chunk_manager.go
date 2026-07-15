@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"path"
+	"slices"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 
@@ -12,34 +13,105 @@ import (
 
 type ChunkManager struct {
 	assets    *AssetManager
-	chunkData map[string]terrain.ChunkData
-	chunks    map[string]*TerrainChunk
+	chunkData map[ChunkCoords]terrain.ChunkData
+	chunks    map[ChunkCoords]*TerrainChunk
 }
 
 func NewChunkManager(assets *AssetManager) *ChunkManager {
 	return &ChunkManager{
 		assets:    assets,
-		chunkData: make(map[string]terrain.ChunkData),
-		chunks:    make(map[string]*TerrainChunk),
+		chunkData: make(map[ChunkCoords]terrain.ChunkData),
+		chunks:    make(map[ChunkCoords]*TerrainChunk),
 	}
 }
 
-func (manager *ChunkManager) LoadChunk(chunkName string) *TerrainChunk {
-	if chunk, ok := manager.chunks[chunkName]; ok {
+func (manager *ChunkManager) LoadDiskChunk(coords ChunkCoords, chunkName string) *TerrainChunk {
+	if chunk, ok := manager.chunks[coords]; ok {
 		return chunk
 	}
 
-	chunk := manager.buildChunk(chunkName)
-	manager.chunks[chunkName] = chunk
+	chunkData := manager.loadChunkData(coords, chunkName)
+	chunk := manager.buildChunk(coords, chunkData)
+	manager.chunks[coords] = chunk
 	return chunk
 }
 
-func (manager *ChunkManager) Chunk(chunkName string) *TerrainChunk {
-	chunk, ok := manager.chunks[chunkName]
+func (manager *ChunkManager) LoadGeneratedChunk(coords ChunkCoords, generator *ChunkGenerator) *TerrainChunk {
+	if chunk, ok := manager.chunks[coords]; ok {
+		return chunk
+	}
+
+	chunk := manager.buildChunk(coords, generator.GenerateFlat(coords))
+	manager.chunks[coords] = chunk
+	return chunk
+}
+
+func (manager *ChunkManager) Chunk(coords ChunkCoords) *TerrainChunk {
+	chunk, ok := manager.chunks[coords]
 	if !ok {
-		panic("terrain chunk not loaded: " + chunkName)
+		panic("terrain chunk not loaded: " + coords.String())
 	}
 	return chunk
+}
+
+func (manager *ChunkManager) ChunkAtWorldPosition(worldX, worldZ float32) *TerrainChunk {
+	preferredCoords := chunkCoordsForWorldPosition(worldX, worldZ)
+	if chunk, ok := manager.chunks[preferredCoords]; ok && chunk.ContainsWorldPosition(worldX, worldZ) {
+		return chunk
+	}
+
+	var candidate *TerrainChunk
+	for _, chunk := range manager.chunks {
+		if !chunk.ContainsWorldPosition(worldX, worldZ) {
+			continue
+		}
+
+		if candidate == nil || chunk.OriginX > candidate.OriginX || (chunk.OriginX == candidate.OriginX && chunk.OriginZ > candidate.OriginZ) {
+			candidate = chunk
+		}
+	}
+
+	if candidate == nil {
+		var nearest *TerrainChunk
+		bestDistance := int(^uint(0) >> 1)
+		for _, chunk := range manager.chunks {
+			dx := absInt(chunk.Coords.X - preferredCoords.X)
+			dz := absInt(chunk.Coords.Z - preferredCoords.Z)
+			distance := dx + dz
+			if nearest == nil || distance < bestDistance || (distance == bestDistance && (chunk.Coords.Z > nearest.Coords.Z || (chunk.Coords.Z == nearest.Coords.Z && chunk.Coords.X > nearest.Coords.X))) {
+				nearest = chunk
+				bestDistance = distance
+			}
+		}
+
+		if nearest == nil {
+			panic(fmt.Sprintf("terrain chunk not loaded for world position %.3f, %.3f", worldX, worldZ))
+		}
+
+		return nearest
+	}
+
+	return candidate
+}
+
+func (manager *ChunkManager) SampleHeight(worldX, worldZ float32) float32 {
+	return manager.ChunkAtWorldPosition(worldX, worldZ).SampleHeight(worldX, worldZ)
+}
+
+func (manager *ChunkManager) Chunks() []*TerrainChunk {
+	chunks := make([]*TerrainChunk, 0, len(manager.chunks))
+	for _, chunk := range manager.chunks {
+		chunks = append(chunks, chunk)
+	}
+
+	slices.SortFunc(chunks, func(a, b *TerrainChunk) int {
+		if a.Coords.Z != b.Coords.Z {
+			return a.Coords.Z - b.Coords.Z
+		}
+		return a.Coords.X - b.Coords.X
+	})
+
+	return chunks
 }
 
 func (manager *ChunkManager) Unload() {
@@ -48,21 +120,21 @@ func (manager *ChunkManager) Unload() {
 	}
 }
 
-func (manager *ChunkManager) buildChunk(chunkName string) *TerrainChunk {
-	chunk := manager.loadChunkData(chunkName)
-	tileImages := make(map[string]image.Image, len(chunk.TileDefinitions))
-	for _, tileDefinition := range chunk.TileDefinitions {
+func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.ChunkData) *TerrainChunk {
+	originX, originZ := chunkOriginForCoords(coords)
+	tileImages := make(map[string]image.Image, len(chunkData.TileDefinitions))
+	for _, tileDefinition := range chunkData.TileDefinitions {
 		tileImages[tileDefinition] = manager.assets.Image(path.Join("textures", tileDefinition))
 	}
 
-	surfaceMesh, err := terrain.BuildSurfaceMesh(chunk)
+	surfaceMesh, err := terrain.BuildSurfaceMesh(chunkData)
 	if err != nil {
-		panic(fmt.Errorf("build terrain mesh for chunk %q: %w", chunkName, err))
+		panic(fmt.Errorf("build terrain mesh for chunk %s: %w", coords.String(), err))
 	}
 
-	surfaceTexture, err := terrain.BuildSurfaceTexture(chunk, tileImages, terrainTexturePixelsPerTile)
+	surfaceTexture, err := terrain.BuildSurfaceTexture(chunkData, tileImages, terrainTexturePixelsPerTile)
 	if err != nil {
-		panic(fmt.Errorf("build terrain texture for chunk %q: %w", chunkName, err))
+		panic(fmt.Errorf("build terrain texture for chunk %s: %w", coords.String(), err))
 	}
 
 	mesh := newTerrainMesh(surfaceMesh)
@@ -77,7 +149,10 @@ func (manager *ChunkManager) buildChunk(chunkName string) *TerrainChunk {
 	)
 
 	return &TerrainChunk{
-		Data:           chunk,
+		Coords:         coords,
+		OriginX:        originX,
+		OriginZ:        originZ,
+		Data:           chunkData,
 		SurfaceMesh:    surfaceMesh,
 		SurfaceTexture: surfaceTexture,
 		Model:          &model,
@@ -87,8 +162,8 @@ func (manager *ChunkManager) buildChunk(chunkName string) *TerrainChunk {
 	}
 }
 
-func (manager *ChunkManager) loadChunkData(chunkName string) terrain.ChunkData {
-	if chunk, ok := manager.chunkData[chunkName]; ok {
+func (manager *ChunkManager) loadChunkData(coords ChunkCoords, chunkName string) terrain.ChunkData {
+	if chunk, ok := manager.chunkData[coords]; ok {
 		return chunk
 	}
 
@@ -98,7 +173,7 @@ func (manager *ChunkManager) loadChunkData(chunkName string) terrain.ChunkData {
 		panic(fmt.Errorf("load terrain chunk %q: %w", chunkPath, err))
 	}
 
-	manager.chunkData[chunkName] = chunk
+	manager.chunkData[coords] = chunk
 	return chunk
 }
 
@@ -111,4 +186,11 @@ func newTerrainMesh(surface *terrain.SurfaceMesh) rl.Mesh {
 		Normals:       &surface.Normals[0],
 		Indices:       &surface.Indices[0],
 	}
+}
+
+func absInt(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
 }

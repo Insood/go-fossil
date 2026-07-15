@@ -2,8 +2,6 @@ package main
 
 import (
 	rl "github.com/gen2brain/raylib-go/raylib"
-
-	"go-fossil/internal/terrain"
 )
 
 func droneViewportRectangle() rl.Rectangle {
@@ -30,7 +28,7 @@ func droneCameraForPosition(dronePosition rl.Vector3) rl.Camera3D {
 	)
 }
 
-func droneViewportWorldTarget(mouse rl.Vector2, dronePosition rl.Vector3, surface *terrain.SurfaceMesh) (rl.Vector3, bool) {
+func droneViewportWorldTarget(mouse rl.Vector2, dronePosition rl.Vector3, sampleHeight func(worldX, worldZ float32) float32) (rl.Vector3, bool) {
 	viewport := droneViewportRectangle()
 	if !rl.CheckCollisionPointRec(mouse, viewport) {
 		return rl.Vector3{}, false
@@ -40,7 +38,7 @@ func droneViewportWorldTarget(mouse rl.Vector2, dronePosition rl.Vector3, surfac
 	v := (mouse.Y - viewport.Y) / viewport.Height
 	worldX := dronePosition.X + (u-0.5)*droneViewSizeWorld
 	worldZ := dronePosition.Z + (v-0.5)*droneViewSizeWorld
-	worldY := surface.SampleHeight(worldX, worldZ)
+	worldY := sampleHeight(worldX, worldZ)
 
 	return rl.NewVector3(worldX, worldY, worldZ), true
 }

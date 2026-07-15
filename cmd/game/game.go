@@ -19,7 +19,12 @@ func InitializeGame() *Game {
 	assets := NewAssetManager()
 	assets.Load()
 	chunkManager := NewChunkManager(assets)
-	terrainChunk := chunkManager.LoadChunk(defaultChunkName)
+	defaultChunkCoords := ChunkCoords{X: 0, Z: 0}
+	northChunkCoords := ChunkCoords{X: 0, Z: -1}
+	chunkGenerator := NewChunkGenerator()
+
+	terrainChunk := chunkManager.LoadDiskChunk(defaultChunkCoords, defaultChunkName)
+	chunkManager.LoadGeneratedChunk(northChunkCoords, chunkGenerator)
 
 	game := &Game{
 		assets:            assets,
@@ -50,7 +55,6 @@ func newCamera(chunk *TerrainChunk) rl.Camera3D {
 }
 
 func (game *Game) spawnInitialEntities() {
-	game.spawnGroundPlane()
 	game.spawnDrone()
 	// game.spawnSceneProps()
 	game.spawnLight()
@@ -67,25 +71,8 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&DebugRenderSystem2D{})
 }
 
-func (game *Game) spawnGroundPlane() {
-	chunk := game.primaryChunk()
-	center := chunk.Center()
-	groundMapper := ecs.NewMap2[Position3, Renderable](game.world)
-	groundMapper.NewEntity(
-		&Position3{X: center.X, Y: 0, Z: center.Z},
-		&Renderable{
-			model:          chunk.Model,
-			scale:          1.0,
-			tint:           rl.White,
-			castsShadow:    false,
-			receivesShadow: true,
-		},
-	)
-}
-
 func (game *Game) spawnDrone() {
-	chunk := game.primaryChunk()
-	baseY := chunk.SurfaceMesh.SampleHeight(droneWorldSpawnX, droneWorldSpawnZ) + droneCenterY
+	baseY := game.chunkManager.SampleHeight(droneWorldSpawnX, droneWorldSpawnZ) + droneCenterY
 	droneMapper := ecs.NewMap6[Position3, Velocity3, Renderable, Drone, HoverMotion, Laser](game.world)
 	droneMapper.NewEntity(
 		&Position3{X: droneWorldSpawnX, Y: baseY, Z: droneWorldSpawnZ},
@@ -158,7 +145,7 @@ func (game *Game) spawnLight() {
 }
 
 func (game *Game) newLight() *Light {
-	center := game.primaryChunk().Center()
+	center := game.chunkManager.Chunk(ChunkCoords{X: 0, Z: 0}).Center()
 	return &Light{
 		origin:           rl.NewVector3(center.X+defaultLightOffsetX, lightHeight, center.Z+defaultLightOffsetZ),
 		target:           center,
@@ -188,8 +175,4 @@ func (game *Game) UnloadAssets() {
 	game.droneFramebuffer.Unload()
 	game.shadowFramebuffer.Unload()
 	game.assets.Unload()
-}
-
-func (game *Game) primaryChunk() *TerrainChunk {
-	return game.chunkManager.Chunk(defaultChunkName)
 }

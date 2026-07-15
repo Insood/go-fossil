@@ -8,19 +8,20 @@ import (
 )
 
 type DroneInputSystem struct {
-	filter *ecs.Filter2[Velocity3, Drone]
+	filter *ecs.Filter3[Position3, Velocity3, Drone]
 }
 
 func (system *DroneInputSystem) Initialize(game *Game) {
-	system.filter = ecs.NewFilter2[Velocity3, Drone](game.world)
+	system.filter = ecs.NewFilter3[Position3, Velocity3, Drone](game.world)
 }
 
 func (system *DroneInputSystem) Update(game *Game) {
+	dt := rl.GetFrameTime()
 	query := system.filter.Query()
 	defer query.Close()
 
 	for query.Next() {
-		velocity, _ := query.Get()
+		position, velocity, _ := query.Get()
 
 		input := rl.NewVector3(0, 0, 0)
 
@@ -51,10 +52,31 @@ func (system *DroneInputSystem) Update(game *Game) {
 			input = rl.Vector3Scale(input, droneTopSpeed)
 		}
 
-		velocity.X = input.X
-		velocity.Y = input.Y
-		velocity.Z = input.Z
+		desiredVelocity := Velocity3{X: input.X, Y: input.Y, Z: input.Z}
+		desiredVelocity = clampDroneVelocityToTerrainBounds(*position, desiredVelocity, dt, game.chunkManager)
+
+		velocity.X = desiredVelocity.X
+		velocity.Y = desiredVelocity.Y
+		velocity.Z = desiredVelocity.Z
 	}
+}
+
+func clampDroneVelocityToTerrainBounds(position Position3, velocity Velocity3, dt float32, chunkManager *ChunkManager) Velocity3 {
+	if dt <= 0 {
+		return velocity
+	}
+
+	nextX := position.X + velocity.X*dt
+	if !chunkManager.DroneFitsAtWorldPosition(nextX, position.Z) {
+		velocity.X = 0
+	}
+
+	nextZ := position.Z + velocity.Z*dt
+	if !chunkManager.DroneFitsAtWorldPosition(position.X, nextZ) {
+		velocity.Z = 0
+	}
+
+	return velocity
 }
 
 func applyGamepadDeadzone(value float32) float32 {

@@ -87,6 +87,26 @@ func (manager *ChunkManager) SampleHeight(worldX, worldZ float32) float32 {
 	return chunk.HeightAtWorldPosition(worldX, worldZ)
 }
 
+func (manager *ChunkManager) DroneFitsAtWorldPosition(worldX, worldZ float32) bool {
+	halfWidth := float32(droneWidth / 2)
+	halfDepth := float32(droneDepth / 2)
+
+	corners := [4]rl.Vector2{
+		rl.NewVector2(worldX-halfWidth, worldZ-halfDepth),
+		rl.NewVector2(worldX+halfWidth, worldZ-halfDepth),
+		rl.NewVector2(worldX-halfWidth, worldZ+halfDepth),
+		rl.NewVector2(worldX+halfWidth, worldZ+halfDepth),
+	}
+
+	for _, corner := range corners {
+		if _, ok := manager.ChunkForWorldPosition(corner.X, corner.Y); !ok {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (manager *ChunkManager) Chunks() []*TerrainChunk {
 	chunks := make([]*TerrainChunk, 0, len(manager.chunks))
 	for _, chunk := range manager.chunks {

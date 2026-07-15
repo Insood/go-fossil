@@ -78,6 +78,7 @@ When adding a feature, prefer this order:
 - `RenderSystem3D` currently owns the main scene render flow, the drone bottom-camera viewport pass, and the temporary shadow-depth debug pass.
 - `DebugRenderSystem2D` owns the top-right raygui overlay for live shadow tuning controls, including the current light origin and orthographic size.
 - `F10` toggles the debug overlays, and `F11` exports the framebuffer depth texture for inspection.
+- Drone movement is clamped so its 1x1 footprint stays within loaded terrain chunk extents in X/Z.
 - The current shadow work is intentionally incremental; prefer tiny, verifiable slices before introducing actual shadow sampling into the lit scene.
 
 ## Things Not To Do

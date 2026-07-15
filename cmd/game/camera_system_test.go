@@ -32,28 +32,28 @@ func TestCameraSystemSlidesWithinDeadZone(t *testing.T) {
 	system.Initialize(game)
 
 	system.Update(game)
-	assertCameraState(t, game.camera, 4, 1, 4, 15, 16, 15)
+	assertCameraState(t, game.camera, 4, 0.5, 4, 15, 15.5, 15)
 
 	position, _ := droneMapper.Get(droneEntity)
 	position.Z = 8
 	system.Update(game)
-	assertCameraState(t, game.camera, 4, 1, 4, 15, 16, 15)
+	assertCameraState(t, game.camera, 4, 0.5, 4, 15, 15.5, 15)
 
 	position.Z = 9
 	system.Update(game)
-	assertCameraState(t, game.camera, 4, 1, 5, 15, 16, 16)
+	assertCameraState(t, game.camera, 4, 0.5, 5, 15, 15.5, 16)
 
-	position.Y = 3
+	position.Y = 4
 	system.Update(game)
-	assertCameraState(t, game.camera, 4, 2, 5, 15, 17, 16)
+	assertCameraState(t, game.camera, 4, 2.5, 5, 15, 17.5, 16)
 
 	position.Z = 1
 	system.Update(game)
-	assertCameraState(t, game.camera, 4, 2, 5, 15, 17, 16)
+	assertCameraState(t, game.camera, 4, 2.5, 5, 15, 17.5, 16)
 
 	position.Z = 0
 	system.Update(game)
-	assertCameraState(t, game.camera, 4, 2, 4, 15, 17, 15)
+	assertCameraState(t, game.camera, 4, 2.5, 4, 15, 17.5, 15)
 }
 
 func assertCameraState(t *testing.T, camera rl.Camera3D, wantTargetX, wantTargetY, wantTargetZ, wantPosX, wantPosY, wantPosZ float32) {

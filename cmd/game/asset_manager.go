@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/color"
 	_ "image/jpeg"
 	"image/png"
 	"io/fs"
@@ -40,40 +41,37 @@ func NewAssetManager() *AssetManager {
 }
 
 func (assets *AssetManager) Load() {
-	assets.loadShaders()
 	assets.loadImages()
 	assets.loadArtifactDefinitions()
 	assets.loadTextures()
+	assets.loadShaders()
 	assets.loadModels()
 }
 
-func (assets *AssetManager) ArtifactDefinition(name string) *ArtifactDefinition {
+func (assets *AssetManager) LookupArtifactDefinition(name string) (*ArtifactDefinition, bool) {
 	definition, ok := assets.artifactDefinitions[name]
-	if !ok {
-		panic(fmt.Errorf("artifact definition %q not loaded", name))
-	}
-	return definition
+	return definition, ok
 }
 
-func (assets *AssetManager) Image(assetPath string) image.Image {
+func (assets *AssetManager) LookupImage(assetPath string) (image.Image, bool) {
 	normalizedPath := path.Clean(assetPath)
 	img, ok := assets.images[normalizedPath]
-	if !ok {
-		img = assets.mustLoadImage(normalizedPath)
-	}
-	return img
+	return img, ok
 }
 
-func (assets *AssetManager) Model(name string) *rl.Model {
-	return assets.models[name]
+func (assets *AssetManager) LookupModel(name string) (*rl.Model, bool) {
+	model, ok := assets.models[name]
+	return model, ok
 }
 
-func (assets *AssetManager) Shader(name string) rl.Shader {
-	return assets.shaders[name]
+func (assets *AssetManager) LookupShader(name string) (rl.Shader, bool) {
+	shader, ok := assets.shaders[name]
+	return shader, ok
 }
 
-func (assets *AssetManager) Texture(name string) rl.Texture2D {
-	return assets.textures[name]
+func (assets *AssetManager) LookupTexture(name string) (rl.Texture2D, bool) {
+	texture, ok := assets.textures[name]
+	return texture, ok
 }
 
 func (assets *AssetManager) Unload() {
@@ -89,24 +87,27 @@ func (assets *AssetManager) Unload() {
 }
 
 func (assets *AssetManager) loadShaders() {
-	for name, sources := range assets.shaderAssetSources() {
-		assets.shaders[name] = rl.LoadShaderFromMemory(sources.vertex, sources.fragment)
+	sources := assets.shaderAssetSources()
+	for name, source := range sources {
+		assets.shaders[name] = rl.LoadShaderFromMemory(source.vertex, source.fragment)
 	}
 }
 
 func (assets *AssetManager) loadImages() {
 	const textureDir = "textures"
 
-	for _, fileName := range assetFileNames(assets.assetFS, textureDir, ".png", ".jpg", ".jpeg") {
+	fileNames := assetFileNames(assets.assetFS, textureDir, ".png", ".jpg", ".jpeg")
+	for _, fileName := range fileNames {
 		assetPath := path.Join(textureDir, fileName)
-		assets.images[assetPath] = assets.mustLoadImage(assetPath)
+		assets.images[assetPath] = loadTextureImageAsset(assets.assetFS, assetPath)
 	}
 }
 
 func (assets *AssetManager) loadArtifactDefinitions() {
 	const artifactDir = "artifacts"
 
-	for _, fileName := range assetFileNames(assets.assetFS, artifactDir, ".json") {
+	fileNames := assetFileNames(assets.assetFS, artifactDir, ".json")
+	for _, fileName := range fileNames {
 		definitionPath := path.Join(artifactDir, fileName)
 		definition, err := loadArtifactDefinitionAsset(assets.assetFS, definitionPath)
 		if err != nil {
@@ -116,7 +117,9 @@ func (assets *AssetManager) loadArtifactDefinitions() {
 			panic(fmt.Errorf("artifact definition %q declared more than once", definition.Name))
 		}
 
-		assets.Image(definition.ImagePath)
+		if _, ok := assets.LookupImage(definition.ImagePath); !ok {
+			panic(fmt.Errorf("artifact definition %q references missing image %q", definition.Name, definition.ImagePath))
+		}
 		definitionCopy := definition
 		assets.artifactDefinitions[definitionCopy.Name] = &definitionCopy
 	}
@@ -128,12 +131,21 @@ func (assets *AssetManager) loadTextures() {
 	assets.textures["white"] = loadSolidTexture(rl.White)
 	assets.textures["blank"] = loadSolidTexture(rl.Blank)
 
-	for _, fileName := range assetFileNames(assets.assetFS, textureDir, ".png", ".jpg", ".jpeg") {
+	fileNames := assetFileNames(assets.assetFS, textureDir, ".png", ".jpg", ".jpeg")
+	for _, fileName := range fileNames {
 		assetPath := path.Join(textureDir, fileName)
 		textureName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 
-		texture := loadTextureFromImage(assets.Image(assetPath))
+		img, ok := assets.LookupImage(assetPath)
+		if !ok {
+			panic(fmt.Errorf("texture %q references missing image %q", textureName, assetPath))
+		}
+
+		texture := loadTextureFromImageAsset(img)
 		rl.SetTextureWrap(texture, rl.WrapRepeat)
+		if _, exists := assets.textures[textureName]; exists {
+			panic(fmt.Errorf("texture %q declared more than once", textureName))
+		}
 		assets.textures[textureName] = texture
 	}
 }
@@ -142,16 +154,6 @@ func (assets *AssetManager) loadModels() {
 	assets.models["drone"] = assets.loadDroneModel()
 	assets.models["prop_cube"] = assets.loadUnitCubeModel()
 	assets.models["prop_sphere"] = assets.loadUnitSphereModel()
-}
-
-func (assets *AssetManager) mustLoadImage(assetPath string) image.Image {
-	img, err := loadTextureImageAsset(assets.assetPath(assetPath))
-	if err != nil {
-		panic(fmt.Errorf("load image asset %q: %w", assetPath, err))
-	}
-
-	assets.images[assetPath] = img
-	return img
 }
 
 func (assets *AssetManager) loadDroneModel() *rl.Model {
@@ -174,14 +176,18 @@ func (assets *AssetManager) loadUnitSphereModel() *rl.Model {
 func configureShadowReceiverMaterial(model *rl.Model, assets *AssetManager) {
 	materials := model.GetMaterials()
 	for i := range materials {
-		materials[i].Shader = assets.shaders["shadow_receiver"]
+		materials[i].Shader = Must(assets.LookupShader("shadow_receiver"))
 		materials[i].GetMap(rl.MapAlbedo).Color = rl.White
 		if materials[i].GetMap(rl.MapAlbedo).Texture.ID == 0 {
-			rl.SetMaterialTexture(&materials[i], rl.MapAlbedo, assets.Texture("white"))
+			rl.SetMaterialTexture(&materials[i], rl.MapAlbedo, Must(assets.LookupTexture("white")))
 		}
 		materials[i].GetMap(rl.MapEmission).Color = rl.White
 		if materials[i].GetMap(rl.MapEmission).Texture.ID == 0 {
-			rl.SetMaterialTexture(&materials[i], rl.MapEmission, assets.Texture("blank"))
+			rl.SetMaterialTexture(&materials[i], rl.MapEmission, Must(assets.LookupTexture("blank")))
+		}
+		materials[i].GetMap(rl.MapOcclusion).Color = rl.White
+		if materials[i].GetMap(rl.MapOcclusion).Texture.ID == 0 {
+			rl.SetMaterialTexture(&materials[i], rl.MapOcclusion, Must(assets.LookupTexture("blank")))
 		}
 		materials[i].Shader.UpdateLocation(
 			rl.ShaderLocMapHeight,
@@ -190,6 +196,10 @@ func configureShadowReceiverMaterial(model *rl.Model, assets *AssetManager) {
 		materials[i].Shader.UpdateLocation(
 			rl.ShaderLocMapEmission,
 			rl.GetShaderLocation(materials[i].Shader, "texture1"),
+		)
+		materials[i].Shader.UpdateLocation(
+			rl.ShaderLocMapOcclusion,
+			rl.GetShaderLocation(materials[i].Shader, "texture2"),
 		)
 	}
 }
@@ -241,7 +251,9 @@ func (assets *AssetManager) shaderAssetSources() map[string]shaderFiles {
 	const shaderDir = "shaders"
 
 	sources := make(map[string]shaderFiles)
-	for _, fileName := range assetFileNames(assets.assetFS, shaderDir, ".vs", ".vert", ".fs", ".frag") {
+	fileNames := assetFileNames(assets.assetFS, shaderDir, ".vs", ".vert", ".fs", ".frag")
+
+	for _, fileName := range fileNames {
 		ext := strings.ToLower(filepath.Ext(fileName))
 		stem := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 		sourcePath := path.Join(shaderDir, fileName)
@@ -254,10 +266,16 @@ func (assets *AssetManager) shaderAssetSources() map[string]shaderFiles {
 		switch ext {
 		case ".vs", ".vert":
 			current := sources[stem]
+			if current.vertex != "" {
+				panic(fmt.Errorf("shader %q has more than one vertex source", stem))
+			}
 			current.vertex = source
 			sources[stem] = current
 		case ".fs", ".frag":
 			current := sources[stem]
+			if current.fragment != "" {
+				panic(fmt.Errorf("shader %q has more than one fragment source", stem))
+			}
 			current.fragment = source
 			sources[stem] = current
 		}
@@ -272,24 +290,35 @@ func (assets *AssetManager) shaderAssetSources() map[string]shaderFiles {
 	return sources
 }
 
-func loadTextureImageAsset(assetPath string) (image.Image, error) {
-	data, err := os.ReadFile(assetPath)
+func loadTextureImageAsset(assetFS fs.FS, assetPath string) image.Image {
+	data, err := fs.ReadFile(assetFS, assetPath)
 	if err != nil {
-		return nil, fmt.Errorf("read texture asset %q: %w", assetPath, err)
+		panic(fmt.Errorf("read texture asset %q: %w", assetPath, err))
 	}
 
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("decode texture asset %q: %w", assetPath, err)
+		panic(fmt.Errorf("decode texture asset %q: %w", assetPath, err))
 	}
 
-	return img, nil
+	return img
 }
 
-func loadSolidTexture(color rl.Color) rl.Texture2D {
-	image := rl.GenImageColor(1, 1, color)
+func loadSolidTexture(fill rl.Color) rl.Texture2D {
+	solid := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	solid.SetRGBA(0, 0, color.RGBAModel.Convert(fill).(color.RGBA))
+	return loadTextureFromImageAsset(solid)
+}
+
+func loadTextureFromImageAsset(src image.Image) rl.Texture2D {
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, src); err != nil {
+		panic(fmt.Errorf("encode texture image: %w", err))
+	}
+
+	image := rl.LoadImageFromMemory(".png", encoded.Bytes(), int32(encoded.Len()))
 	if image == nil {
-		panic("generate solid texture image")
+		panic("load texture image from encoded memory")
 	}
 	defer rl.UnloadImage(image)
 

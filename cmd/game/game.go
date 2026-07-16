@@ -79,7 +79,7 @@ func (game *Game) spawnDrone() {
 		&Position3{X: droneWorldSpawnX, Y: baseY, Z: droneWorldSpawnZ},
 		&Velocity3{},
 		&Renderable{
-			model:          game.assets.Model("drone"),
+			model:          Must(game.assets.LookupModel("drone")),
 			scale:          1.0,
 			tint:           rl.White,
 			castsShadow:    true,
@@ -128,7 +128,7 @@ func (game *Game) spawnSceneProps() {
 		renderableMapper.NewEntity(
 			&Position3{X: position.X, Y: position.Y, Z: position.Z},
 			&Renderable{
-				model:          game.assets.Model(prop.modelName),
+				model:          Must(game.assets.LookupModel(prop.modelName)),
 				scale:          1.0,
 				tint:           prop.tint,
 				castsShadow:    true,

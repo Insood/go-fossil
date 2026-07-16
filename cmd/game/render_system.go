@@ -179,7 +179,7 @@ func (system *RenderSystem3D) saveDepthBufferScreenshot(game *Game) {
 	}
 	defer rl.UnloadRenderTexture(depthRender)
 
-	depthShader := game.assets.Shader("depth_render")
+	depthShader := Must(game.assets.LookupShader("depth_render"))
 	nearPlaneLoc := rl.GetShaderLocation(depthShader, "nearPlane")
 	farPlaneLoc := rl.GetShaderLocation(depthShader, "farPlane")
 	isOrthographicLoc := rl.GetShaderLocation(depthShader, "isOrthographic")
@@ -223,7 +223,7 @@ func (system *RenderSystem3D) saveDepthBufferScreenshot(game *Game) {
 }
 
 func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCamera rl.Camera3D, darkness float32) {
-	shadowShader := game.assets.Shader("shadow_receiver")
+	shadowShader := Must(game.assets.LookupShader("shadow_receiver"))
 	lightViewProjectionLoc := rl.GetShaderLocation(shadowShader, "lightViewProjection")
 	lightDirectionLoc := rl.GetShaderLocation(shadowShader, "lightDirection")
 	shadowBiasLoc := rl.GetShaderLocation(shadowShader, "shadowBias")

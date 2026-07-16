@@ -41,8 +41,7 @@ const (
 	droneViewNearPlane = 0.01
 	droneViewFarPlane  = 16.0
 
-	laserHitMarkerRadius   = 0.015
-	burnOverlayBrushRadius = 1
+	laserHitMarkerRadius = 0.015
 
 	lightHeight         = 10
 	defaultLightOffsetX = 0

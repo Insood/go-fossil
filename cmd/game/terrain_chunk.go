@@ -125,42 +125,21 @@ func (chunk *TerrainChunk) AddBurnMark(worldX, worldZ float32) bool {
 	pixelY := int(localZ * float32(bounds.Dy()) / float32(chunk.Data.Height))
 	pixelX = clampInt(pixelX, bounds.Min.X, bounds.Max.X-1)
 	pixelY = clampInt(pixelY, bounds.Min.Y, bounds.Max.Y-1)
-	return chunk.paintBurnMark(pixelX, pixelY, burnOverlayBrushRadius)
+	return chunk.paintBurnMark(pixelX, pixelY)
 }
 
-func (chunk *TerrainChunk) paintBurnMark(centerX, centerY, radius int) bool {
-	if radius < 0 {
+func (chunk *TerrainChunk) paintBurnMark(x, y int) bool {
+	if chunk == nil || chunk.BurnOverlayImage == nil {
 		return false
 	}
 
 	bounds := chunk.BurnOverlayImage.Bounds()
-	minX := clampInt(centerX-radius, bounds.Min.X, bounds.Max.X-1)
-	maxX := clampInt(centerX+radius, bounds.Min.X, bounds.Max.X-1)
-	minY := clampInt(centerY-radius, bounds.Min.Y, bounds.Max.Y-1)
-	maxY := clampInt(centerY+radius, bounds.Min.Y, bounds.Max.Y-1)
-	if minX > maxX || minY > maxY {
+	if !image.Pt(x, y).In(bounds) {
 		return false
 	}
 
-	changed := false
-	for y := minY; y <= maxY; y++ {
-		for x := minX; x <= maxX; x++ {
-			dx := x - centerX
-			dy := y - centerY
-			if dx*dx+dy*dy > radius*radius {
-				continue
-			}
-
-			chunk.BurnOverlayImage.SetRGBA(x, y, color.RGBA{A: 255})
-			changed = true
-		}
-	}
-
-	if !changed {
-		return false
-	}
-
-	chunk.uploadBurnOverlayRect(image.Rect(minX, minY, maxX+1, maxY+1))
+	chunk.BurnOverlayImage.SetRGBA(x, y, color.RGBA{A: 255})
+	chunk.uploadBurnOverlayRect(image.Rect(x, y, x+1, y+1))
 	return true
 }
 

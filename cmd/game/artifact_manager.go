@@ -1,6 +1,8 @@
 package main
 
-import "image"
+import (
+	"image"
+)
 
 type ArtifactManager struct {
 	nextID    uint32

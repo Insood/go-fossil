@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
 )
@@ -25,6 +27,8 @@ func (system *DebugRender3DSystem) Update(game *Game) {
 	system.drawDroneGroundRay()
 	system.drawLightGuide()
 	rl.EndMode3D()
+
+	system.drawArtifactLabels(game)
 }
 
 func (system *DebugRender3DSystem) drawCoordinateSystemAt(origin rl.Vector3) {
@@ -60,4 +64,29 @@ func (system *DebugRender3DSystem) drawLightGuide() {
 	light := query.Get()
 	rl.DrawLine3D(light.origin, light.target, rl.SkyBlue)
 	rl.DrawSphere(light.origin, 0.1, rl.Blue)
+}
+
+func (system *DebugRender3DSystem) drawArtifactLabels(game *Game) {
+	const (
+		fontSize = 16
+		spacing  = 1
+	)
+
+	for _, artifact := range game.artifactManager.artifacts {
+		if artifact == nil || artifact.Chunk == nil {
+			continue
+		}
+
+		worldX := artifact.Chunk.OriginX + artifact.CenterX/float32(terrainTexturePixelsPerTile)
+		worldZ := artifact.Chunk.OriginZ + artifact.CenterZ/float32(terrainTexturePixelsPerTile)
+		worldY := artifact.Chunk.HeightAtWorldPosition(worldX, worldZ) + 0.25
+		screenPos := rl.GetWorldToScreen(rl.NewVector3(worldX, worldY, worldZ), game.camera)
+		label := fmt.Sprintf("%d", artifact.ID)
+
+		textSize := rl.MeasureTextEx(rl.GetFontDefault(), label, fontSize, spacing)
+		labelPos := rl.NewVector2(screenPos.X-textSize.X/2, screenPos.Y-textSize.Y)
+
+		rl.DrawTextEx(rl.GetFontDefault(), label, rl.NewVector2(labelPos.X+1, labelPos.Y+1), fontSize, spacing, rl.Black)
+		rl.DrawTextEx(rl.GetFontDefault(), label, labelPos, fontSize, spacing, rl.Yellow)
+	}
 }

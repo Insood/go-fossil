@@ -134,12 +134,19 @@ func (chunk *TerrainChunk) paintBurnMark(x, y int) bool {
 	}
 
 	bounds := chunk.BurnOverlayImage.Bounds()
-	if !image.Pt(x, y).In(bounds) {
+	maskBounds := image.Rect(x, y, x+2, y+2)
+	clippedBounds := maskBounds.Intersect(bounds)
+	if clippedBounds.Empty() {
 		return false
 	}
 
-	chunk.BurnOverlayImage.SetRGBA(x, y, color.RGBA{A: 255})
-	chunk.uploadBurnOverlayRect(image.Rect(x, y, x+1, y+1))
+	for py := clippedBounds.Min.Y; py < clippedBounds.Max.Y; py++ {
+		for px := clippedBounds.Min.X; px < clippedBounds.Max.X; px++ {
+			chunk.BurnOverlayImage.SetRGBA(px, py, color.RGBA{A: 255})
+		}
+	}
+
+	chunk.uploadBurnOverlayRect(clippedBounds)
 	return true
 }
 

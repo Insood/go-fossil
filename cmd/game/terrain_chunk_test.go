@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestPaintBurnMarkSetsOnlyExactPixel(t *testing.T) {
+func TestPaintBurnMarkSets2x2Mask(t *testing.T) {
 	t.Parallel()
 
 	chunk := &TerrainChunk{
@@ -21,7 +21,7 @@ func TestPaintBurnMarkSetsOnlyExactPixel(t *testing.T) {
 		for x := 0; x < 5; x++ {
 			got := chunk.BurnOverlayImage.RGBAAt(x, y)
 			want := color.RGBA{}
-			if x == 2 && y == 3 {
+			if x >= 2 && x <= 3 && y >= 3 && y <= 4 {
 				want = color.RGBA{A: 255}
 			}
 			if got != want {
@@ -30,4 +30,3 @@ func TestPaintBurnMarkSetsOnlyExactPixel(t *testing.T) {
 		}
 	}
 }
-

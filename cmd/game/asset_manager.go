@@ -75,6 +75,16 @@ func (assets *AssetManager) LookupTexture(name string) (rl.Texture2D, bool) {
 }
 
 func (assets *AssetManager) Unload() {
+	sharedTextureIDs := assets.textureIDs()
+	modelTextures := assets.collectModelTextures(sharedTextureIDs)
+
+	// raylib's model teardown does not release textures referenced by material
+	// maps, so we collect the model-owned textures first. Shared asset textures
+	// stay owned by assets.textures and are skipped here to avoid double frees.
+	for _, texture := range modelTextures {
+		rl.UnloadTexture(texture)
+	}
+
 	for _, model := range assets.models {
 		rl.UnloadModel(*model)
 	}
@@ -84,6 +94,55 @@ func (assets *AssetManager) Unload() {
 	for _, shader := range assets.shaders {
 		rl.UnloadShader(shader)
 	}
+}
+
+func (assets *AssetManager) textureIDs() map[uint32]struct{} {
+	textureIDs := make(map[uint32]struct{}, len(assets.textures))
+	for _, texture := range assets.textures {
+		if texture.ID == 0 {
+			continue
+		}
+
+		textureIDs[texture.ID] = struct{}{}
+	}
+
+	return textureIDs
+}
+
+func (assets *AssetManager) collectModelTextures(sharedTextureIDs map[uint32]struct{}) map[uint32]rl.Texture2D {
+	ownedTextures := make(map[uint32]rl.Texture2D)
+
+	for _, model := range assets.models {
+		if model == nil || model.MaterialCount == 0 || model.Materials == nil {
+			continue
+		}
+
+		for _, material := range model.GetMaterials() {
+			if material.Maps == nil {
+				continue
+			}
+
+			for mapType := int32(0); mapType < rl.MaxMaterialMaps; mapType++ {
+				texture := material.GetMap(mapType).Texture
+				if !shouldUnloadTexture(texture, sharedTextureIDs) {
+					continue
+				}
+
+				ownedTextures[texture.ID] = texture
+			}
+		}
+	}
+
+	return ownedTextures
+}
+
+func shouldUnloadTexture(texture rl.Texture2D, sharedTextureIDs map[uint32]struct{}) bool {
+	if texture.ID == 0 || texture.ID == rl.GetTextureIdDefault() {
+		return false
+	}
+
+	_, shared := sharedTextureIDs[texture.ID]
+	return !shared
 }
 
 func (assets *AssetManager) loadShaders() {

@@ -49,10 +49,50 @@ func (chunk *TerrainChunk) Unload() {
 		return
 	}
 
+	if chunk.Model != nil {
+		// The model wraps mesh buffers that originated from Go slices, so we
+		// strip those pointers before UnloadModel. raylib will then free the
+		// C-side model/material allocations without trying to free Go memory.
+		sanitizeModelMeshesForUnload(chunk.Model)
+	}
+
+	if chunk.Mesh.VaoID != 0 {
+		rl.UnloadMesh(&chunk.Mesh)
+	}
+
+	if chunk.Model != nil {
+		rl.UnloadModel(*chunk.Model)
+		chunk.Model = nil
+	}
+
 	rl.UnloadTexture(chunk.BaseTexture)
 	rl.UnloadTexture(chunk.ArtifactTexture)
 	rl.UnloadTexture(chunk.BurnOverlayTexture)
-	rl.UnloadMesh(&chunk.Mesh)
+	chunk.BaseTexture = rl.Texture2D{}
+	chunk.ArtifactTexture = rl.Texture2D{}
+	chunk.BurnOverlayTexture = rl.Texture2D{}
+	chunk.Mesh = rl.Mesh{}
+}
+
+// sanitizeModelMeshesForUnload clears mesh pointers that point at Go-owned
+// buffers so raylib's model teardown only releases its own allocations.
+func sanitizeModelMeshesForUnload(model *rl.Model) {
+	meshes := model.GetMeshes()
+	for i := range meshes {
+		meshes[i].Vertices = nil
+		meshes[i].Texcoords = nil
+		meshes[i].Texcoords2 = nil
+		meshes[i].Normals = nil
+		meshes[i].Tangents = nil
+		meshes[i].Colors = nil
+		meshes[i].Indices = nil
+		meshes[i].BoneIndices = nil
+		meshes[i].BoneWeights = nil
+		meshes[i].AnimVertices = nil
+		meshes[i].AnimNormals = nil
+		meshes[i].VaoID = 0
+		meshes[i].VboID = nil
+	}
 }
 
 func (chunk *TerrainChunk) BurnOverlayBounds() image.Rectangle {

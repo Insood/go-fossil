@@ -14,6 +14,7 @@ type Game struct {
 	shadowFramebuffer *Framebuffer
 	world             *ecs.World
 	systems           []System
+	Tick              int
 }
 
 func InitializeGame() *Game {
@@ -172,6 +173,7 @@ func (game *Game) UpdateSystems() {
 	for _, system := range game.systems {
 		system.Update(game)
 	}
+	game.Tick++
 }
 
 func (game *Game) UnloadAssets() {

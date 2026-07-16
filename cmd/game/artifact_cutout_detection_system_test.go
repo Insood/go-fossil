@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"image"
+	"image/color"
 	"os"
 	"strings"
 	"testing"
@@ -28,6 +29,7 @@ func TestArtifactCutoutDetectionSystemScansOnSixtiethTickAndClearsDamage(t *test
 			Width:  4,
 			Height: 4,
 		},
+		ArtifactImage:    image.NewRGBA(image.Rect(0, 0, 4, 4)),
 		BurnOverlayImage: image.NewRGBA(image.Rect(0, 0, 4, 4)),
 		ArtifactData:     NewArtifactData(image.Rect(0, 0, 3, 3)),
 	}
@@ -36,6 +38,8 @@ func TestArtifactCutoutDetectionSystemScansOnSixtiethTickAndClearsDamage(t *test
 		chunk.ArtifactData.SetID(x, 0, 1)
 		chunk.ArtifactData.SetID(x, 2, 2)
 		chunk.ArtifactData.SetID(x, 1, -1)
+		chunk.ArtifactImage.SetRGBA(x, 0, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+		chunk.ArtifactImage.SetRGBA(x, 2, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 	}
 
 	manager.registerTerrainChunkEntity(chunk)
@@ -98,6 +102,29 @@ func TestArtifactCutoutDetectionSystemScansOnSixtiethTickAndClearsDamage(t *test
 	}
 	if !strings.Contains(got, "artifact region -3 size: 3") {
 		t.Fatalf("output = %q, want second region line", got)
+	}
+	for x := 0; x < 3; x++ {
+		if got := chunk.ArtifactData.IDAt(x, 0); got != -1 {
+			t.Fatalf("top row artifact data at %d = %d, want -1", x, got)
+		}
+		if got := chunk.ArtifactData.IDAt(x, 2); got != -1 {
+			t.Fatalf("bottom row artifact data at %d = %d, want -1", x, got)
+		}
+		if got := chunk.ArtifactImage.RGBAAt(x, 0); got.A != 0 {
+			t.Fatalf("top row artifact alpha at %d = %d, want 0", x, got.A)
+		}
+		if got := chunk.ArtifactImage.RGBAAt(x, 2); got.A != 0 {
+			t.Fatalf("bottom row artifact alpha at %d = %d, want 0", x, got.A)
+		}
+		if got := chunk.BurnOverlayImage.RGBAAt(x, 0); got.A != dugOutOverlayAlpha {
+			t.Fatalf("top row burn alpha at %d = %d, want %d", x, got.A, dugOutOverlayAlpha)
+		}
+		if got := chunk.BurnOverlayImage.RGBAAt(x, 2); got.A != dugOutOverlayAlpha {
+			t.Fatalf("bottom row burn alpha at %d = %d, want %d", x, got.A, dugOutOverlayAlpha)
+		}
+	}
+	if got := chunk.BurnOverlayImage.RGBAAt(0, 1); got.A != 0 {
+		t.Fatalf("middle row burn alpha = %d, want 0", got.A)
 	}
 	if system.damageMap.Has(chunk.Entity) {
 		t.Fatal("damage tag was not cleared after the scan")

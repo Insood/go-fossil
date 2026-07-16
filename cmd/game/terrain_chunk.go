@@ -144,7 +144,7 @@ func (chunk *TerrainChunk) paintBurnMark(x, y int) bool {
 
 	for py := clippedBounds.Min.Y; py < clippedBounds.Max.Y; py++ {
 		for px := clippedBounds.Min.X; px < clippedBounds.Max.X; px++ {
-			chunk.BurnOverlayImage.SetRGBA(px, py, color.RGBA{A: 255})
+			chunk.BurnOverlayImage.SetRGBA(px, py, color.RGBA{A: burnOverlayAlpha})
 			if chunk.ArtifactData != nil {
 				chunk.ArtifactData.SetID(px, py, -1)
 			}
@@ -169,6 +169,25 @@ func (chunk *TerrainChunk) uploadBurnOverlayRect(rect image.Rectangle) {
 
 	rl.UpdateTextureRec(
 		chunk.BurnOverlayTexture,
+		rl.NewRectangle(float32(rect.Min.X), float32(rect.Min.Y), float32(rect.Dx()), float32(rect.Dy())),
+		pixels,
+	)
+}
+
+func (chunk *TerrainChunk) uploadArtifactImageRect(rect image.Rectangle) {
+	if chunk.ArtifactTexture.ID == 0 || rect.Empty() {
+		return
+	}
+
+	pixels := make([]color.RGBA, 0, rect.Dx()*rect.Dy())
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			pixels = append(pixels, chunk.ArtifactImage.RGBAAt(x, y))
+		}
+	}
+
+	rl.UpdateTextureRec(
+		chunk.ArtifactTexture,
 		rl.NewRectangle(float32(rect.Min.X), float32(rect.Min.Y), float32(rect.Dx()), float32(rect.Dy())),
 		pixels,
 	)

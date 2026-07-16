@@ -36,6 +36,8 @@ Current terrain rendering approach:
 - one baked albedo texture composed from tile textures
 - a baked artifact overlay texture composed from authored artifact placements
 - a matching burn overlay texture tracks laser marks and other painted state
+- small cutout regions can be converted from hard burn marks into a softer dug-out overlay once the detector accepts the region
+- accepted cutout regions also clear the artifact overlay so the remaining view is burned ground without the hidden artifact art
 
 Open question for future implementation:
 

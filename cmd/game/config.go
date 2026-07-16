@@ -43,6 +43,9 @@ const (
 
 	laserHitMarkerRadius             = 0.015
 	artifactCutoutDetectionScanTicks = 60
+	MaximumRegionSize                = 4096
+	burnOverlayAlpha                 = 255
+	dugOutOverlayAlpha               = 128
 
 	lightHeight         = 10
 	defaultLightOffsetX = 0

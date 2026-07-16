@@ -22,7 +22,7 @@ func TestPaintBurnMarkSets2x2Mask(t *testing.T) {
 			got := chunk.BurnOverlayImage.RGBAAt(x, y)
 			want := color.RGBA{}
 			if x >= 2 && x <= 3 && y >= 3 && y <= 4 {
-			want = color.RGBA{A: 255}
+				want = color.RGBA{A: burnOverlayAlpha}
 			}
 			if got != want {
 				t.Fatalf("pixel (%d,%d) = %#v, want %#v", x, y, got, want)

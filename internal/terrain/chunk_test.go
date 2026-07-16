@@ -38,6 +38,9 @@ func TestLoadChunkDataSuccess(t *testing.T) {
     [2.1, 2.35, 2.6, 2.75, 2.9, 3.05, 3.2, 3.35, 3.5],
     [2.2, 2.45, 2.6, 2.75, 2.9, 3.05, 3.2, 3.35, 3.5],
     [2.3, 2.55, 2.7, 2.85, 3.0, 3.15, 3.3, 3.4, 3.5]
+  ],
+  "artifacts": [
+    { "name": "phone", "x": 128, "z": 128, "orientation": 45 }
   ]
 }`),
 		},
@@ -66,6 +69,21 @@ func TestLoadChunkDataSuccess(t *testing.T) {
 	if chunk.Name != "Default Chunk" {
 		t.Fatalf("unexpected chunk name: got %q", chunk.Name)
 	}
+	if got, want := len(chunk.Artifacts), 1; got != want {
+		t.Fatalf("artifact count = %d, want %d", got, want)
+	}
+	if got := chunk.Artifacts[0].Name; got != "phone" {
+		t.Fatalf("artifact name = %q, want phone", got)
+	}
+	if got := chunk.Artifacts[0].X; got != 128 {
+		t.Fatalf("artifact x = %v, want 128", got)
+	}
+	if got := chunk.Artifacts[0].Z; got != 128 {
+		t.Fatalf("artifact z = %v, want 128", got)
+	}
+	if got := chunk.Artifacts[0].Orientation; got != 45 {
+		t.Fatalf("artifact orientation = %v, want 45", got)
+	}
 }
 
 func TestLoadChunkDataValidationErrors(t *testing.T) {
@@ -88,6 +106,21 @@ func TestLoadChunkDataValidationErrors(t *testing.T) {
 				},
 			},
 			wantErr: `missing required key "height_samples"`,
+		},
+		{
+			name: "artifact missing name",
+			chunkFS: fstest.MapFS{
+				"terrain_chunks/chunk.json": &fstest.MapFile{
+					Data: []byte(`{
+  "name": "Chunk",
+  "tiles": [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]],
+  "tile_definitions": ["ground_grid.png"],
+  "height_samples": [[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
+  "artifacts": [{"x": 1, "z": 2, "orientation": 45}]
+}`),
+				},
+			},
+			wantErr: `artifacts[0] name must not be empty`,
 		},
 		{
 			name: "tiles wrong row count",
@@ -157,7 +190,8 @@ func validMetadataJSON(tilesJSON, heightSamplesJSON string) string {
   "name": "Chunk",
   "tiles": %s,
   "tile_definitions": ["ground_grid.png", "cellphone.png"],
-  "height_samples": %s
+  "height_samples": %s,
+  "artifacts": [{"name":"phone","x":128,"z":128,"orientation":45}]
 }`, tilesJSON, heightSamplesJSON)
 }
 

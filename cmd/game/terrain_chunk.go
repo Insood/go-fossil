@@ -19,6 +19,8 @@ type TerrainChunk struct {
 	Model              *rl.Model
 	Mesh               rl.Mesh
 	BaseTexture        rl.Texture2D
+	ArtifactImage      *image.RGBA
+	ArtifactTexture    rl.Texture2D
 	BurnOverlayImage   *image.RGBA
 	BurnOverlayTexture rl.Texture2D
 }
@@ -48,6 +50,7 @@ func (chunk *TerrainChunk) Unload() {
 	}
 
 	rl.UnloadTexture(chunk.BaseTexture)
+	rl.UnloadTexture(chunk.ArtifactTexture)
 	rl.UnloadTexture(chunk.BurnOverlayTexture)
 	rl.UnloadMesh(&chunk.Mesh)
 }

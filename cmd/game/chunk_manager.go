@@ -133,7 +133,7 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 	originX, originZ := chunkOriginForCoords(coords)
 	tileImages := make(map[string]image.Image, len(chunkData.TileDefinitions))
 	for _, tileDefinition := range chunkData.TileDefinitions {
-		tileImages[tileDefinition] = manager.assets.Image(path.Join("textures", tileDefinition))
+		tileImages[tileDefinition] = Must(manager.assets.LookupImage(path.Join("textures", tileDefinition)))
 	}
 
 	surfaceMesh, err := terrain.BuildSurfaceMesh(chunkData)
@@ -145,16 +145,19 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 	if err != nil {
 		panic(fmt.Errorf("build terrain texture for chunk %s: %w", coords.String(), err))
 	}
+	artifactImage := buildArtifactLayer(chunkData, manager.assets, surfaceTexture.BaseImage.Bounds())
 
 	mesh := newTerrainMesh(surfaceMesh)
 	rl.UploadMesh(&mesh, false)
 	model := rl.LoadModelFromMesh(mesh)
-	model.Materials.Shader = manager.assets.Shader("shadow_receiver")
+	model.Materials.Shader = Must(manager.assets.LookupShader("shadow_receiver"))
 	baseTexture := loadTextureFromImage(surfaceTexture.BaseImage)
 	rl.SetMaterialTexture(model.Materials, rl.MapAlbedo, baseTexture)
+	artifactTexture := loadTextureFromImage(artifactImage)
+	rl.SetMaterialTexture(model.Materials, rl.MapEmission, artifactTexture)
 	burnOverlayImage := image.NewRGBA(surfaceTexture.BaseImage.Bounds())
 	burnOverlayTexture := loadTextureFromImage(burnOverlayImage)
-	rl.SetMaterialTexture(model.Materials, rl.MapEmission, burnOverlayTexture)
+	rl.SetMaterialTexture(model.Materials, rl.MapOcclusion, burnOverlayTexture)
 	model.Materials.Shader.UpdateLocation(
 		rl.ShaderLocMapHeight,
 		rl.GetShaderLocation(model.Materials.Shader, "shadowMap"),
@@ -174,6 +177,8 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 		Model:              &model,
 		Mesh:               mesh,
 		BaseTexture:        baseTexture,
+		ArtifactImage:      artifactImage,
+		ArtifactTexture:    artifactTexture,
 		BurnOverlayImage:   burnOverlayImage,
 		BurnOverlayTexture: burnOverlayTexture,
 	}

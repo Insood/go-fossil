@@ -180,6 +180,7 @@ func (game *Game) UpdateSystems() {
 
 func (game *Game) UnloadAssets() {
 	game.chunkManager.Unload()
+	game.artifactManager.Unload()
 	game.droneFramebuffer.Unload()
 	game.shadowFramebuffer.Unload()
 	game.assets.Unload()

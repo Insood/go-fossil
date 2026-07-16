@@ -38,6 +38,7 @@ Current terrain rendering approach:
 - a matching burn overlay texture tracks laser marks and other painted state
 - small cutout regions can be converted from hard burn marks into a softer dug-out overlay once the detector accepts the region
 - accepted cutout regions also clear the artifact overlay so the remaining view is burned ground without the hidden artifact art
+- accepted cutout regions also produce saved artifact fragments for inspection during development
 
 Open question for future implementation:
 

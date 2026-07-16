@@ -39,7 +39,7 @@ func (system *ArtifactCutoutDetectionSystem) Update(game *Game) {
 		for _, region := range detectArtifactRegions(chunkComponent.Chunk.ArtifactData) {
 			fmt.Fprintf(os.Stdout, "artifact region %d size: %d\n", region.tag, region.size)
 			if region.size < MaximumRegionSize {
-				applyArtifactRegion(chunkComponent.Chunk, region)
+				applyArtifactRegion(game.artifactManager, chunkComponent.Chunk, region)
 			}
 		}
 	}
@@ -119,7 +119,9 @@ func floodFillArtifactRegionWithPoints(data *ArtifactData, startX, startY int, t
 	return region
 }
 
-func applyArtifactRegion(chunk *TerrainChunk, region artifactRegion) {
+func applyArtifactRegion(manager *ArtifactManager, chunk *TerrainChunk, region artifactRegion) {
+	manager.CreateFragmentFromRegion(chunk.SurfaceTexture.BaseImage, chunk.ArtifactImage, region.bounds, region.points)
+
 	for _, point := range region.points {
 		chunk.ArtifactData.SetID(point.X, point.Y, -1)
 		chunk.ArtifactImage.SetRGBA(point.X, point.Y, color.RGBA{})

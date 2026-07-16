@@ -29,24 +29,30 @@ func TestArtifactCutoutDetectionSystemScansOnSixtiethTickAndClearsDamage(t *test
 			Width:  4,
 			Height: 4,
 		},
+		SurfaceTexture:   &terrain.SurfaceTexture{BaseImage: image.NewRGBA(image.Rect(0, 0, 4, 4))},
 		ArtifactImage:    image.NewRGBA(image.Rect(0, 0, 4, 4)),
 		BurnOverlayImage: image.NewRGBA(image.Rect(0, 0, 4, 4)),
 		ArtifactData:     NewArtifactData(image.Rect(0, 0, 3, 3)),
 	}
 
 	for x := 0; x < 3; x++ {
+		chunk.SurfaceTexture.BaseImage.SetRGBA(x, 0, color.RGBA{G: 64, A: 255})
+		chunk.SurfaceTexture.BaseImage.SetRGBA(x, 2, color.RGBA{G: 96, A: 255})
 		chunk.ArtifactData.SetID(x, 0, 1)
 		chunk.ArtifactData.SetID(x, 2, 2)
 		chunk.ArtifactData.SetID(x, 1, -1)
 		chunk.ArtifactImage.SetRGBA(x, 0, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 		chunk.ArtifactImage.SetRGBA(x, 2, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 	}
+	chunk.ArtifactImage.SetRGBA(1, 0, color.RGBA{})
 
 	manager.registerTerrainChunkEntity(chunk)
 	manager.chunks[chunk.Coords] = chunk
 
 	system := &ArtifactCutoutDetectionSystem{}
-	game := &Game{world: world, Tick: 0}
+	artifactManager := NewArtifactManager()
+	artifactManager.fragmentOutputDir = t.TempDir()
+	game := &Game{world: world, artifactManager: artifactManager, Tick: 0}
 	system.Initialize(game)
 	system.damageMap.Add(chunk.Entity, &TerrainChunkDamaged{})
 
@@ -128,6 +134,19 @@ func TestArtifactCutoutDetectionSystemScansOnSixtiethTickAndClearsDamage(t *test
 	}
 	if system.damageMap.Has(chunk.Entity) {
 		t.Fatal("damage tag was not cleared after the scan")
+	}
+	if _, ok := artifactManager.LookupFragment(1); !ok {
+		t.Fatal("fragment 1 was not recorded")
+	}
+	if _, ok := artifactManager.LookupFragment(2); !ok {
+		t.Fatal("fragment 2 was not recorded")
+	}
+	fragment, ok := artifactManager.LookupFragment(1)
+	if !ok {
+		t.Fatal("fragment 1 missing for pixel inspection")
+	}
+	if got := color.NRGBAModel.Convert(fragment.Image.At(1, 0)).(color.NRGBA); got.G < 60 || got.A != 255 {
+		t.Fatalf("fragment pixel (1,0) = %#v, want ground preserved", got)
 	}
 }
 

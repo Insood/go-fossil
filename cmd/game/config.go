@@ -46,6 +46,7 @@ const (
 	MaximumRegionSize                = 4096
 	burnOverlayAlpha                 = 255
 	dugOutOverlayAlpha               = 128
+	artifactFragmentOutputDir        = "generated/artifact-fragments"
 
 	lightHeight         = 10
 	defaultLightOffsetX = 0

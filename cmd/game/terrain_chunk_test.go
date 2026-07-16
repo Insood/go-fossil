@@ -22,7 +22,7 @@ func TestPaintBurnMarkSets2x2Mask(t *testing.T) {
 			got := chunk.BurnOverlayImage.RGBAAt(x, y)
 			want := color.RGBA{}
 			if x >= 2 && x <= 3 && y >= 3 && y <= 4 {
-				want = color.RGBA{A: 255}
+			want = color.RGBA{A: 255}
 			}
 			if got != want {
 				t.Fatalf("pixel (%d,%d) = %#v, want %#v", x, y, got, want)
@@ -31,7 +31,7 @@ func TestPaintBurnMarkSets2x2Mask(t *testing.T) {
 	}
 }
 
-func TestPaintBurnMarkClearsArtifactDataInSameMask(t *testing.T) {
+func TestPaintBurnMarkMarksArtifactDataAsBurnedInSameMask(t *testing.T) {
 	t.Parallel()
 
 	artifactData := NewArtifactData(image.Rect(0, 0, 5, 5))
@@ -55,7 +55,7 @@ func TestPaintBurnMarkClearsArtifactDataInSameMask(t *testing.T) {
 			got := artifactData.IDAt(x, y)
 			want := int32(7)
 			if x >= 2 && x <= 3 && y >= 3 && y <= 4 {
-				want = int32(0)
+				want = int32(-1)
 			}
 			if got != want {
 				t.Fatalf("artifact id at (%d,%d) = %d, want %d", x, y, got, want)

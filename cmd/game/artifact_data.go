@@ -22,6 +22,17 @@ func (data *ArtifactData) Bounds() image.Rectangle {
 	return data.bounds
 }
 
+func (data *ArtifactData) Clone() *ArtifactData {
+	if data == nil {
+		return nil
+	}
+
+	return &ArtifactData{
+		bounds: data.bounds,
+		ids:    append([]int32(nil), data.ids...),
+	}
+}
+
 func (data *ArtifactData) SetID(x, y int, id int32) {
 	if data == nil || !image.Pt(x, y).In(data.bounds) {
 		return

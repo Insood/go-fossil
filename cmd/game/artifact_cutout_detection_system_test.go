@@ -29,6 +29,13 @@ func TestArtifactCutoutDetectionSystemScansOnSixtiethTickAndClearsDamage(t *test
 			Height: 4,
 		},
 		BurnOverlayImage: image.NewRGBA(image.Rect(0, 0, 4, 4)),
+		ArtifactData:     NewArtifactData(image.Rect(0, 0, 3, 3)),
+	}
+
+	for x := 0; x < 3; x++ {
+		chunk.ArtifactData.SetID(x, 0, 1)
+		chunk.ArtifactData.SetID(x, 2, 2)
+		chunk.ArtifactData.SetID(x, 1, -1)
 	}
 
 	manager.registerTerrainChunkEntity(chunk)
@@ -82,10 +89,42 @@ func TestArtifactCutoutDetectionSystemScansOnSixtiethTickAndClearsDamage(t *test
 		t.Fatalf("read stdout: %v", err)
 	}
 
-	if got := output.String(); !strings.Contains(got, "terrain chunk damaged: (1,-1)") {
+	got := output.String()
+	if !strings.Contains(got, "terrain chunk damaged: (1,-1)") {
 		t.Fatalf("output = %q, want damaged chunk line", got)
+	}
+	if !strings.Contains(got, "artifact region -2 size: 3") {
+		t.Fatalf("output = %q, want first region line", got)
+	}
+	if !strings.Contains(got, "artifact region -3 size: 3") {
+		t.Fatalf("output = %q, want second region line", got)
 	}
 	if system.damageMap.Has(chunk.Entity) {
 		t.Fatal("damage tag was not cleared after the scan")
+	}
+}
+
+func TestDetectArtifactRegionsUsesUniqueNegativeTags(t *testing.T) {
+	t.Parallel()
+
+	data := NewArtifactData(image.Rect(0, 0, 3, 3))
+	for x := 0; x < 3; x++ {
+		data.SetID(x, 0, 10)
+		data.SetID(x, 2, 20)
+		data.SetID(x, 1, -1)
+	}
+
+	regions := detectArtifactRegions(data)
+	if len(regions) != 2 {
+		t.Fatalf("region count = %d, want 2", len(regions))
+	}
+	if regions[0].tag != -2 || regions[0].size != 3 {
+		t.Fatalf("first region = %#v, want tag -2 size 3", regions[0])
+	}
+	if regions[1].tag != -3 || regions[1].size != 3 {
+		t.Fatalf("second region = %#v, want tag -3 size 3", regions[1])
+	}
+	if got := data.IDAt(0, 0); got != 10 {
+		t.Fatalf("original data was mutated, top cell = %d", got)
 	}
 }

@@ -68,6 +68,14 @@ When adding a feature, prefer this order:
 4. Wire the system into `cmd/game/game.go` in the correct order.
 5. Update docs if the change affects ownership, coordinate assumptions, camera behavior, terrain behavior, or system order.
 
+## Code Style
+
+- Keep code direct and readable.
+- Prefer the smallest implementation that clearly expresses the rule.
+- Avoid redundant defensive checks when the surrounding code or library already guarantees the invariant.
+- Let hard programmer errors panic instead of hiding them behind silent branches or broad fallback handling.
+- Do not add extra abstractions, interfaces, or helper layers unless they clearly reduce duplication or clarify ownership.
+
 ## Current Implementation Notes
 
 - `AssetManager` owns loading runtime assets from disk beside the built executable. `ChunkManager` owns loading terrain chunk JSON from disk, generating simple runtime chunks, converting them into terrain meshes/textures, and caching the built chunks. `internal/terrain` owns chunk JSON parsing, validation, terrain mesh data generation, baked terrain image composition, and world-to-terrain UV helpers.

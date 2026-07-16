@@ -120,6 +120,13 @@ Prefer the simplest version that preserves future flexibility:
 - hardcoded test maps over content pipelines
 - basic ECS systems over generalized frameworks
 
+## Code Style
+
+- Prefer direct code over defensive code when the repo or library already enforces the invariant.
+- Do not add extra null checks, “should never happen” branches, or fallback paths just to feel safe.
+- If a state is truly invalid for the game, let it panic loudly instead of being silently swallowed.
+- Keep abstractions minimal; avoid extra interfaces and helper layers unless they make the code materially clearer.
+
 ## Performance Guidance
 
 Do not optimize first. Establish working data flow and visual correctness before investing in terrain mutation or rendering performance.

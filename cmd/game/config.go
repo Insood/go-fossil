@@ -1,6 +1,10 @@
 package main
 
-import "math"
+import (
+	"math"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
+)
 
 const (
 	screenWidth  = 1280
@@ -24,10 +28,12 @@ const (
 	droneHoverAmplitude    = 0.05
 	droneHoverCyclesPerSec = 0.2
 
-	droneGamepadIndex    = 0
-	droneGamepadAxisX    = 0
-	droneGamepadAxisZ    = 1
-	droneGamepadDeadzone = 0.10
+	droneGamepadIndex       = 0
+	droneGamepadMoveAxisX   = 0
+	droneGamepadMoveAxisZ   = 1
+	droneGamepadTargetAxisX = 2
+	droneGamepadTargetAxisZ = 3
+	droneGamepadDeadzone    = 0.10
 
 	cameraDistance         = 15.0
 	cameraHeight           = 15.0
@@ -57,6 +63,8 @@ const (
 )
 
 var (
+	gamePadQuitButton1     int32   = rl.GamepadButtonLeftTrigger1
+	gamePadQuitButton2     int32   = rl.GamepadButtonRightTrigger1
 	shadowNearPlane        float32 = 0.5
 	shadowFarPlane         float32 = 20.0
 	shadowBias             float32 = 0.0008

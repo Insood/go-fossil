@@ -15,6 +15,7 @@ type Game struct {
 	world             *ecs.World
 	systems           []System
 	Tick              int
+	Running           bool
 }
 
 func InitializeGame() *Game {
@@ -38,6 +39,7 @@ func InitializeGame() *Game {
 		droneFramebuffer:  NewFramebuffer(droneViewPixels, droneViewPixels),
 		shadowFramebuffer: NewFramebuffer(shadowMapSize, shadowMapSize),
 		world:             world,
+		Running:           true,
 	}
 
 	game.spawnInitialEntities()

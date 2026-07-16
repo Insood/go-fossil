@@ -39,8 +39,8 @@ func (system *DroneInputSystem) Update(game *Game) {
 		}
 
 		if rl.IsGamepadAvailable(droneGamepadIndex) {
-			input.X += applyGamepadDeadzone(rl.GetGamepadAxisMovement(droneGamepadIndex, droneGamepadAxisX))
-			input.Z += applyGamepadDeadzone(rl.GetGamepadAxisMovement(droneGamepadIndex, droneGamepadAxisZ))
+			input.X += applyGamepadDeadzone(rl.GetGamepadAxisMovement(droneGamepadIndex, droneGamepadMoveAxisX))
+			input.Z += applyGamepadDeadzone(rl.GetGamepadAxisMovement(droneGamepadIndex, droneGamepadMoveAxisZ))
 		}
 
 		input.X = clampFloat32(input.X, -1, 1)

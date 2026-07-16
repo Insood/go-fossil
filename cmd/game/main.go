@@ -11,7 +11,7 @@ func main() {
 	game := InitializeGame()
 	defer game.UnloadAssets()
 
-	for !rl.WindowShouldClose() {
+	for !rl.WindowShouldClose() && game.Running {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.SkyBlue)
 		game.UpdateSystems()

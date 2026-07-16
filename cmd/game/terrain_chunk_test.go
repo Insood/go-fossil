@@ -37,7 +37,7 @@ func TestPaintBurnMarkClearsArtifactDataInSameMask(t *testing.T) {
 	artifactData := NewArtifactData(image.Rect(0, 0, 5, 5))
 	for y := 0; y < 5; y++ {
 		for x := 0; x < 5; x++ {
-			artifactData.SetID(x, y, 7)
+			artifactData.SetID(x, y, int32(7))
 		}
 	}
 
@@ -53,9 +53,9 @@ func TestPaintBurnMarkClearsArtifactDataInSameMask(t *testing.T) {
 	for y := 0; y < 5; y++ {
 		for x := 0; x < 5; x++ {
 			got := artifactData.IDAt(x, y)
-			want := uint32(7)
+			want := int32(7)
 			if x >= 2 && x <= 3 && y >= 3 && y <= 4 {
-				want = 0
+				want = int32(0)
 			}
 			if got != want {
 				t.Fatalf("artifact id at (%d,%d) = %d, want %d", x, y, got, want)

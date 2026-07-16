@@ -89,7 +89,7 @@ func TestBuildArtifactDataLayerRegistersAndMarksArtifactPixels(t *testing.T) {
 	if !ok {
 		t.Fatal("artifact manager lookup failed for id 1")
 	}
-	if got, want := artifact.ID, uint32(1); got != want {
+	if got, want := artifact.ID, int32(1); got != want {
 		t.Fatalf("artifact id = %d, want %d", got, want)
 	}
 	if got, want := artifact.Name, "phone"; got != want {
@@ -107,13 +107,13 @@ func TestBuildArtifactDataLayerRegistersAndMarksArtifactPixels(t *testing.T) {
 	if got, want := artifact.Chunk, chunk; got != want {
 		t.Fatalf("artifact chunk = %#v, want %#v", got, want)
 	}
-	if got := artifactData.IDAt(2, 1); got != 1 {
+	if got := artifactData.IDAt(2, 1); got != int32(1) {
 		t.Fatalf("artifact mask at (2,1) = %d, want 1", got)
 	}
-	if got := artifactData.IDAt(2, 2); got != 1 {
+	if got := artifactData.IDAt(2, 2); got != int32(1) {
 		t.Fatalf("artifact mask at (2,2) = %d, want 1", got)
 	}
-	if got := artifactData.IDAt(0, 0); got != 0 {
+	if got := artifactData.IDAt(0, 0); got != int32(0) {
 		t.Fatalf("artifact mask at (0,0) = %d, want 0", got)
 	}
 }

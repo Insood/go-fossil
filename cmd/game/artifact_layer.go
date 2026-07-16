@@ -69,7 +69,7 @@ func blitArtifactImage(dst *image.RGBA, src image.Image, centerX, centerY float3
 	}
 }
 
-func blitArtifactData(artifactData *ArtifactData, src image.Image, artifactID uint32, centerX, centerY float32) {
+func blitArtifactData(artifactData *ArtifactData, src image.Image, artifactID int32, centerX, centerY float32) {
 	dstRect := artifactPlacementRect(artifactData, src, centerX, centerY)
 	if dstRect.Empty() {
 		return

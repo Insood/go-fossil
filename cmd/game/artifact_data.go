@@ -4,13 +4,13 @@ import "image"
 
 type ArtifactData struct {
 	bounds image.Rectangle
-	ids    []uint32
+	ids    []int32
 }
 
 func NewArtifactData(bounds image.Rectangle) *ArtifactData {
 	return &ArtifactData{
 		bounds: bounds,
-		ids:    make([]uint32, bounds.Dx()*bounds.Dy()),
+		ids:    make([]int32, bounds.Dx()*bounds.Dy()),
 	}
 }
 
@@ -22,7 +22,7 @@ func (data *ArtifactData) Bounds() image.Rectangle {
 	return data.bounds
 }
 
-func (data *ArtifactData) SetID(x, y int, id uint32) {
+func (data *ArtifactData) SetID(x, y int, id int32) {
 	if data == nil || !image.Pt(x, y).In(data.bounds) {
 		return
 	}
@@ -31,7 +31,7 @@ func (data *ArtifactData) SetID(x, y int, id uint32) {
 	data.ids[index] = id
 }
 
-func (data *ArtifactData) IDAt(x, y int) uint32 {
+func (data *ArtifactData) IDAt(x, y int) int32 {
 	if data == nil || !image.Pt(x, y).In(data.bounds) {
 		return 0
 	}

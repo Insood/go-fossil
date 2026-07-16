@@ -3,7 +3,7 @@ package main
 import "image"
 
 type Artifact struct {
-	ID          uint32
+	ID          int32
 	Name        string
 	Value       int
 	CenterX     float32

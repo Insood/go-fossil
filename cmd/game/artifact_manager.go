@@ -5,17 +5,17 @@ import (
 )
 
 type ArtifactManager struct {
-	nextID    uint32
-	artifacts map[uint32]*Artifact
+	nextID    int32
+	artifacts map[int32]*Artifact
 }
 
 func NewArtifactManager() *ArtifactManager {
 	return &ArtifactManager{
-		artifacts: make(map[uint32]*Artifact),
+		artifacts: make(map[int32]*Artifact),
 	}
 }
 
-func (manager *ArtifactManager) Lookup(id uint32) (*Artifact, bool) {
+func (manager *ArtifactManager) Lookup(id int32) (*Artifact, bool) {
 	artifact, ok := manager.artifacts[id]
 	return artifact, ok
 }

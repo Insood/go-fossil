@@ -74,6 +74,7 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&LaserSystem{})
 	game.AddSystem(&ArtifactCutoutDetectionSystem{})
 	game.AddSystem(&RenderSystem3D{})
+	game.AddSystem(&UserInterfaceSystem{})
 	game.AddSystem(&DebugRender3DSystem{})
 	game.AddSystem(&DebugRenderSystem2D{})
 }

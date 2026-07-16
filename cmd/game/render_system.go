@@ -32,7 +32,6 @@ func (system *RenderSystem3D) Update(game *Game) {
 
 	system.renderScenePass(game)
 	system.renderDroneViewportPass(game)
-	system.drawDroneViewport(game)
 }
 
 func (system *RenderSystem3D) renderShadowPass(game *Game) {
@@ -89,27 +88,6 @@ func (system *RenderSystem3D) renderDroneViewportPass(game *Game) {
 
 		rl.EndTextureMode()
 	})
-}
-
-func (system *RenderSystem3D) drawDroneViewport(game *Game) {
-	viewport := droneViewportRectangle()
-
-	rl.DrawRectangle(
-		int32(viewport.X-2),
-		int32(viewport.Y-2),
-		droneViewPixels+4,
-		droneViewPixels+4,
-		rl.Fade(rl.Black, 0.8),
-	)
-
-	rl.DrawTexturePro(
-		game.droneFramebuffer.Target.Texture,
-		rl.NewRectangle(0, 0, float32(game.droneFramebuffer.Width), -float32(game.droneFramebuffer.Height)),
-		viewport,
-		rl.Vector2{},
-		0,
-		rl.White,
-	)
 }
 
 func (system *RenderSystem3D) lightCamera() (rl.Camera3D, bool) {

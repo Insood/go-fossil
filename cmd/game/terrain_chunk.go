@@ -143,6 +143,9 @@ func (chunk *TerrainChunk) paintBurnMark(x, y int) bool {
 	for py := clippedBounds.Min.Y; py < clippedBounds.Max.Y; py++ {
 		for px := clippedBounds.Min.X; px < clippedBounds.Max.X; px++ {
 			chunk.BurnOverlayImage.SetRGBA(px, py, color.RGBA{A: 255})
+			if chunk.ArtifactData != nil {
+				chunk.ArtifactData.SetID(px, py, 0)
+			}
 		}
 	}
 

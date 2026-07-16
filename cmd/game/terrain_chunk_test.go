@@ -30,3 +30,36 @@ func TestPaintBurnMarkSets2x2Mask(t *testing.T) {
 		}
 	}
 }
+
+func TestPaintBurnMarkClearsArtifactDataInSameMask(t *testing.T) {
+	t.Parallel()
+
+	artifactData := NewArtifactData(image.Rect(0, 0, 5, 5))
+	for y := 0; y < 5; y++ {
+		for x := 0; x < 5; x++ {
+			artifactData.SetID(x, y, 7)
+		}
+	}
+
+	chunk := &TerrainChunk{
+		BurnOverlayImage: image.NewRGBA(image.Rect(0, 0, 5, 5)),
+		ArtifactData:     artifactData,
+	}
+
+	if !chunk.paintBurnMark(2, 3) {
+		t.Fatal("paintBurnMark returned false")
+	}
+
+	for y := 0; y < 5; y++ {
+		for x := 0; x < 5; x++ {
+			got := artifactData.IDAt(x, y)
+			want := uint32(7)
+			if x >= 2 && x <= 3 && y >= 3 && y <= 4 {
+				want = 0
+			}
+			if got != want {
+				t.Fatalf("artifact id at (%d,%d) = %d, want %d", x, y, got, want)
+			}
+		}
+	}
+}

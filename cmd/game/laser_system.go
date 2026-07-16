@@ -25,7 +25,15 @@ func (system *LaserSystem) Update(game *Game) {
 
 	for query.Next() {
 		position, _, laser := query.Get()
-		target, ok := droneViewportWorldTarget(mouse, rl.Vector3(*position), game.chunkManager.SampleHeight)
+		target, ok := droneViewportWorldTarget(
+			mouse,
+			rl.Vector3(*position),
+			game.chunkManager.SampleHeight,
+			func(worldX, worldZ float32) bool {
+				_, ok := game.chunkManager.ChunkForWorldPosition(worldX, worldZ)
+				return ok
+			},
+		)
 		if !rl.IsMouseButtonDown(rl.MouseLeftButton) || !ok {
 			laser.active = false
 			continue

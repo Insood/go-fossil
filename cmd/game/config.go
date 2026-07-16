@@ -8,11 +8,11 @@ const (
 	windowTitle  = "go-fossil"
 	targetFPS    = 60
 
-	defaultChunkName            = "default"
 	terrainTexturePixelsPerTile = 64
 
 	debugAxisLength = 3.0
 
+	defaultChunkName = "default"
 	droneWorldSpawnX = 4.0
 	droneWorldSpawnZ = 4.0
 
@@ -35,7 +35,7 @@ const (
 	cameraFollowDeadZoneXZ = 4.0
 	cameraFollowDeadZoneY  = 1.5
 
-	droneViewSizeWorld = 1.0
+	droneViewFOV       = 45
 	droneViewPixels    = 256
 	droneViewMargin    = 16
 	droneViewNearPlane = 0.01

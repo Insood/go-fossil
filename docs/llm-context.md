@@ -71,6 +71,7 @@ When adding a feature, prefer this order:
 ## Current Implementation Notes
 
 - `AssetManager` owns loading runtime assets from disk beside the built executable. `ChunkManager` owns loading terrain chunk JSON from disk, generating simple runtime chunks, converting them into terrain meshes/textures, and caching the built chunks. `internal/terrain` owns chunk JSON parsing, validation, terrain mesh data generation, baked terrain image composition, and world-to-terrain UV helpers.
+- Terrain chunks now carry the rendered artifact overlay plus a per-pixel artifact ID mask, while `ArtifactManager` owns the runtime artifact records and unique IDs.
 - There is a dedicated `Framebuffer` wrapper in `cmd/game/framebuffer.go` for off-screen render targets.
 - The scene currently has a single `Light` entity. `LightSystem` rebuilds its camera from component data, and the render pipeline consumes that camera.
 - `Renderable` carries `castsShadow` and `receivesShadow` flags so future render passes can filter participation without adding extra ECS components.

@@ -8,7 +8,7 @@ import (
 	"go-fossil/internal/terrain"
 )
 
-func TestBuildArtifactLayerPlacesAndRotatesArtifact(t *testing.T) {
+func TestBuildArtifactImageLayerPlacesAndRotatesArtifact(t *testing.T) {
 	t.Parallel()
 
 	assets := fakeArtifactSource{
@@ -28,7 +28,7 @@ func TestBuildArtifactLayerPlacesAndRotatesArtifact(t *testing.T) {
 		},
 	}
 
-	layer := buildArtifactLayer(
+	layer := buildArtifactImageLayer(
 		terrain.ChunkData{
 			Name: "Artifact Test",
 			Artifacts: []terrain.ArtifactPlacement{
@@ -47,16 +47,87 @@ func TestBuildArtifactLayerPlacesAndRotatesArtifact(t *testing.T) {
 	}
 }
 
-func TestBuildArtifactLayerRejectsUnknownArtifact(t *testing.T) {
+func TestBuildArtifactDataLayerRegistersAndMarksArtifactPixels(t *testing.T) {
+	t.Parallel()
+
+	assets := fakeArtifactSource{
+		definitions: map[string]*ArtifactDefinition{
+			"phone": {
+				Name:      "phone",
+				ImagePath: "textures/phone.png",
+				Width:     2,
+				Height:    1,
+				Value:     10,
+			},
+		},
+		images: map[string]image.Image{
+			"textures/phone.png": solidArtifactImage([][]color.RGBA{
+				{{R: 255, A: 255}, {G: 255, A: 255}},
+			}),
+		},
+	}
+
+	manager := NewArtifactManager()
+	chunk := &TerrainChunk{
+		Coords: ChunkCoords{X: 0, Z: 0},
+		Data: terrain.ChunkData{
+			Name: "Artifact Test",
+			Artifacts: []terrain.ArtifactPlacement{
+				{Name: "phone", X: 2, Z: 2, Orientation: 90},
+			},
+		},
+	}
+
+	artifactData := buildArtifactDataLayer(
+		manager,
+		chunk,
+		assets,
+		image.Rect(0, 0, 4, 4),
+	)
+
+	artifact, ok := manager.Lookup(1)
+	if !ok {
+		t.Fatal("artifact manager lookup failed for id 1")
+	}
+	if got, want := artifact.ID, uint32(1); got != want {
+		t.Fatalf("artifact id = %d, want %d", got, want)
+	}
+	if got, want := artifact.Name, "phone"; got != want {
+		t.Fatalf("artifact name = %q, want %q", got, want)
+	}
+	if got, want := artifact.Value, 10; got != want {
+		t.Fatalf("artifact value = %d, want %d", got, want)
+	}
+	if got, want := artifact.CenterX, float32(2); got != want {
+		t.Fatalf("artifact center x = %v, want %v", got, want)
+	}
+	if got, want := artifact.CenterZ, float32(2); got != want {
+		t.Fatalf("artifact center z = %v, want %v", got, want)
+	}
+	if got, want := artifact.Chunk, chunk; got != want {
+		t.Fatalf("artifact chunk = %#v, want %#v", got, want)
+	}
+	if got := artifactData.IDAt(2, 1); got != 1 {
+		t.Fatalf("artifact mask at (2,1) = %d, want 1", got)
+	}
+	if got := artifactData.IDAt(2, 2); got != 1 {
+		t.Fatalf("artifact mask at (2,2) = %d, want 1", got)
+	}
+	if got := artifactData.IDAt(0, 0); got != 0 {
+		t.Fatalf("artifact mask at (0,0) = %d, want 0", got)
+	}
+}
+
+func TestBuildArtifactImageLayerRejectsUnknownArtifact(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
 		if recover() == nil {
-			t.Fatal("buildArtifactLayer() did not panic, want missing artifact failure")
+			t.Fatal("buildArtifactImageLayer() did not panic, want missing artifact failure")
 		}
 	}()
 
-	_ = buildArtifactLayer(
+	_ = buildArtifactImageLayer(
 		terrain.ChunkData{
 			Name: "Artifact Test",
 			Artifacts: []terrain.ArtifactPlacement{

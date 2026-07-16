@@ -8,6 +8,7 @@ import (
 type Game struct {
 	assets            *AssetManager
 	camera            rl.Camera3D
+	artifactManager   *ArtifactManager
 	chunkManager      *ChunkManager
 	droneFramebuffer  *Framebuffer
 	shadowFramebuffer *Framebuffer
@@ -18,7 +19,8 @@ type Game struct {
 func InitializeGame() *Game {
 	assets := NewAssetManager()
 	assets.Load()
-	chunkManager := NewChunkManager(assets)
+	artifactManager := NewArtifactManager()
+	chunkManager := NewChunkManager(assets, artifactManager)
 	defaultChunkCoords := ChunkCoords{X: 0, Z: 0}
 	northChunkCoords := ChunkCoords{X: 0, Z: -1}
 	chunkGenerator := NewChunkGenerator()
@@ -29,6 +31,7 @@ func InitializeGame() *Game {
 	game := &Game{
 		assets:            assets,
 		camera:            newCamera(terrainChunk),
+		artifactManager:   artifactManager,
 		chunkManager:      chunkManager,
 		droneFramebuffer:  NewFramebuffer(droneViewPixels, droneViewPixels),
 		shadowFramebuffer: NewFramebuffer(shadowMapSize, shadowMapSize),

@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"image"
-	"image/draw"
+	"image/color"
 	"math"
 
 	"go-fossil/internal/terrain"
@@ -14,125 +13,109 @@ type artifactDefinitionSource interface {
 	LookupImage(assetPath string) (image.Image, bool)
 }
 
-func buildArtifactLayer(chunk terrain.ChunkData, assets artifactDefinitionSource, layerBounds image.Rectangle) *image.RGBA {
+type artifactBoundsProvider interface {
+	Bounds() image.Rectangle
+}
+
+func buildArtifactImageLayer(chunk terrain.ChunkData, assets artifactDefinitionSource, layerBounds image.Rectangle) *image.RGBA {
 	layer := image.NewRGBA(layerBounds)
-	if len(chunk.Artifacts) == 0 {
-		return layer
-	}
-
-	for _, artifact := range chunk.Artifacts {
-		definition := Must(assets.LookupArtifactDefinition(artifact.Name))
-		if definition.Width <= 0 || definition.Height <= 0 {
-			panic(fmt.Errorf("chunk %q: artifact definition %q has invalid size %dx%d", chunk.Name, definition.Name, definition.Width, definition.Height))
-		}
-
-		sourceImage := Must(assets.LookupImage(definition.ImagePath))
-		scaled := resizeImageNearest(sourceImage, definition.Width, definition.Height)
-		rotated := rotateImageClockwiseNearest(scaled, float64(artifact.Orientation))
-		blitCenteredImage(layer, rotated, artifact.X, artifact.Z)
+	for _, placement := range chunk.Artifacts {
+		_, rotated := prepareArtifactPlacement(placement, assets)
+		blitArtifactImage(layer, rotated, placement.X, placement.Z)
 	}
 
 	return layer
 }
 
-func resizeImageNearest(src image.Image, width, height int) *image.RGBA {
-	if width <= 0 || height <= 0 {
-		return image.NewRGBA(image.Rect(0, 0, 0, 0))
+func buildArtifactDataLayer(manager *ArtifactManager, chunk *TerrainChunk, assets artifactDefinitionSource, layerBounds image.Rectangle) *ArtifactData {
+	artifactData := NewArtifactData(layerBounds)
+	for _, placement := range chunk.Data.Artifacts {
+		definition, rotated := prepareArtifactPlacement(placement, assets)
+		pixelBounds := artifactPlacementBounds(rotated, placement.X, placement.Z, layerBounds)
+		artifact := manager.RegisterChunkArtifact(chunk, definition.Name, definition.Value, placement.X, placement.Z, pixelBounds)
+		blitArtifactData(artifactData, rotated, artifact.ID, placement.X, placement.Z)
 	}
 
-	dst := image.NewRGBA(image.Rect(0, 0, width, height))
-	srcBounds := src.Bounds()
-	srcWidth := srcBounds.Dx()
-	srcHeight := srcBounds.Dy()
-	if srcWidth == 0 || srcHeight == 0 {
-		return dst
-	}
-
-	for y := 0; y < height; y++ {
-		srcY := srcBounds.Min.Y + int(float64(y)*float64(srcHeight)/float64(height))
-		if srcY >= srcBounds.Max.Y {
-			srcY = srcBounds.Max.Y - 1
-		}
-		for x := 0; x < width; x++ {
-			srcX := srcBounds.Min.X + int(float64(x)*float64(srcWidth)/float64(width))
-			if srcX >= srcBounds.Max.X {
-				srcX = srcBounds.Max.X - 1
-			}
-
-			dst.Set(x, y, src.At(srcX, srcY))
-		}
-	}
-
-	return dst
+	return artifactData
 }
 
-// Positive orientation rotates clockwise in the image plane.
-func rotateImageClockwiseNearest(src image.Image, degrees float64) *image.RGBA {
-	srcBounds := src.Bounds()
-	srcWidth := srcBounds.Dx()
-	srcHeight := srcBounds.Dy()
-	if srcWidth == 0 || srcHeight == 0 {
-		return image.NewRGBA(image.Rect(0, 0, 0, 0))
-	}
+func prepareArtifactPlacement(placement terrain.ArtifactPlacement, assets artifactDefinitionSource) (*ArtifactDefinition, image.Image) {
+	definition := Must(assets.LookupArtifactDefinition(placement.Name))
 
-	radians := degrees * math.Pi / 180
-	sin, cos := math.Sincos(radians)
-	if math.Abs(sin) < 1e-9 {
-		sin = 0
-	}
-	if math.Abs(cos) < 1e-9 {
-		cos = 0
-	}
-	outWidth := int(math.Ceil(math.Abs(float64(srcWidth)*cos) + math.Abs(float64(srcHeight)*sin)))
-	outHeight := int(math.Ceil(math.Abs(float64(srcWidth)*sin) + math.Abs(float64(srcHeight)*cos)))
-	if outWidth <= 0 || outHeight <= 0 {
-		return image.NewRGBA(image.Rect(0, 0, 0, 0))
-	}
-
-	dst := image.NewRGBA(image.Rect(0, 0, outWidth, outHeight))
-	srcCenterX := float64(srcBounds.Min.X) + float64(srcWidth-1)/2
-	srcCenterY := float64(srcBounds.Min.Y) + float64(srcHeight-1)/2
-	dstCenterX := float64(outWidth-1) / 2
-	dstCenterY := float64(outHeight-1) / 2
-
-	for y := 0; y < outHeight; y++ {
-		for x := 0; x < outWidth; x++ {
-			dx := float64(x) - dstCenterX
-			dy := float64(y) - dstCenterY
-
-			srcX := cos*dx - sin*dy + srcCenterX
-			srcY := sin*dx + cos*dy + srcCenterY
-
-			sampleX := int(math.Round(srcX))
-			sampleY := int(math.Round(srcY))
-			if sampleX < srcBounds.Min.X || sampleX >= srcBounds.Max.X || sampleY < srcBounds.Min.Y || sampleY >= srcBounds.Max.Y {
-				continue
-			}
-
-			dst.Set(x, y, src.At(sampleX, sampleY))
-		}
-	}
-
-	return dst
+	sourceImage := Must(assets.LookupImage(definition.ImagePath))
+	return definition, rotateImageClockwiseNearest(sourceImage, float64(placement.Orientation))
 }
 
-func blitCenteredImage(dst *image.RGBA, src image.Image, centerX, centerY float32) {
-	srcBounds := src.Bounds()
-	if srcBounds.Empty() {
-		return
-	}
-
-	left := int(math.Round(float64(centerX))) - srcBounds.Dx()/2
-	top := int(math.Round(float64(centerY))) - srcBounds.Dy()/2
-	dstRect := image.Rect(left, top, left+srcBounds.Dx(), top+srcBounds.Dy()).Intersect(dst.Bounds())
+func blitArtifactImage(dst *image.RGBA, src image.Image, centerX, centerY float32) {
+	dstRect := artifactPlacementRect(dst, src, centerX, centerY)
 	if dstRect.Empty() {
 		return
 	}
 
-	srcPoint := image.Point{
-		X: dstRect.Min.X - left + srcBounds.Min.X,
-		Y: dstRect.Min.Y - top + srcBounds.Min.Y,
+	srcBounds := src.Bounds()
+	left := int(math.Round(float64(centerX))) - srcBounds.Dx()/2
+	top := int(math.Round(float64(centerY))) - srcBounds.Dy()/2
+	for y := dstRect.Min.Y; y < dstRect.Max.Y; y++ {
+		srcY := y - top + srcBounds.Min.Y
+		for x := dstRect.Min.X; x < dstRect.Max.X; x++ {
+			srcX := x - left + srcBounds.Min.X
+			pixel := color.RGBAModel.Convert(src.At(srcX, srcY)).(color.RGBA)
+			if pixel.A == 0 {
+				continue
+			}
+
+			dst.SetRGBA(x, y, pixel)
+		}
+	}
+}
+
+func blitArtifactData(artifactData *ArtifactData, src image.Image, artifactID uint32, centerX, centerY float32) {
+	dstRect := artifactPlacementRect(artifactData, src, centerX, centerY)
+	if dstRect.Empty() {
+		return
 	}
 
-	draw.Draw(dst, dstRect, src, srcPoint, draw.Over)
+	srcBounds := src.Bounds()
+	left := int(math.Round(float64(centerX))) - srcBounds.Dx()/2
+	top := int(math.Round(float64(centerY))) - srcBounds.Dy()/2
+	for y := dstRect.Min.Y; y < dstRect.Max.Y; y++ {
+		srcY := y - top + srcBounds.Min.Y
+		for x := dstRect.Min.X; x < dstRect.Max.X; x++ {
+			srcX := x - left + srcBounds.Min.X
+			pixel := color.RGBAModel.Convert(src.At(srcX, srcY)).(color.RGBA)
+			if pixel.A == 0 {
+				continue
+			}
+
+			artifactData.SetID(x, y, artifactID)
+		}
+	}
+}
+
+func artifactPlacementRect(dst artifactBoundsProvider, src image.Image, centerX, centerY float32) image.Rectangle {
+	srcBounds := src.Bounds()
+	if srcBounds.Empty() {
+		return image.Rectangle{}
+	}
+
+	dstBounds := dst.Bounds()
+	if dstBounds.Empty() {
+		return image.Rectangle{}
+	}
+
+	left := int(math.Round(float64(centerX))) - srcBounds.Dx()/2
+	top := int(math.Round(float64(centerY))) - srcBounds.Dy()/2
+	return image.Rect(left, top, left+srcBounds.Dx(), top+srcBounds.Dy()).Intersect(dstBounds)
+}
+
+func artifactPlacementBounds(src image.Image, centerX, centerY float32, layerBounds image.Rectangle) image.Rectangle {
+	return artifactPlacementRect(boundsRectangle{bounds: layerBounds}, src, centerX, centerY)
+}
+
+type boundsRectangle struct {
+	bounds image.Rectangle
+}
+
+func (rect boundsRectangle) Bounds() image.Rectangle {
+	return rect.bounds
 }

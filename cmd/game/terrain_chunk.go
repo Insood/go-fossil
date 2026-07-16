@@ -20,6 +20,8 @@ type TerrainChunk struct {
 	Mesh               rl.Mesh
 	BaseTexture        rl.Texture2D
 	ArtifactImage      *image.RGBA
+	ArtifactData       *ArtifactData
+	Artifacts          []Artifact
 	ArtifactTexture    rl.Texture2D
 	BurnOverlayImage   *image.RGBA
 	BurnOverlayTexture rl.Texture2D

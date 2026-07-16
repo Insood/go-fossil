@@ -12,16 +12,18 @@ import (
 )
 
 type ChunkManager struct {
-	assets    *AssetManager
-	chunkData map[ChunkCoords]terrain.ChunkData
-	chunks    map[ChunkCoords]*TerrainChunk
+	assets          *AssetManager
+	artifactManager *ArtifactManager
+	chunkData       map[ChunkCoords]terrain.ChunkData
+	chunks          map[ChunkCoords]*TerrainChunk
 }
 
-func NewChunkManager(assets *AssetManager) *ChunkManager {
+func NewChunkManager(assets *AssetManager, artifactManager *ArtifactManager) *ChunkManager {
 	return &ChunkManager{
-		assets:    assets,
-		chunkData: make(map[ChunkCoords]terrain.ChunkData),
-		chunks:    make(map[ChunkCoords]*TerrainChunk),
+		assets:          assets,
+		artifactManager: artifactManager,
+		chunkData:       make(map[ChunkCoords]terrain.ChunkData),
+		chunks:          make(map[ChunkCoords]*TerrainChunk),
 	}
 }
 
@@ -131,6 +133,13 @@ func (manager *ChunkManager) Unload() {
 
 func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.ChunkData) *TerrainChunk {
 	originX, originZ := chunkOriginForCoords(coords)
+	chunk := &TerrainChunk{
+		Coords:  coords,
+		OriginX: originX,
+		OriginZ: originZ,
+		Data:    chunkData,
+	}
+
 	tileImages := make(map[string]image.Image, len(chunkData.TileDefinitions))
 	for _, tileDefinition := range chunkData.TileDefinitions {
 		tileImages[tileDefinition] = Must(manager.assets.LookupImage(path.Join("textures", tileDefinition)))
@@ -145,7 +154,8 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 	if err != nil {
 		panic(fmt.Errorf("build terrain texture for chunk %s: %w", coords.String(), err))
 	}
-	artifactImage := buildArtifactLayer(chunkData, manager.assets, surfaceTexture.BaseImage.Bounds())
+	artifactImage := buildArtifactImageLayer(chunkData, manager.assets, surfaceTexture.BaseImage.Bounds())
+	artifactData := buildArtifactDataLayer(manager.artifactManager, chunk, manager.assets, surfaceTexture.BaseImage.Bounds())
 
 	mesh := newTerrainMesh(surfaceMesh)
 	rl.UploadMesh(&mesh, false)
@@ -167,21 +177,18 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 		rl.GetShaderLocation(model.Materials.Shader, "texture1"),
 	)
 
-	return &TerrainChunk{
-		Coords:             coords,
-		OriginX:            originX,
-		OriginZ:            originZ,
-		Data:               chunkData,
-		SurfaceMesh:        surfaceMesh,
-		SurfaceTexture:     surfaceTexture,
-		Model:              &model,
-		Mesh:               mesh,
-		BaseTexture:        baseTexture,
-		ArtifactImage:      artifactImage,
-		ArtifactTexture:    artifactTexture,
-		BurnOverlayImage:   burnOverlayImage,
-		BurnOverlayTexture: burnOverlayTexture,
-	}
+	chunk.SurfaceMesh = surfaceMesh
+	chunk.SurfaceTexture = surfaceTexture
+	chunk.Model = &model
+	chunk.Mesh = mesh
+	chunk.BaseTexture = baseTexture
+	chunk.ArtifactImage = artifactImage
+	chunk.ArtifactData = artifactData
+	chunk.ArtifactTexture = artifactTexture
+	chunk.BurnOverlayImage = burnOverlayImage
+	chunk.BurnOverlayTexture = burnOverlayTexture
+
+	return chunk
 }
 
 func (manager *ChunkManager) BurnAtWorldPosition(worldX, worldZ float32) bool {

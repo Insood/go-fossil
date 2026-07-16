@@ -62,14 +62,9 @@ func TestLoadArtifactDefinitionAssetValidation(t *testing.T) {
 			wantErr: "artifact image_path must not be empty",
 		},
 		{
-			name:    "missing width",
-			json:    `{"name":"fossil","image_path":"textures/fossil.png","height":64,"value":5}`,
-			wantErr: "artifact width must be positive",
-		},
-		{
-			name:    "missing height",
-			json:    `{"name":"fossil","image_path":"textures/fossil.png","width":64,"value":5}`,
-			wantErr: "artifact height must be positive",
+			name:    "missing width and height",
+			json:    `{"name":"fossil","image_path":"textures/fossil.png","value":5}`,
+			wantErr: "",
 		},
 		{
 			name:    "missing value",
@@ -93,6 +88,12 @@ func TestLoadArtifactDefinitionAssetValidation(t *testing.T) {
 			}
 
 			_, err := loadArtifactDefinitionAsset(assetFS, "artifacts/test.json")
+			if test.wantErr == "" {
+				if err != nil {
+					t.Fatalf("loadArtifactDefinitionAsset() error = %v, want nil", err)
+				}
+				return
+			}
 			if err == nil {
 				t.Fatal("loadArtifactDefinitionAsset() error = nil, want validation error")
 			}

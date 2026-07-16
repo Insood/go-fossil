@@ -5,11 +5,13 @@ import (
 	"image/color"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
+	ecs "github.com/mlange-42/ark/ecs"
 
 	"go-fossil/internal/terrain"
 )
 
 type TerrainChunk struct {
+	Entity             ecs.Entity
 	Coords             ChunkCoords
 	OriginX            float32
 	OriginZ            float32

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"image"
 	"testing"
+
+	ecs "github.com/mlange-42/ark/ecs"
 
 	"go-fossil/internal/terrain"
 )
@@ -87,6 +90,75 @@ func TestChunkManagerChunkLookupUsesWorldPosition(t *testing.T) {
 				t.Fatalf("sample height = %v, want %v", got, test.wantY)
 			}
 		})
+	}
+}
+
+func TestChunkManagerRegistersTerrainChunkEntity(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	manager := &ChunkManager{
+		world:           world,
+		terrainChunkMap: ecs.NewMap1[TerrainChunkComponent](world),
+		chunks:          make(map[ChunkCoords]*TerrainChunk),
+	}
+	chunk := &TerrainChunk{
+		Coords: ChunkCoords{X: 0, Z: 0},
+		Data: terrain.ChunkData{
+			Width:  terrain.ChunkWidthTiles,
+			Height: terrain.ChunkHeightTiles,
+		},
+	}
+
+	manager.registerTerrainChunkEntity(chunk)
+
+	if chunk.Entity.IsZero() {
+		t.Fatal("chunk entity is zero")
+	}
+	if !world.Alive(chunk.Entity) {
+		t.Fatal("chunk entity is not alive")
+	}
+	if !manager.terrainChunkMap.HasAll(chunk.Entity) {
+		t.Fatal("chunk entity is missing TerrainChunkComponent")
+	}
+
+	component := manager.terrainChunkMap.Get(chunk.Entity)
+	if component == nil {
+		t.Fatal("chunk component lookup returned nil")
+	}
+	if got, want := component.Chunk, chunk; got != want {
+		t.Fatalf("chunk component points to %#v, want %#v", got, want)
+	}
+}
+
+func TestChunkManagerBurnAtWorldPositionBurnsOverlay(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	manager := &ChunkManager{
+		world:           world,
+		terrainChunkMap: ecs.NewMap1[TerrainChunkComponent](world),
+		chunks:          make(map[ChunkCoords]*TerrainChunk),
+	}
+	chunk := &TerrainChunk{
+		Coords:  ChunkCoords{X: 0, Z: 0},
+		OriginX: 0,
+		OriginZ: 0,
+		Data: terrain.ChunkData{
+			Width:  4,
+			Height: 4,
+		},
+		BurnOverlayImage: image.NewRGBA(image.Rect(0, 0, 4, 4)),
+	}
+
+	manager.registerTerrainChunkEntity(chunk)
+	manager.chunks[chunk.Coords] = chunk
+
+	if !manager.BurnAtWorldPosition(0, 0) {
+		t.Fatal("BurnAtWorldPosition returned false")
+	}
+	if got := chunk.BurnOverlayImage.RGBAAt(0, 0); got.A != 255 {
+		t.Fatalf("burn overlay at (0,0) = %#v, want alpha 255", got)
 	}
 }
 

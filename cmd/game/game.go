@@ -18,10 +18,11 @@ type Game struct {
 }
 
 func InitializeGame() *Game {
+	world := ecs.NewWorld()
 	assets := NewAssetManager()
 	assets.Load()
 	artifactManager := NewArtifactManager()
-	chunkManager := NewChunkManager(assets, artifactManager)
+	chunkManager := NewChunkManager(world, assets, artifactManager)
 	defaultChunkCoords := ChunkCoords{X: 0, Z: 0}
 	northChunkCoords := ChunkCoords{X: 0, Z: -1}
 	chunkGenerator := NewChunkGenerator()
@@ -36,7 +37,7 @@ func InitializeGame() *Game {
 		chunkManager:      chunkManager,
 		droneFramebuffer:  NewFramebuffer(droneViewPixels, droneViewPixels),
 		shadowFramebuffer: NewFramebuffer(shadowMapSize, shadowMapSize),
-		world:             ecs.NewWorld(),
+		world:             world,
 	}
 
 	game.spawnInitialEntities()
@@ -71,6 +72,7 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&CameraSystem{})
 	game.AddSystem(&LightSystem{})
 	game.AddSystem(&LaserSystem{})
+	game.AddSystem(&ArtifactCutoutDetectionSystem{})
 	game.AddSystem(&RenderSystem3D{})
 	game.AddSystem(&DebugRender3DSystem{})
 	game.AddSystem(&DebugRenderSystem2D{})

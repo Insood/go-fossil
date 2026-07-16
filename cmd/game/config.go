@@ -41,7 +41,8 @@ const (
 	droneViewNearPlane = 0.01
 	droneViewFarPlane  = 16.0
 
-	laserHitMarkerRadius = 0.015
+	laserHitMarkerRadius             = 0.015
+	artifactCutoutDetectionScanTicks = 60
 
 	lightHeight         = 10
 	defaultLightOffsetX = 0

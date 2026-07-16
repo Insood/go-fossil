@@ -36,4 +36,10 @@ type Laser struct {
 	target rl.Vector3
 }
 
+type TerrainChunkComponent struct {
+	Chunk *TerrainChunk
+}
+
+type TerrainChunkDamaged struct{}
+
 type Drone struct{}

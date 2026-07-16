@@ -7,21 +7,26 @@ import (
 	"slices"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
+	ecs "github.com/mlange-42/ark/ecs"
 
 	"go-fossil/internal/terrain"
 )
 
 type ChunkManager struct {
+	world           *ecs.World
 	assets          *AssetManager
 	artifactManager *ArtifactManager
+	terrainChunkMap *ecs.Map1[TerrainChunkComponent]
 	chunkData       map[ChunkCoords]terrain.ChunkData
 	chunks          map[ChunkCoords]*TerrainChunk
 }
 
-func NewChunkManager(assets *AssetManager, artifactManager *ArtifactManager) *ChunkManager {
+func NewChunkManager(world *ecs.World, assets *AssetManager, artifactManager *ArtifactManager) *ChunkManager {
 	return &ChunkManager{
+		world:           world,
 		assets:          assets,
 		artifactManager: artifactManager,
+		terrainChunkMap: ecs.NewMap1[TerrainChunkComponent](world),
 		chunkData:       make(map[ChunkCoords]terrain.ChunkData),
 		chunks:          make(map[ChunkCoords]*TerrainChunk),
 	}
@@ -127,6 +132,10 @@ func (manager *ChunkManager) Chunks() []*TerrainChunk {
 
 func (manager *ChunkManager) Unload() {
 	for _, chunk := range manager.chunks {
+		if chunk.Entity != (ecs.Entity{}) && manager.world != nil && manager.world.Alive(chunk.Entity) {
+			manager.world.RemoveEntity(chunk.Entity)
+			chunk.Entity = ecs.Entity{}
+		}
 		chunk.Unload()
 	}
 }
@@ -188,6 +197,7 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 	chunk.BurnOverlayImage = burnOverlayImage
 	chunk.BurnOverlayTexture = burnOverlayTexture
 
+	manager.registerTerrainChunkEntity(chunk)
 	return chunk
 }
 
@@ -198,6 +208,16 @@ func (manager *ChunkManager) BurnAtWorldPosition(worldX, worldZ float32) bool {
 	}
 
 	return chunk.AddBurnMark(worldX, worldZ)
+}
+
+func (manager *ChunkManager) registerTerrainChunkEntity(chunk *TerrainChunk) {
+	if manager == nil || manager.terrainChunkMap == nil || chunk == nil {
+		return
+	}
+
+	chunk.Entity = manager.terrainChunkMap.NewEntity(&TerrainChunkComponent{
+		Chunk: chunk,
+	})
 }
 
 func (manager *ChunkManager) loadChunkData(coords ChunkCoords, chunkName string) terrain.ChunkData {

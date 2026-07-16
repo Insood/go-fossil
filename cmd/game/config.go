@@ -13,8 +13,8 @@ const (
 	debugAxisLength = 3.0
 
 	defaultChunkName = "default"
-	droneWorldSpawnX = 4.0
-	droneWorldSpawnZ = 4.0
+	droneWorldSpawnX = 1.5
+	droneWorldSpawnZ = 6.5
 
 	droneWidth             = 1.0
 	droneHeight            = 0.2

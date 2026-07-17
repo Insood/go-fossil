@@ -116,7 +116,8 @@ func floodFillArtifactRegionWithPoints(data *ArtifactData, startX, startY int, t
 }
 
 func applyArtifactRegion(manager *ArtifactManager, chunk *TerrainChunk, region artifactRegion) {
-	manager.CreateFragmentFromRegion(chunk.SurfaceTexture.BaseImage, chunk.ArtifactImage, region.bounds, region.points)
+	score := scoreArtifactRegion(manager, chunk, region)
+	manager.CreateFragmentFromRegionWithScore(chunk.SurfaceTexture.BaseImage, chunk.ArtifactImage, region.bounds, region.points, score)
 
 	for _, point := range region.points {
 		chunk.ArtifactData.SetID(point.X, point.Y, -1)
@@ -126,4 +127,39 @@ func applyArtifactRegion(manager *ArtifactManager, chunk *TerrainChunk, region a
 
 	chunk.uploadArtifactImageRect(region.bounds)
 	chunk.uploadBurnOverlayRect(region.bounds)
+}
+
+func scoreArtifactRegion(manager *ArtifactManager, chunk *TerrainChunk, region artifactRegion) float64 {
+	if manager == nil || chunk == nil || chunk.ArtifactData == nil || chunk.ArtifactImage == nil || len(region.points) == 0 {
+		return 0
+	}
+
+	cutPixelsByArtifactID := make(map[int32]int)
+	for _, point := range region.points {
+		if chunk.ArtifactImage.RGBAAt(point.X, point.Y).A == 0 {
+			continue
+		}
+
+		artifactID := chunk.ArtifactData.IDAt(point.X, point.Y)
+		if artifactID <= 0 {
+			continue
+		}
+
+		cutPixelsByArtifactID[artifactID]++
+	}
+
+	score := 0.0
+	for artifactID, cutPixels := range cutPixelsByArtifactID {
+		artifact, ok := manager.Lookup(artifactID)
+		if !ok {
+			panic(fmt.Errorf("score artifact region: missing artifact %d", artifactID))
+		}
+		if artifact.Size <= 0 {
+			panic(fmt.Errorf("score artifact region: artifact %d has invalid size %d", artifactID, artifact.Size))
+		}
+
+		score += float64(cutPixels) / float64(artifact.Size) * float64(artifact.Value)
+	}
+
+	return score
 }

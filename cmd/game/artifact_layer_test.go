@@ -19,6 +19,7 @@ func TestBuildArtifactImageLayerPlacesAndRotatesArtifact(t *testing.T) {
 				Width:     2,
 				Height:    1,
 				Value:     10,
+				Size:      2,
 			},
 		},
 		images: map[string]image.Image{
@@ -58,6 +59,7 @@ func TestBuildArtifactDataLayerRegistersAndMarksArtifactPixels(t *testing.T) {
 				Width:     2,
 				Height:    1,
 				Value:     10,
+				Size:      2,
 			},
 		},
 		images: map[string]image.Image{
@@ -97,6 +99,9 @@ func TestBuildArtifactDataLayerRegistersAndMarksArtifactPixels(t *testing.T) {
 	}
 	if got, want := artifact.Value, 10; got != want {
 		t.Fatalf("artifact value = %d, want %d", got, want)
+	}
+	if got, want := artifact.Size, 2; got != want {
+		t.Fatalf("artifact size = %d, want %d", got, want)
 	}
 	if got, want := artifact.CenterX, float32(2); got != want {
 		t.Fatalf("artifact center x = %v, want %v", got, want)

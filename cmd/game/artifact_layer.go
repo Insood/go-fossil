@@ -32,7 +32,7 @@ func buildArtifactDataLayer(manager *ArtifactManager, chunk *TerrainChunk, asset
 	for _, placement := range chunk.Data.Artifacts {
 		definition, rotated := prepareArtifactPlacement(placement, assets)
 		pixelBounds := artifactPlacementBounds(rotated, placement.X, placement.Z, layerBounds)
-		artifact := manager.RegisterChunkArtifact(chunk, definition.Name, definition.Value, placement.X, placement.Z, pixelBounds)
+		artifact := manager.RegisterChunkArtifact(chunk, definition.Name, definition.Value, definition.Size, placement.X, placement.Z, pixelBounds)
 		blitArtifactData(artifactData, rotated, artifact.ID, placement.X, placement.Z)
 	}
 

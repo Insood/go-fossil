@@ -52,6 +52,8 @@ func TestArtifactCutoutDetectionSystemScansOnSixtiethTickAndClearsDamage(t *test
 	system := &ArtifactCutoutDetectionSystem{}
 	artifactManager := NewArtifactManager()
 	artifactManager.fragmentOutputDir = t.TempDir()
+	artifactManager.RegisterChunkArtifact(chunk, "artifact-one", 10, 3, 1, 0, image.Rect(0, 0, 1, 1))
+	artifactManager.RegisterChunkArtifact(chunk, "artifact-two", 10, 3, 1, 2, image.Rect(0, 0, 1, 1))
 	game := &Game{world: world, artifactManager: artifactManager, Tick: 0}
 	system.Initialize(game)
 	system.damageMap.Add(chunk.Entity, &TerrainChunkDamaged{})
@@ -148,8 +150,18 @@ func TestArtifactCutoutDetectionSystemScansOnSixtiethTickAndClearsDamage(t *test
 	if got, want := fragment.Weight, 3; got != want {
 		t.Fatalf("fragment 1 weight = %d, want %d", got, want)
 	}
-	if got, want := fragment.Score, 0; got != want {
+	if got, want := fragment.Score, 7; got != want {
 		t.Fatalf("fragment 1 score = %d, want %d", got, want)
+	}
+	fragment, ok = artifactManager.LookupFragment(2)
+	if !ok {
+		t.Fatal("fragment 2 missing for pixel inspection")
+	}
+	if got, want := fragment.Weight, 3; got != want {
+		t.Fatalf("fragment 2 weight = %d, want %d", got, want)
+	}
+	if got, want := fragment.Score, 10; got != want {
+		t.Fatalf("fragment 2 score = %d, want %d", got, want)
 	}
 	if got := color.NRGBAModel.Convert(fragment.Image.At(1, 0)).(color.NRGBA); got.G < 60 || got.A != 255 {
 		t.Fatalf("fragment pixel (1,0) = %#v, want ground preserved", got)

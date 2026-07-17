@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"math"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -42,6 +43,7 @@ func (manager *ArtifactManager) RegisterChunkArtifact(
 	chunk *TerrainChunk,
 	name string,
 	value int,
+	size int,
 	centerX float32,
 	centerZ float32,
 	pixelBounds image.Rectangle,
@@ -53,6 +55,7 @@ func (manager *ArtifactManager) RegisterChunkArtifact(
 		ID:          artifactID,
 		Name:        name,
 		Value:       value,
+		Size:        size,
 		CenterX:     centerX,
 		CenterZ:     centerZ,
 		PixelBounds: pixelBounds,
@@ -64,18 +67,26 @@ func (manager *ArtifactManager) RegisterChunkArtifact(
 }
 
 func (manager *ArtifactManager) CreateFragment(src image.Image) *ArtifactFragment {
-	return manager.CreateFragmentFromLayers(nil, src, src.Bounds())
+	return manager.createFragmentFromRegion(nil, src, src.Bounds(), nil, 0)
 }
 
 func (manager *ArtifactManager) CreateFragmentFromRect(src image.Image, bounds image.Rectangle) *ArtifactFragment {
-	return manager.CreateFragmentFromLayers(nil, src, bounds)
+	return manager.createFragmentFromRegion(nil, src, bounds, nil, 0)
 }
 
 func (manager *ArtifactManager) CreateFragmentFromLayers(background image.Image, foreground image.Image, bounds image.Rectangle) *ArtifactFragment {
-	return manager.CreateFragmentFromRegion(background, foreground, bounds, nil)
+	return manager.createFragmentFromRegion(background, foreground, bounds, nil, 0)
 }
 
 func (manager *ArtifactManager) CreateFragmentFromRegion(background image.Image, foreground image.Image, bounds image.Rectangle, points []image.Point) *ArtifactFragment {
+	return manager.createFragmentFromRegion(background, foreground, bounds, points, 0)
+}
+
+func (manager *ArtifactManager) CreateFragmentFromRegionWithScore(background image.Image, foreground image.Image, bounds image.Rectangle, points []image.Point, score float64) *ArtifactFragment {
+	return manager.createFragmentFromRegion(background, foreground, bounds, points, score)
+}
+
+func (manager *ArtifactManager) createFragmentFromRegion(background image.Image, foreground image.Image, bounds image.Rectangle, points []image.Point, score float64) *ArtifactFragment {
 	manager.nextFragmentID++
 	fragmentID := manager.nextFragmentID
 
@@ -110,15 +121,18 @@ func (manager *ArtifactManager) CreateFragmentFromRegion(background image.Image,
 		}
 	}
 	fragmentTexture := loadTextureFromImage(fragmentImage)
+	weight := len(points)
+
 	fragment := &ArtifactFragment{
 		ID:      fragmentID,
-		Weight:  len(points),
-		Score:   0,
+		Weight:  weight,
+		Score:   int(math.Round(score)),
 		Image:   fragmentImage,
 		Texture: fragmentTexture,
 	}
 
 	manager.fragments[fragmentID] = fragment
+	fmt.Printf("Created artifact fragment %d: weight=%d score=%d raw=%.3f\n", fragment.ID, fragment.Weight, fragment.Score, score)
 	manager.saveFragmentImage(fragmentID, fragmentImage)
 	return fragment
 }

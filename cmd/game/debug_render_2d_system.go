@@ -19,7 +19,7 @@ func (system *DebugRenderSystem2D) Initialize(game *Game) {
 }
 
 func (system *DebugRenderSystem2D) Update(game *Game) {
-	if rl.IsKeyPressed(rl.KeyF10) {
+	if rl.IsKeyPressed(rl.KeyF10) || rl.IsGamepadButtonDown(droneGamepadIndex, rl.GamepadButtonLeftTrigger2) {
 		debugOverlayVisible = !debugOverlayVisible
 	}
 

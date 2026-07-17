@@ -11,8 +11,7 @@ func (system *InputSystem) Initialize(game *Game) {
 }
 
 func (system *InputSystem) Update(game *Game) {
-	if rl.IsGamepadButtonPressed(droneGamepadIndex, gamePadQuitButton1) &&
-		rl.IsGamepadButtonPressed(droneGamepadIndex, gamePadQuitButton2) {
+	if rl.IsGamepadButtonPressed(droneGamepadIndex, gamePadQuitButton1) {
 		game.Running = false
 	}
 }

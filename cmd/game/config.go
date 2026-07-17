@@ -63,8 +63,7 @@ const (
 )
 
 var (
-	gamePadQuitButton1     int32   = rl.GamepadButtonLeftTrigger1
-	gamePadQuitButton2     int32   = rl.GamepadButtonRightTrigger1
+	gamePadQuitButton1     int32   = rl.GamepadButtonRightFaceUp
 	shadowNearPlane        float32 = 0.5
 	shadowFarPlane         float32 = 20.0
 	shadowBias             float32 = 0.0008

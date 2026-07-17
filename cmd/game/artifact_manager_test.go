@@ -63,6 +63,13 @@ func TestCreateFragmentFromRegionUsesExactPixels(t *testing.T) {
 		[]image.Point{{X: 0, Y: 0}, {X: 1, Y: 1}},
 	)
 
+	if got, want := fragment.Weight, 2; got != want {
+		t.Fatalf("fragment weight = %d, want %d", got, want)
+	}
+	if got, want := fragment.Score, 0; got != want {
+		t.Fatalf("fragment score = %d, want %d", got, want)
+	}
+
 	if got := color.NRGBAModel.Convert(fragment.Image.At(0, 0)).(color.NRGBA); got.R < 250 || got.G != 0 || got.B != 0 || got.A != 255 {
 		t.Fatalf("pixel (0,0) = %#v, want opaque red from foreground", got)
 	}

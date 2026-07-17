@@ -145,6 +145,12 @@ func TestArtifactCutoutDetectionSystemScansOnSixtiethTickAndClearsDamage(t *test
 	if !ok {
 		t.Fatal("fragment 1 missing for pixel inspection")
 	}
+	if got, want := fragment.Weight, 3; got != want {
+		t.Fatalf("fragment 1 weight = %d, want %d", got, want)
+	}
+	if got, want := fragment.Score, 0; got != want {
+		t.Fatalf("fragment 1 score = %d, want %d", got, want)
+	}
 	if got := color.NRGBAModel.Convert(fragment.Image.At(1, 0)).(color.NRGBA); got.G < 60 || got.A != 255 {
 		t.Fatalf("fragment pixel (1,0) = %#v, want ground preserved", got)
 	}

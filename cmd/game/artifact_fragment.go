@@ -8,6 +8,8 @@ import (
 
 type ArtifactFragment struct {
 	ID      int32
+	Weight  int
+	Score   int
 	Image   *image.RGBA
 	Texture rl.Texture2D
 }

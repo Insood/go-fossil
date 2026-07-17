@@ -80,6 +80,7 @@ func (manager *ArtifactManager) CreateFragmentFromRegion(background image.Image,
 	fragmentID := manager.nextFragmentID
 
 	fragmentImage := image.NewRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
+
 	if len(points) == 0 {
 		if background != nil {
 			draw.Draw(fragmentImage, fragmentImage.Bounds(), background, bounds.Min, draw.Src)
@@ -111,6 +112,8 @@ func (manager *ArtifactManager) CreateFragmentFromRegion(background image.Image,
 	fragmentTexture := loadTextureFromImage(fragmentImage)
 	fragment := &ArtifactFragment{
 		ID:      fragmentID,
+		Weight:  len(points),
+		Score:   0,
 		Image:   fragmentImage,
 		Texture: fragmentTexture,
 	}

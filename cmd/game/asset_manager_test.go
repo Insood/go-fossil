@@ -48,8 +48,13 @@ func TestMustPanicsOnMissingLookup(t *testing.T) {
 func TestLoadImagesAndArtifactDefinitions(t *testing.T) {
 	t.Parallel()
 
+	img := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	img.SetRGBA(0, 0, color.RGBA{R: 255, A: 255})
+	img.SetRGBA(1, 0, color.RGBA{G: 255, A: 255})
+	img.SetRGBA(0, 1, color.RGBA{B: 255, A: 255})
+
 	assetFS := fstest.MapFS{
-		"textures/phone.png": &fstest.MapFile{Data: mustEncodePNG(t, color.RGBA{R: 255, A: 255})},
+		"textures/phone.png": &fstest.MapFile{Data: mustEncodePNGImage(t, img)},
 		"artifacts/phone.json": &fstest.MapFile{Data: []byte(`{
   "name": "phone",
   "image_path": "textures/phone.png",
@@ -81,6 +86,9 @@ func TestLoadImagesAndArtifactDefinitions(t *testing.T) {
 	}
 	if definition.ImagePath != "textures/phone.png" {
 		t.Fatalf("definition.ImagePath = %q, want textures/phone.png", definition.ImagePath)
+	}
+	if definition.Size != 3 {
+		t.Fatalf("definition.Size = %d, want 3", definition.Size)
 	}
 }
 
@@ -117,6 +125,12 @@ func mustEncodePNG(t *testing.T, fill color.RGBA) []byte {
 
 	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	img.SetRGBA(0, 0, fill)
+
+	return mustEncodePNGImage(t, img)
+}
+
+func mustEncodePNGImage(t *testing.T, img image.Image) []byte {
+	t.Helper()
 
 	var encoded bytes.Buffer
 	if err := png.Encode(&encoded, img); err != nil {

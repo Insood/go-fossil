@@ -13,6 +13,7 @@ type ArtifactDefinition struct {
 	Width     int    `json:"width"`
 	Height    int    `json:"height"`
 	Value     int    `json:"value"`
+	Size      int
 }
 
 func loadArtifactDefinitionAsset(assetFS fs.FS, definitionPath string) (ArtifactDefinition, error) {

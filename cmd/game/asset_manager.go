@@ -176,12 +176,29 @@ func (assets *AssetManager) loadArtifactDefinitions() {
 			panic(fmt.Errorf("artifact definition %q declared more than once", definition.Name))
 		}
 
-		if _, ok := assets.LookupImage(definition.ImagePath); !ok {
+		img, ok := assets.LookupImage(definition.ImagePath)
+		if !ok {
 			panic(fmt.Errorf("artifact definition %q references missing image %q", definition.Name, definition.ImagePath))
 		}
+		definition.Size = countNonTransparentPixels(img)
 		definitionCopy := definition
 		assets.artifactDefinitions[definitionCopy.Name] = &definitionCopy
 	}
+}
+
+func countNonTransparentPixels(img image.Image) int {
+	bounds := img.Bounds()
+	count := 0
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			if color.RGBAModel.Convert(img.At(x, y)).(color.RGBA).A == 0 {
+				continue
+			}
+			count++
+		}
+	}
+
+	return count
 }
 
 func (assets *AssetManager) loadTextures() {

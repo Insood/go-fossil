@@ -86,6 +86,7 @@ When adding a feature, prefer this order:
 - `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor, maps gamepad target axes into viewport space, and stores whether firing is active on the drone's `DroneFireControl` component.
 - `LaserSystem` reads the drone's `DroneFireControl` component, maps the stored cursor inside the drone viewport to a terrain-sampled target point for the player drone's `Laser` component, and stamps the chunk burn overlay at that point while firing is active.
 - `RenderSystem3D` currently owns the main scene render flow, the drone bottom-camera viewport pass, and the temporary shadow-depth debug pass.
+- `ChunkSpawnerSystem` watches the running score and adds a new generated terrain chunk when the player clears enough artifact value, placing the chunk on an exposed edge of the existing chunk set.
 - `DebugRenderSystem2D` owns the top-right raygui overlay for live shadow tuning controls, including the current light origin and orthographic size.
 - `F10` toggles the debug overlays, and `F11` exports the framebuffer depth texture for inspection.
 - Drone movement is clamped so its 1x1 footprint stays within loaded terrain chunk extents in X/Z.

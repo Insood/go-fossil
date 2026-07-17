@@ -6,9 +6,9 @@ import (
 	"image/color"
 	"image/draw"
 	"image/png"
+	"math"
 	"os"
 	"path/filepath"
-	"math"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

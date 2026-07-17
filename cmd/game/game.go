@@ -26,11 +26,8 @@ func InitializeGame() *Game {
 	artifactManager := NewArtifactManager()
 	chunkManager := NewChunkManager(world, assets, artifactManager)
 	defaultChunkCoords := ChunkCoords{X: 0, Z: 0}
-	northChunkCoords := ChunkCoords{X: 0, Z: -1}
-	chunkGenerator := NewChunkGenerator()
 
 	terrainChunk := chunkManager.LoadDiskChunk(defaultChunkCoords, defaultChunkName)
-	chunkManager.LoadGeneratedChunk(northChunkCoords, chunkGenerator)
 
 	game := &Game{
 		assets:            assets,
@@ -78,6 +75,7 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&LightSystem{})
 	game.AddSystem(&LaserSystem{})
 	game.AddSystem(&ArtifactCutoutDetectionSystem{})
+	game.AddSystem(&ChunkSpawnerSystem{})
 	game.AddSystem(&RenderSystem3D{})
 	game.AddSystem(&UserInterfaceSystem{})
 	game.AddSystem(&DebugRender3DSystem{})

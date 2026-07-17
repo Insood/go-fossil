@@ -9,7 +9,7 @@ import (
 )
 
 type UserInterfaceSystem struct {
-	filter         *ecs.Filter1[DroneFireControl]
+	filter          *ecs.Filter1[DroneFireControl]
 	artifactManager *ArtifactManager
 }
 

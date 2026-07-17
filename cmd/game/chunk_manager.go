@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image"
+	"math"
 	"math/rand"
 	"path"
 	"slices"
@@ -52,7 +53,8 @@ func (manager *ChunkManager) LoadGeneratedChunk(coords ChunkCoords, generator *C
 		return chunk
 	}
 
-	chunkData := generator.GenerateFlat(coords)
+	chunkData := generator.GenerateRandom(coords)
+	manager.populateGeneratedChunkHeights(coords, &chunkData)
 	manager.addGeneratedChunkArtifacts(coords, &chunkData)
 	chunk := manager.buildChunk(coords, chunkData)
 	manager.chunks[coords] = chunk
@@ -219,6 +221,178 @@ func (manager *ChunkManager) addGeneratedChunkArtifacts(coords ChunkCoords, chun
 
 	placements := randomGeneratedArtifactPlacements(chunkData.Width, chunkData.Height, definitions, manager.rng)
 	chunkData.Artifacts = append(chunkData.Artifacts, placements...)
+}
+
+func (manager *ChunkManager) populateGeneratedChunkHeights(coords ChunkCoords, chunkData *terrain.ChunkData) {
+	if manager == nil || chunkData == nil || len(chunkData.HeightSamples) == 0 {
+		return
+	}
+
+	width := chunkData.Width
+	height := chunkData.Height
+
+	for z := 0; z <= height; z++ {
+		for x := 0; x <= width; x++ {
+			if heightValue, ok := manager.borderHeightForVertex(coords, width, height, x, z); ok {
+				chunkData.HeightSamples[z][x] = heightValue
+			}
+		}
+	}
+
+	for z := 0; z <= height; z++ {
+		for x := 0; x <= width; x++ {
+			if !math.IsNaN(float64(chunkData.HeightSamples[z][x])) {
+				continue
+			}
+
+			chunkData.HeightSamples[z][x] = manager.randomHeightFromFilledNeighbors(chunkData.HeightSamples, x, z)
+		}
+	}
+}
+
+func (manager *ChunkManager) borderHeightForVertex(coords ChunkCoords, width, height, x, z int) (float32, bool) {
+	var candidates []float32
+
+	switch {
+	case x == 0 && z == 0:
+		candidates = append(candidates,
+			manager.cornerHeight(coords, width, height, -1, -1),
+			manager.edgeHeight(coords, width, height, 0, -1, x, z),
+			manager.edgeHeight(coords, width, height, -1, 0, x, z),
+		)
+	case x == width && z == 0:
+		candidates = append(candidates,
+			manager.cornerHeight(coords, width, height, 1, -1),
+			manager.edgeHeight(coords, width, height, 0, -1, x, z),
+			manager.edgeHeight(coords, width, height, 1, 0, x, z),
+		)
+	case x == 0 && z == height:
+		candidates = append(candidates,
+			manager.cornerHeight(coords, width, height, -1, 1),
+			manager.edgeHeight(coords, width, height, 0, 1, x, z),
+			manager.edgeHeight(coords, width, height, -1, 0, x, z),
+		)
+	case x == width && z == height:
+		candidates = append(candidates,
+			manager.cornerHeight(coords, width, height, 1, 1),
+			manager.edgeHeight(coords, width, height, 0, 1, x, z),
+			manager.edgeHeight(coords, width, height, 1, 0, x, z),
+		)
+	case x == 0:
+		candidates = append(candidates, manager.edgeHeight(coords, width, height, -1, 0, x, z))
+	case x == width:
+		candidates = append(candidates, manager.edgeHeight(coords, width, height, 1, 0, x, z))
+	case z == 0:
+		candidates = append(candidates, manager.edgeHeight(coords, width, height, 0, -1, x, z))
+	case z == height:
+		candidates = append(candidates, manager.edgeHeight(coords, width, height, 0, 1, x, z))
+	default:
+		return 0, false
+	}
+
+	for _, candidate := range candidates {
+		if !math.IsNaN(float64(candidate)) {
+			return candidate, true
+		}
+	}
+
+	return 0, false
+}
+
+func (manager *ChunkManager) cornerHeight(coords ChunkCoords, width, height, dx, dz int) float32 {
+	neighbor, ok := manager.chunkAtOffset(coords, dx, dz)
+	if !ok || neighbor == nil || neighbor.Data.HeightSamples == nil {
+		return float32(math.NaN())
+	}
+
+	switch {
+	case dx == -1 && dz == -1:
+		return neighbor.Data.HeightSamples[height][width]
+	case dx == 1 && dz == -1:
+		return neighbor.Data.HeightSamples[height][0]
+	case dx == -1 && dz == 1:
+		return neighbor.Data.HeightSamples[0][width]
+	case dx == 1 && dz == 1:
+		return neighbor.Data.HeightSamples[0][0]
+	default:
+		return float32(math.NaN())
+	}
+}
+
+func (manager *ChunkManager) edgeHeight(coords ChunkCoords, width, height, dx, dz, x, z int) float32 {
+	neighbor, ok := manager.chunkAtOffset(coords, dx, dz)
+	if !ok || neighbor == nil || neighbor.Data.HeightSamples == nil {
+		return float32(math.NaN())
+	}
+
+	switch {
+	case dx == -1 && dz == 0:
+		return neighbor.Data.HeightSamples[z][width]
+	case dx == 1 && dz == 0:
+		return neighbor.Data.HeightSamples[z][0]
+	case dx == 0 && dz == -1:
+		return neighbor.Data.HeightSamples[height][x]
+	case dx == 0 && dz == 1:
+		return neighbor.Data.HeightSamples[0][x]
+	default:
+		return float32(math.NaN())
+	}
+}
+
+func (manager *ChunkManager) chunkAtOffset(coords ChunkCoords, dx, dz int) (*TerrainChunk, bool) {
+	if manager == nil {
+		return nil, false
+	}
+
+	neighborCoords := ChunkCoords{X: coords.X + dx, Z: coords.Z + dz}
+	chunk, ok := manager.chunks[neighborCoords]
+	return chunk, ok
+}
+
+func (manager *ChunkManager) randomHeightFromFilledNeighbors(samples [][]float32, x, z int) float32 {
+	candidates := make([]float32, 0, 3)
+	if x > 0 {
+		candidates = append(candidates, samples[z][x-1])
+	}
+	if z > 0 {
+		candidates = append(candidates, samples[z-1][x])
+	}
+	if x > 0 && z > 0 {
+		candidates = append(candidates, samples[z-1][x-1])
+	}
+
+	filled := candidates[:0]
+	for _, candidate := range candidates {
+		if !math.IsNaN(float64(candidate)) {
+			filled = append(filled, candidate)
+		}
+	}
+	candidates = filled
+
+	if len(candidates) == 0 {
+		return clampFloat32(float32(manager.rng.Float64()*2), 0, 2)
+	}
+
+	minAllowed := float32(0)
+	maxAllowed := float32(2)
+	for _, candidate := range candidates {
+		if lower := candidate - 0.5; lower > minAllowed {
+			minAllowed = lower
+		}
+		if upper := candidate + 0.5; upper < maxAllowed {
+			maxAllowed = upper
+		}
+	}
+
+	if minAllowed > maxAllowed {
+		sum := float32(0)
+		for _, candidate := range candidates {
+			sum += candidate
+		}
+		return clampFloat32(sum/float32(len(candidates)), 0, 2)
+	}
+
+	return minAllowed + float32(manager.rng.Float64())*(maxAllowed-minAllowed)
 }
 
 func (manager *ChunkManager) BurnAtWorldPosition(worldX, worldZ float32) bool {

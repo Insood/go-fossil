@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"math"
 	"math/rand"
 	"testing"
 
@@ -210,6 +211,85 @@ func TestRandomGeneratedArtifactPlacementsRespectSpacingRules(t *testing.T) {
 			if dx*dx+dz*dz < minGapSquared {
 				t.Fatalf("placements %d and %d are too close: %#v %#v", j, i, placements[j], placement)
 			}
+		}
+	}
+}
+
+func TestPopulateGeneratedChunkHeightsMatchesNeighborEdges(t *testing.T) {
+	t.Parallel()
+
+	manager := &ChunkManager{
+		chunks: make(map[ChunkCoords]*TerrainChunk),
+		rng:    rand.New(rand.NewSource(1)),
+	}
+
+	neighborHeights := map[ChunkCoords]float32{
+		{X: -1, Z: -1}: 0.1,
+		{X: 0, Z: -1}:  0.2,
+		{X: 1, Z: -1}:  0.3,
+		{X: -1, Z: 0}:  0.4,
+		{X: 1, Z: 0}:   0.5,
+		{X: -1, Z: 1}:  0.6,
+		{X: 0, Z: 1}:   0.7,
+		{X: 1, Z: 1}:   0.8,
+	}
+	for coords, height := range neighborHeights {
+		manager.chunks[coords] = newTestTerrainChunk(coords, float32(coords.X*terrain.ChunkWidthTiles), float32(coords.Z*terrain.ChunkHeightTiles), height)
+	}
+
+	chunkData := terrain.ChunkData{
+		Width:         terrain.ChunkWidthTiles,
+		Height:        terrain.ChunkHeightTiles,
+		HeightSamples: make([][]float32, terrain.ChunkHeightTiles+1),
+	}
+	for row := range chunkData.HeightSamples {
+		chunkData.HeightSamples[row] = make([]float32, terrain.ChunkWidthTiles+1)
+		for column := range chunkData.HeightSamples[row] {
+			chunkData.HeightSamples[row][column] = float32(math.NaN())
+		}
+	}
+
+	manager.populateGeneratedChunkHeights(ChunkCoords{X: 0, Z: 0}, &chunkData)
+
+	for z := 0; z <= terrain.ChunkHeightTiles; z++ {
+		for x := 0; x <= terrain.ChunkWidthTiles; x++ {
+			got := chunkData.HeightSamples[z][x]
+			if math.IsNaN(float64(got)) {
+				t.Fatalf("height sample (%d,%d) is NaN", x, z)
+			}
+			if got < 0 || got > 2 {
+				t.Fatalf("height sample (%d,%d) = %v, want within [0,2]", x, z, got)
+			}
+		}
+	}
+
+	if got, want := chunkData.HeightSamples[0][0], neighborHeights[ChunkCoords{X: -1, Z: -1}]; got != want {
+		t.Fatalf("northwest corner = %v, want %v", got, want)
+	}
+	if got, want := chunkData.HeightSamples[0][terrain.ChunkWidthTiles], neighborHeights[ChunkCoords{X: 1, Z: -1}]; got != want {
+		t.Fatalf("northeast corner = %v, want %v", got, want)
+	}
+	if got, want := chunkData.HeightSamples[terrain.ChunkHeightTiles][0], neighborHeights[ChunkCoords{X: -1, Z: 1}]; got != want {
+		t.Fatalf("southwest corner = %v, want %v", got, want)
+	}
+	if got, want := chunkData.HeightSamples[terrain.ChunkHeightTiles][terrain.ChunkWidthTiles], neighborHeights[ChunkCoords{X: 1, Z: 1}]; got != want {
+		t.Fatalf("southeast corner = %v, want %v", got, want)
+	}
+
+	for x := 1; x < terrain.ChunkWidthTiles; x++ {
+		if got, want := chunkData.HeightSamples[0][x], neighborHeights[ChunkCoords{X: 0, Z: -1}]; got != want {
+			t.Fatalf("north edge x=%d = %v, want %v", x, got, want)
+		}
+		if got, want := chunkData.HeightSamples[terrain.ChunkHeightTiles][x], neighborHeights[ChunkCoords{X: 0, Z: 1}]; got != want {
+			t.Fatalf("south edge x=%d = %v, want %v", x, got, want)
+		}
+	}
+	for z := 1; z < terrain.ChunkHeightTiles; z++ {
+		if got, want := chunkData.HeightSamples[z][0], neighborHeights[ChunkCoords{X: -1, Z: 0}]; got != want {
+			t.Fatalf("west edge z=%d = %v, want %v", z, got, want)
+		}
+		if got, want := chunkData.HeightSamples[z][terrain.ChunkWidthTiles], neighborHeights[ChunkCoords{X: 1, Z: 0}]; got != want {
+			t.Fatalf("east edge z=%d = %v, want %v", z, got, want)
 		}
 	}
 }

@@ -54,3 +54,11 @@ func rotateImageClockwiseNearest(src image.Image, degrees float64) *image.RGBA {
 
 	return dst
 }
+
+func minFloat32(a, b float32) float32 {
+	if a < b {
+		return a
+	}
+
+	return b
+}

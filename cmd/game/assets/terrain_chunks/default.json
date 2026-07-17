@@ -25,6 +25,8 @@
     [0.5, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0]
   ],
   "artifacts": [
-    { "name": "fossil", "x": 416, "z": 96, "orientation": 135 }
+    { "name": "fossil", "x": 416, "z": 96, "orientation": 135 },
+    { "name": "fossil", "x": 416, "z": 416, "orientation": 270 }
   ]
 }
+

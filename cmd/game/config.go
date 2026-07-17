@@ -47,6 +47,12 @@ const (
 	droneViewNearPlane = 0.01
 	droneViewFarPlane  = 16.0
 
+	artifactFragmentThumbSize = 64
+	artifactFragmentRowStep   = 70
+	artifactFragmentStartX    = 16
+	artifactFragmentStartY    = 16
+	artifactFragmentTextGap   = 12
+
 	laserHitMarkerRadius             = 0.015
 	artifactCutoutDetectionScanTicks = 60
 	MaximumRegionSize                = 4096

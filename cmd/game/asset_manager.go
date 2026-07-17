@@ -53,6 +53,19 @@ func (assets *AssetManager) LookupArtifactDefinition(name string) (*ArtifactDefi
 	return definition, ok
 }
 
+func (assets *AssetManager) ArtifactDefinitions() []*ArtifactDefinition {
+	if len(assets.artifactDefinitions) == 0 {
+		return nil
+	}
+
+	definitions := make([]*ArtifactDefinition, 0, len(assets.artifactDefinitions))
+	for _, definition := range assets.artifactDefinitions {
+		definitions = append(definitions, definition)
+	}
+
+	return definitions
+}
+
 func (assets *AssetManager) LookupImage(assetPath string) (image.Image, bool) {
 	normalizedPath := path.Clean(assetPath)
 	img, ok := assets.images[normalizedPath]

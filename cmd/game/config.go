@@ -55,6 +55,11 @@ const (
 	totalScoreTextX           = 16
 	totalScoreTextY           = 16
 
+	generatedArtifactEdgeMarginPixels   = 96
+	generatedArtifactMinCenterGapPixels = 160
+	generatedArtifactMaxCount           = 3
+	generatedArtifactPlacementAttempts  = 64
+
 	laserHitMarkerRadius             = 0.015
 	artifactCutoutDetectionScanTicks = 60
 	MaximumRegionSize                = 4096

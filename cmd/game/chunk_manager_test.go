@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"math/rand"
 	"testing"
 
 	ecs "github.com/mlange-42/ark/ecs"
@@ -159,6 +160,57 @@ func TestChunkManagerBurnAtWorldPositionBurnsOverlay(t *testing.T) {
 	}
 	if got := chunk.BurnOverlayImage.RGBAAt(0, 0); got.A != 255 {
 		t.Fatalf("burn overlay at (0,0) = %#v, want alpha 255", got)
+	}
+}
+
+func TestRandomGeneratedArtifactPlacementsRespectSpacingRules(t *testing.T) {
+	t.Parallel()
+
+	placements := randomGeneratedArtifactPlacements(
+		terrain.ChunkWidthTiles,
+		terrain.ChunkHeightTiles,
+		[]*ArtifactDefinition{
+			{Name: "alpha"},
+			{Name: "beta"},
+			{Name: "gamma"},
+			{Name: "delta"},
+		},
+		rand.New(rand.NewSource(1)),
+	)
+
+	if len(placements) == 0 {
+		t.Fatal("placement count = 0, want at least 1")
+	}
+	if len(placements) > generatedArtifactMaxCount {
+		t.Fatalf("placement count = %d, want at most %d", len(placements), generatedArtifactMaxCount)
+	}
+
+	seenNames := make(map[string]struct{}, len(placements))
+	minX := float32(generatedArtifactEdgeMarginPixels)
+	minZ := float32(generatedArtifactEdgeMarginPixels)
+	maxX := float32(terrain.ChunkWidthTiles*terrainTexturePixelsPerTile - generatedArtifactEdgeMarginPixels)
+	maxZ := float32(terrain.ChunkHeightTiles*terrainTexturePixelsPerTile - generatedArtifactEdgeMarginPixels)
+	minGapSquared := float32(generatedArtifactMinCenterGapPixels * generatedArtifactMinCenterGapPixels)
+
+	for i, placement := range placements {
+		if placement.X < minX || placement.X > maxX {
+			t.Fatalf("placement %d x = %v, want within [%v, %v]", i, placement.X, minX, maxX)
+		}
+		if placement.Z < minZ || placement.Z > maxZ {
+			t.Fatalf("placement %d z = %v, want within [%v, %v]", i, placement.Z, minZ, maxZ)
+		}
+		if _, exists := seenNames[placement.Name]; exists {
+			t.Fatalf("placement %d name = %q, want unique names", i, placement.Name)
+		}
+		seenNames[placement.Name] = struct{}{}
+
+		for j := 0; j < i; j++ {
+			dx := placement.X - placements[j].X
+			dz := placement.Z - placements[j].Z
+			if dx*dx+dz*dz < minGapSquared {
+				t.Fatalf("placements %d and %d are too close: %#v %#v", j, i, placements[j], placement)
+			}
+		}
 	}
 }
 

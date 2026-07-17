@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"image"
+	"math/rand"
 	"path"
 	"slices"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
@@ -16,6 +18,7 @@ type ChunkManager struct {
 	world           *ecs.World
 	assets          *AssetManager
 	artifactManager *ArtifactManager
+	rng             *rand.Rand
 	terrainChunkMap *ecs.Map1[TerrainChunkComponent]
 	chunkData       map[ChunkCoords]terrain.ChunkData
 	chunks          map[ChunkCoords]*TerrainChunk
@@ -26,6 +29,7 @@ func NewChunkManager(world *ecs.World, assets *AssetManager, artifactManager *Ar
 		world:           world,
 		assets:          assets,
 		artifactManager: artifactManager,
+		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
 		terrainChunkMap: ecs.NewMap1[TerrainChunkComponent](world),
 		chunkData:       make(map[ChunkCoords]terrain.ChunkData),
 		chunks:          make(map[ChunkCoords]*TerrainChunk),
@@ -48,7 +52,9 @@ func (manager *ChunkManager) LoadGeneratedChunk(coords ChunkCoords, generator *C
 		return chunk
 	}
 
-	chunk := manager.buildChunk(coords, generator.GenerateFlat(coords))
+	chunkData := generator.GenerateFlat(coords)
+	manager.addGeneratedChunkArtifacts(coords, &chunkData)
+	chunk := manager.buildChunk(coords, chunkData)
 	manager.chunks[coords] = chunk
 	return chunk
 }
@@ -201,6 +207,20 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 	return chunk
 }
 
+func (manager *ChunkManager) addGeneratedChunkArtifacts(coords ChunkCoords, chunkData *terrain.ChunkData) {
+	if manager == nil || chunkData == nil || manager.assets == nil {
+		return
+	}
+
+	definitions := manager.assets.ArtifactDefinitions()
+	if len(definitions) == 0 {
+		return
+	}
+
+	placements := randomGeneratedArtifactPlacements(chunkData.Width, chunkData.Height, definitions, manager.rng)
+	chunkData.Artifacts = append(chunkData.Artifacts, placements...)
+}
+
 func (manager *ChunkManager) BurnAtWorldPosition(worldX, worldZ float32) bool {
 	chunk, ok := manager.ChunkForWorldPosition(worldX, worldZ)
 	if !ok {
@@ -244,4 +264,98 @@ func newTerrainMesh(surface *terrain.SurfaceMesh) rl.Mesh {
 		Normals:       &surface.Normals[0],
 		Indices:       &surface.Indices[0],
 	}
+}
+
+func randomGeneratedArtifactPlacements(
+	width int,
+	height int,
+	definitions []*ArtifactDefinition,
+	rng *rand.Rand,
+) []terrain.ArtifactPlacement {
+	if len(definitions) == 0 {
+		return nil
+	}
+	if rng == nil {
+		rng = rand.New(rand.NewSource(time.Now().UnixNano()))
+	}
+
+	maxCount := generatedArtifactMaxCount
+	if len(definitions) < maxCount {
+		maxCount = len(definitions)
+	}
+	if maxCount <= 0 {
+		return nil
+	}
+
+	count := 1 + rng.Intn(maxCount)
+	order := rng.Perm(len(definitions))
+
+	bounds := image.Rect(0, 0, width*terrainTexturePixelsPerTile, height*terrainTexturePixelsPerTile)
+	minX := float32(bounds.Min.X + generatedArtifactEdgeMarginPixels)
+	maxX := float32(bounds.Max.X - generatedArtifactEdgeMarginPixels)
+	minZ := float32(bounds.Min.Y + generatedArtifactEdgeMarginPixels)
+	maxZ := float32(bounds.Max.Y - generatedArtifactEdgeMarginPixels)
+	if maxX <= minX || maxZ <= minZ {
+		return nil
+	}
+
+	placements := make([]terrain.ArtifactPlacement, 0, count)
+	centers := make([][2]float32, 0, count)
+	for _, index := range order {
+		if len(placements) >= count {
+			break
+		}
+
+		definition := definitions[index]
+		if definition == nil {
+			continue
+		}
+
+		placement, ok := randomArtifactPlacement(definition.Name, minX, maxX, minZ, maxZ, centers, rng)
+		if !ok {
+			continue
+		}
+
+		placements = append(placements, placement)
+		centers = append(centers, [2]float32{placement.X, placement.Z})
+	}
+
+	return placements
+}
+
+func randomArtifactPlacement(
+	name string,
+	minX, maxX, minZ, maxZ float32,
+	centers [][2]float32,
+	rng *rand.Rand,
+) (terrain.ArtifactPlacement, bool) {
+	for attempt := 0; attempt < generatedArtifactPlacementAttempts; attempt++ {
+		x := minX + float32(rng.Float64())*(maxX-minX)
+		z := minZ + float32(rng.Float64())*(maxZ-minZ)
+		if tooCloseToAnyCenter(x, z, centers) {
+			continue
+		}
+
+		return terrain.ArtifactPlacement{
+			Name:        name,
+			X:           x,
+			Z:           z,
+			Orientation: float32(rng.Intn(360)),
+		}, true
+	}
+
+	return terrain.ArtifactPlacement{}, false
+}
+
+func tooCloseToAnyCenter(x, z float32, centers [][2]float32) bool {
+	minGapSquared := float32(generatedArtifactMinCenterGapPixels * generatedArtifactMinCenterGapPixels)
+	for _, center := range centers {
+		dx := x - center[0]
+		dz := z - center[1]
+		if dx*dx+dz*dz < minGapSquared {
+			return true
+		}
+	}
+
+	return false
 }

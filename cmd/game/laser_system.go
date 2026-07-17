@@ -8,25 +8,24 @@ import (
 )
 
 type LaserSystem struct {
-	filter    *ecs.Filter3[Position3, Drone, Laser]
+	filter    *ecs.Filter4[Position3, Drone, Laser, DroneFireControl]
 	damageMap *ecs.Map[TerrainChunkDamaged]
 }
 
 func (system *LaserSystem) Initialize(game *Game) {
-	system.filter = ecs.NewFilter3[Position3, Drone, Laser](game.world)
+	system.filter = ecs.NewFilter4[Position3, Drone, Laser, DroneFireControl](game.world)
 	system.damageMap = ecs.NewMap[TerrainChunkDamaged](game.world)
 }
 
 func (system *LaserSystem) Update(game *Game) {
-	mouse := rl.GetMousePosition()
 	query := system.filter.Query()
 	defer query.Close()
 	burnTargets := make([]rl.Vector3, 0, 1)
 
 	for query.Next() {
-		position, _, laser := query.Get()
+		position, _, laser, control := query.Get()
 		target, ok := droneViewportWorldTarget(
-			mouse,
+			control.cursor,
 			rl.Vector3(*position),
 			game.chunkManager.SampleHeight,
 			func(worldX, worldZ float32) bool {
@@ -34,7 +33,7 @@ func (system *LaserSystem) Update(game *Game) {
 				return ok
 			},
 		)
-		if !rl.IsMouseButtonDown(rl.MouseLeftButton) || !ok {
+		if !control.firing || !ok {
 			laser.active = false
 			continue
 		}

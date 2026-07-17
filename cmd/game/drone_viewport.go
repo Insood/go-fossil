@@ -28,20 +28,34 @@ func droneCameraForPosition(dronePosition rl.Vector3) rl.Camera3D {
 	)
 }
 
+func droneViewportCursorFromMouse(mouse rl.Vector2, viewport rl.Rectangle) rl.Vector2 {
+	return clampVector2ToRectangle(mouse, viewport)
+}
+
+func droneViewportCursorFromGamepad(viewport rl.Rectangle, axisX, axisZ float32) rl.Vector2 {
+	normalizedX := clampFloat32(axisX, -1, 1)
+	normalizedZ := clampFloat32(axisZ, -1, 1)
+
+	return rl.NewVector2(
+		viewport.X+(normalizedX+1)*0.5*viewport.Width,
+		viewport.Y+(normalizedZ+1)*0.5*viewport.Height,
+	)
+}
+
 func droneViewportWorldTarget(
-	mouse rl.Vector2,
+	cursor rl.Vector2,
 	dronePosition rl.Vector3,
 	sampleHeight func(worldX, worldZ float32) float32,
 	hasChunk func(worldX, worldZ float32) bool,
 ) (rl.Vector3, bool) {
 	viewport := droneViewportRectangle()
-	if !rl.CheckCollisionPointRec(mouse, viewport) {
+	if !rl.CheckCollisionPointRec(cursor, viewport) {
 		return rl.Vector3{}, false
 	}
 
-	localMouse := rl.NewVector2(mouse.X-viewport.X, mouse.Y-viewport.Y)
+	localCursor := rl.NewVector2(cursor.X-viewport.X, cursor.Y-viewport.Y)
 	camera := droneCameraForPosition(dronePosition)
-	ray := rl.GetScreenToWorldRayEx(localMouse, camera, int32(viewport.Width), int32(viewport.Height))
+	ray := rl.GetScreenToWorldRayEx(localCursor, camera, int32(viewport.Width), int32(viewport.Height))
 	target, ok := terrainRayTarget(ray, sampleHeight, hasChunk)
 	if !ok {
 		return rl.Vector3{}, false
@@ -110,4 +124,11 @@ func terrainDistanceToSurface(point rl.Vector3, sampleHeight func(worldX, worldZ
 	}
 
 	return point.Y - sampleHeight(point.X, point.Z)
+}
+
+func clampVector2ToRectangle(point rl.Vector2, rec rl.Rectangle) rl.Vector2 {
+	return rl.NewVector2(
+		clampFloat32(point.X, rec.X, rec.X+rec.Width),
+		clampFloat32(point.Y, rec.Y, rec.Y+rec.Height),
+	)
 }

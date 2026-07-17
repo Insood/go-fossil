@@ -43,3 +43,8 @@ type TerrainChunkComponent struct {
 type TerrainChunkDamaged struct{}
 
 type Drone struct{}
+
+type DroneFireControl struct {
+	cursor rl.Vector2
+	firing bool
+}

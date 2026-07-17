@@ -47,13 +47,14 @@ const (
 	droneViewNearPlane = 0.01
 	droneViewFarPlane  = 16.0
 
-	artifactFragmentThumbSize = 64
-	artifactFragmentRowStep   = 70
-	artifactFragmentStartX    = 16
-	artifactFragmentStartY    = 16
-	artifactFragmentTextGap   = 12
-	totalScoreTextX           = 16
-	totalScoreTextY           = 16
+	artifactFragmentThumbSize    = 64
+	artifactFragmentRowStep      = 70
+	artifactFragmentStartX       = 16
+	artifactFragmentStartY       = 16
+	artifactFragmentTextGap      = 12
+	artifactFragmentDisplayCount = 8
+	totalScoreTextX              = 16
+	totalScoreTextY              = 16
 
 	generatedArtifactEdgeMarginPixels   = 96
 	generatedArtifactMinCenterGapPixels = 160

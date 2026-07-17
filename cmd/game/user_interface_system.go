@@ -77,7 +77,7 @@ func (system *UserInterfaceSystem) drawDroneReticle() {
 }
 
 func (system *UserInterfaceSystem) drawArtifactFragments() {
-	fragments := sortedArtifactFragments(system.artifactManager)
+	fragments := recentArtifactFragments(system.artifactManager, artifactFragmentDisplayCount)
 	if len(fragments) == 0 {
 		return
 	}
@@ -144,4 +144,21 @@ func sortedArtifactFragments(manager *ArtifactManager) []*ArtifactFragment {
 	})
 
 	return fragments
+}
+
+func recentArtifactFragments(manager *ArtifactManager, limit int) []*ArtifactFragment {
+	fragments := sortedArtifactFragments(manager)
+	if len(fragments) == 0 || limit <= 0 {
+		return nil
+	}
+	if len(fragments) > limit {
+		fragments = fragments[len(fragments)-limit:]
+	}
+
+	recent := make([]*ArtifactFragment, 0, len(fragments))
+	for i := len(fragments) - 1; i >= 0; i-- {
+		recent = append(recent, fragments[i])
+	}
+
+	return recent
 }

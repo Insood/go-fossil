@@ -68,10 +68,6 @@ func detectArtifactRegions(data *ArtifactData) []artifactRegion {
 	return regions
 }
 
-func floodFillArtifactRegion(data *ArtifactData, startX, startY int, tag int32) int {
-	return floodFillArtifactRegionWithPoints(data, startX, startY, tag).size
-}
-
 func floodFillArtifactRegionWithPoints(data *ArtifactData, startX, startY int, tag int32) artifactRegion {
 	stack := []image.Point{{X: startX, Y: startY}}
 	bounds := data.Bounds()

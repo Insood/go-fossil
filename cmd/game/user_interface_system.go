@@ -19,9 +19,14 @@ func (system *UserInterfaceSystem) Initialize(game *Game) {
 }
 
 func (system *UserInterfaceSystem) Update(game *Game) {
+	system.drawTotalScore(game)
 	system.drawDroneViewport(game)
 	system.drawDroneReticle()
 	system.drawArtifactFragments()
+}
+
+func (system *UserInterfaceSystem) drawTotalScore(game *Game) {
+	rl.DrawText(fmt.Sprintf("Total Score: %d", game.TotalScore), totalScoreTextX, totalScoreTextY, 24, rl.White)
 }
 
 func (system *UserInterfaceSystem) drawDroneViewport(game *Game) {

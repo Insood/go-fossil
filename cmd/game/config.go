@@ -52,6 +52,8 @@ const (
 	artifactFragmentStartX    = 16
 	artifactFragmentStartY    = 16
 	artifactFragmentTextGap   = 12
+	totalScoreTextX           = 16
+	totalScoreTextY           = 16
 
 	laserHitMarkerRadius             = 0.015
 	artifactCutoutDetectionScanTicks = 60

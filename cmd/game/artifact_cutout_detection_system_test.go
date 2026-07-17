@@ -137,6 +137,9 @@ func TestArtifactCutoutDetectionSystemScansOnSixtiethTickAndClearsDamage(t *test
 	if system.damageMap.Has(chunk.Entity) {
 		t.Fatal("damage tag was not cleared after the scan")
 	}
+	if got, want := game.TotalScore, 17; got != want {
+		t.Fatalf("game total score = %d, want %d", got, want)
+	}
 	if _, ok := artifactManager.LookupFragment(1); !ok {
 		t.Fatal("fragment 1 was not recorded")
 	}

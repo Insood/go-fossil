@@ -15,6 +15,7 @@ type Game struct {
 	world             *ecs.World
 	systems           []System
 	Tick              int
+	TotalScore        int
 	Running           bool
 }
 

@@ -88,7 +88,7 @@ Current ECS components:
 - Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; aim/firing state in `DroneFireControlSystem`.
 - Motion: `PhysicsSystem` applies velocity; `DroneHeightSystem` snaps the drone to terrain height plus hover offset.
 - Presentation: `CameraSystem` updates the main orthographic camera; `LightSystem` updates the shadow camera.
-- Salvage: `LaserSystem` maps the drone viewport cursor to terrain and applies burns; `ArtifactCutoutDetectionSystem` scores accepted artifact regions.
+- Salvage: `LaserSystem` maps the drone viewport cursor path to terrain and applies burns; `ArtifactCutoutDetectionSystem` scores accepted artifact regions.
 - World growth: `ChunkSpawnerSystem` adds generated chunks after score increases.
 - Rendering: `RenderSystem3D` owns shadow, scene, drone viewport, laser rendering, and depth export.
 - UI/debug: `UserInterfaceSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, fragment thumbnails, viewport, reticle, artifact labels, debug guides, and shadow tuning controls.

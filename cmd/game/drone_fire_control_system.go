@@ -37,6 +37,8 @@ func (system *DroneFireControlSystem) Update(game *Game) {
 
 	for query.Next() {
 		control := query.Get()
+		control.lastCursor = control.cursor
+		control.lastFiring = control.firing
 		control.cursor = cursor
 		control.firing = firing
 	}

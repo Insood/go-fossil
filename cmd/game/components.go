@@ -45,6 +45,8 @@ type TerrainChunkDamaged struct{}
 type Drone struct{}
 
 type DroneFireControl struct {
-	cursor rl.Vector2
-	firing bool
+	cursor     rl.Vector2
+	firing     bool
+	lastCursor rl.Vector2
+	lastFiring bool
 }

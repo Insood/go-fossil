@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
@@ -24,26 +25,66 @@ func (system *LaserSystem) Update(game *Game) {
 
 	for query.Next() {
 		position, _, laser, control := query.Get()
-		target, ok := droneViewportWorldTarget(
-			control.cursor,
-			rl.Vector3(*position),
-			game.chunkManager.SampleHeight,
-			func(worldX, worldZ float32) bool {
-				_, ok := game.chunkManager.ChunkForWorldPosition(worldX, worldZ)
-				return ok
-			},
-		)
-		if !control.firing || !ok {
-			laser.active = false
+		laser.active = false
+		if !control.firing {
+			continue
+		}
+
+		droneTargets := make([]rl.Vector3, 0, 1)
+		for _, cursor := range laserBurnCursors(*control) {
+			target, ok := droneViewportWorldTarget(
+				cursor,
+				rl.Vector3(*position),
+				game.chunkManager.SampleHeight,
+				func(worldX, worldZ float32) bool {
+					_, ok := game.chunkManager.ChunkForWorldPosition(worldX, worldZ)
+					return ok
+				},
+			)
+			if !ok {
+				continue
+			}
+
+			droneTargets = append(droneTargets, target)
+		}
+
+		if len(droneTargets) == 0 {
 			continue
 		}
 
 		laser.active = true
-		laser.target = target
-		burnTargets = append(burnTargets, target)
+		laser.target = droneTargets[len(droneTargets)-1]
+		burnTargets = append(burnTargets, droneTargets...)
 	}
 
 	system.applyBurnTargets(game, burnTargets)
+}
+
+func laserBurnCursors(control DroneFireControl) []rl.Vector2 {
+	if !control.lastFiring {
+		return []rl.Vector2{control.cursor}
+	}
+
+	distance := rl.Vector2Distance(control.lastCursor, control.cursor)
+	if distance == 0 {
+		return []rl.Vector2{control.cursor}
+	}
+
+	steps := int(math.Ceil(float64(distance / laserCursorBurnStepPixels)))
+	if steps < 1 {
+		steps = 1
+	}
+
+	cursors := make([]rl.Vector2, 0, steps)
+	for step := 1; step <= steps; step++ {
+		t := float32(step) / float32(steps)
+		cursors = append(cursors, rl.NewVector2(
+			control.lastCursor.X+(control.cursor.X-control.lastCursor.X)*t,
+			control.lastCursor.Y+(control.cursor.Y-control.lastCursor.Y)*t,
+		))
+	}
+
+	return cursors
 }
 
 func (system *LaserSystem) applyBurnTargets(game *Game, targets []rl.Vector3) {

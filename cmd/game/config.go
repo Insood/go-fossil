@@ -62,6 +62,7 @@ const (
 	generatedArtifactPlacementAttempts  = 64
 
 	laserHitMarkerRadius             = 0.015
+	laserCursorBurnStepPixels        = 5.0
 	artifactCutoutDetectionScanTicks = 60
 	MaximumRegionSize                = 4096
 	burnOverlayAlpha                 = 255

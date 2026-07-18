@@ -59,8 +59,8 @@ Important ownership notes:
 - `AssetManager` loads runtime images, textures, shaders, models, and artifact definitions from disk beside the built executable.
 - `ChunkManager` loads authored chunk JSON, generates runtime chunks, builds terrain meshes/textures, caches chunks, samples terrain height, registers terrain chunk ECS entities, and applies burn marks.
 - `ArtifactManager` owns runtime artifact records, unique artifact IDs, scored fragment records, fragment textures, and saved fragment PNGs under `generated/artifact-fragments`.
-- `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor, maps gamepad target axes into viewport space, and stores firing state on `DroneFireControl`.
-- `LaserSystem` maps the stored drone viewport cursor to a terrain-sampled world target, draws an active laser target through `Laser`, stamps the chunk burn overlay while firing, and marks damaged chunks for cutout scanning.
+- `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor, maps gamepad target axes into viewport space, and stores current and previous cursor/firing state on `DroneFireControl`.
+- `LaserSystem` maps the stored drone viewport cursor to terrain-sampled world targets, interpolates between consecutive firing cursors at the configured pixel step, stamps the chunk burn overlay while firing, and marks damaged chunks for cutout scanning.
 - `ArtifactCutoutDetectionSystem` periodically scans damaged chunks, flood-fills remaining artifact ID regions, accepts regions below `MaximumRegionSize`, scores recovered artifact pixels, clears accepted artifact overlay pixels, softens the burn overlay, and creates saved fragment images.
 - `ChunkSpawnerSystem` watches score deltas and adds generated chunks after enough artifact value is recovered.
 - `RenderSystem3D` owns the shadow pass, main scene pass, drone bottom-camera viewport pass, laser rendering, and shadow-depth export.

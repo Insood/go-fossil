@@ -8,7 +8,6 @@ Read these files first:
 
 - [README.md](../README.md) for the project summary and repo shape
 - [docs/technical-direction.md](technical-direction.md) for architecture and ownership guidance
-- [docs/agent-guide.md](agent-guide.md) for small-slice workflow rules
 
 ## Code Shape
 
@@ -100,12 +99,27 @@ When adding a feature, prefer this order:
 2. Put the rule in the narrowest file that clearly owns it.
 3. Add or update ECS components and systems.
 4. Wire the system into `cmd/game/game.go` in the correct order.
-5. Update docs if the change affects ownership, coordinate assumptions, camera behavior, terrain behavior, system order, or gameplay rules.
+5. Update existing docs that describe changed behavior.
+6. Add focused new docs when the changed behavior has no natural home in the current docs, and link them from `README.md` or this file.
+
+Documentation is required for changes that affect ownership, coordinate assumptions, camera behavior, terrain behavior, artifact behavior, scoring, controls, rendering behavior, system order, or gameplay rules. Keep docs in present tense and describe only the implemented behavior.
+
+## Working Style
+
+- Make very small changes.
+- Prefer vertical slices over broad scaffolding.
+- Leave the project runnable after each meaningful step when possible.
+- Avoid slices that only create abstractions with no immediate behavior unless they unblock a concrete change.
+- Prefer visible progress, low coupling, reversible decisions, simple code, and documented assumptions.
+- In final notes, include what changed, how the result was verified, and any tracked files intentionally left untouched.
 
 ## Code Style
 
 - Keep code direct and readable.
 - Prefer the smallest implementation that clearly expresses the rule.
+- Favor battle-tested libraries over custom NIH code when they materially simplify implementation.
+- Prefer dependencies already present in `go.mod` before adding anything new.
+- Ask for permission before adding a new dependency.
 - Avoid redundant defensive checks when the surrounding code or library already guarantees the invariant.
 - Let hard programmer errors panic instead of hiding them behind silent branches or broad fallback handling.
 - Do not add extra abstractions, interfaces, or helper layers unless they clearly reduce duplication or clarify ownership.
@@ -117,3 +131,4 @@ When adding a feature, prefer this order:
 - Do not introduce speculative systems for inventory, progression, enemies, hazards, or AI.
 - Do not replace the current texture/mask-based cutting loop with a larger terrain architecture unless the task explicitly calls for that change.
 - Do not leave architectural decisions undocumented if other agents depend on them.
+- Do not leave stale documentation behind when code behavior changes.

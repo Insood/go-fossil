@@ -29,8 +29,7 @@ The setting reads as an archaeological dig site crossed with an e-waste graveyar
 ## Documentation Map
 
 - [docs/technical-direction.md](docs/technical-direction.md): architecture choices, current systems, and technical constraints
-- [docs/agent-guide.md](docs/agent-guide.md): working agreements for coding agents
-- [docs/llm-context.md](docs/llm-context.md): implementation map for coding agents
+- [docs/llm-context.md](docs/llm-context.md): implementation map and working agreements for coding agents
 
 ## Repository Shape
 

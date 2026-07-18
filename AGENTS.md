@@ -11,10 +11,13 @@ For the higher-level layout and implementation guidance, see [docs/technical-dir
 - Build gameplay in small, playable slices.
 - Keep rendering, terrain, input, UI, and gameplay systems separated where practical.
 - Prefer clear, testable code.
-- Avoid adding dependencies unless they solve a real problem.
+- Favor battle-tested libraries over custom NIH code when they materially simplify implementation.
+- Prefer dependencies already present in `go.mod` before adding anything new.
+- Ask for permission before adding a new dependency.
 - Preserve existing user changes unless explicitly asked to modify them.
 - If a change affects gameplay structure, explain the tradeoff briefly.
-- When you generate code, update docs if the change affects terrain behavior, camera behavior, system ownership, system order, or gameplay rules.
+- When you change behavior, update the existing docs that describe that behavior in the same change.
+- When a behavior change does not fit the current docs, add focused documentation for it and link it from the relevant LLM-facing doc.
 
 ## Change Placement
 
@@ -39,7 +42,7 @@ For the higher-level layout and implementation guidance, see [docs/technical-dir
 ## Do Not
 
 - Do not move core gameplay logic into `main.go`.
-- Do not add new dependencies unless they solve a real problem.
+- Do not add new dependencies without explicit user permission.
 - Do not split systems into extra packages unless the repo clearly needs it.
 - Do not introduce speculative systems for inventory, progression, enemies, hazards, or AI.
-- Do not change major world assumptions without updating the docs.
+- Do not change terrain behavior, camera behavior, system ownership, system order, gameplay rules, or major world assumptions without updating the docs.

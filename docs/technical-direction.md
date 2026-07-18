@@ -5,6 +5,7 @@
 - Language: Go
 - Rendering and platform layer: raylib
 - Architecture: ECS via `mlange-42/ark`
+- Image processing: `github.com/disintegration/gift` for artifact sprite rotation
 
 ## Rendering Model
 
@@ -53,7 +54,7 @@ Laser cutting is currently represented by texture and mask state. Burn marks pai
 
 ## Artifact And Salvage Model
 
-Artifact definitions live in `cmd/game/assets/artifacts/*.json` and reference texture images. `AssetManager` loads definitions, verifies referenced images, and computes each artifact's non-transparent pixel size.
+Artifact definitions live in `cmd/game/assets/artifacts/*.json` and reference texture images. `AssetManager` loads definitions, verifies referenced images, and computes each artifact's non-transparent pixel size. Artifact placement rotation uses `gift.Rotate` with nearest-neighbor interpolation.
 
 Chunk artifact placements are baked into two layers:
 

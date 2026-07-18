@@ -3,40 +3,30 @@ package main
 import (
 	"image"
 	"image/color"
-	"image/png"
-	"os"
-	"path/filepath"
 	"testing"
 )
 
-func TestSaveFragmentImageWritesPNG(t *testing.T) {
+func TestCreateFragmentFromRegionSkipsSmallFragments(t *testing.T) {
 	t.Parallel()
 
 	manager := NewArtifactManager()
-	manager.fragmentOutputDir = t.TempDir()
 
 	img := image.NewRGBA(image.Rect(0, 0, 2, 2))
-	img.SetRGBA(0, 0, color.RGBA{R: 255, A: 255})
-	img.SetRGBA(1, 1, color.RGBA{B: 255, A: 128})
+	fragment := manager.CreateFragmentFromRegion(
+		img,
+		nil,
+		img.Bounds(),
+		[]image.Point{{X: 0, Y: 0}, {X: 1, Y: 1}},
+	)
 
-	manager.saveFragmentImage(1, img)
-
-	file, err := os.Open(filepath.Join(manager.fragmentOutputDir, "fragment-000001.png"))
-	if err != nil {
-		t.Fatalf("open fragment png: %v", err)
+	if fragment != nil {
+		t.Fatalf("fragment = %#v, want nil for region below minimum pixel size", fragment)
 	}
-	defer file.Close()
-
-	decoded, err := png.Decode(file)
-	if err != nil {
-		t.Fatalf("decode fragment png: %v", err)
+	if _, ok := manager.LookupFragment(1); ok {
+		t.Fatal("undersized fragment was recorded")
 	}
-
-	if got := color.RGBAModel.Convert(decoded.At(0, 0)).(color.RGBA); got != (color.RGBA{R: 255, A: 255}) {
-		t.Fatalf("pixel (0,0) = %#v, want red opaque", got)
-	}
-	if got := color.NRGBAModel.Convert(decoded.At(1, 1)).(color.NRGBA); got.A != 128 || got.B < 250 || got.R != 0 || got.G != 0 {
-		t.Fatalf("pixel (1,1) = %#v, want blue semi-transparent", got)
+	if manager.nextFragmentID != 0 {
+		t.Fatalf("next fragment ID = %d, want 0", manager.nextFragmentID)
 	}
 }
 
@@ -44,26 +34,41 @@ func TestCreateFragmentFromRegionUsesExactPixels(t *testing.T) {
 	t.Parallel()
 
 	manager := NewArtifactManager()
-	manager.fragmentOutputDir = t.TempDir()
 
-	background := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	background := image.NewRGBA(image.Rect(0, 0, 6, 4))
 	background.SetRGBA(0, 0, color.RGBA{G: 255, A: 255})
 	background.SetRGBA(1, 0, color.RGBA{B: 255, A: 255})
 	background.SetRGBA(0, 1, color.RGBA{G: 255, A: 255})
 	background.SetRGBA(1, 1, color.RGBA{B: 255, A: 255})
 
-	foreground := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	foreground := image.NewRGBA(image.Rect(0, 0, 6, 4))
 	foreground.SetRGBA(0, 0, color.RGBA{R: 255, A: 255})
 	foreground.SetRGBA(1, 1, color.RGBA{})
+
+	points := make([]image.Point, 0, 20)
+	for y := 0; y < 4; y++ {
+		for x := 0; x < 6; x++ {
+			if (x == 1 && y == 0) || (x == 0 && y == 1) {
+				continue
+			}
+			if len(points) == 20 {
+				break
+			}
+			points = append(points, image.Point{X: x, Y: y})
+		}
+	}
 
 	fragment := manager.CreateFragmentFromRegion(
 		background,
 		foreground,
-		image.Rect(0, 0, 2, 2),
-		[]image.Point{{X: 0, Y: 0}, {X: 1, Y: 1}},
+		image.Rect(0, 0, 6, 4),
+		points,
 	)
 
-	if got, want := fragment.Weight, 2; got != want {
+	if fragment == nil {
+		t.Fatal("fragment = nil, want recorded fragment at minimum pixel size")
+	}
+	if got, want := fragment.Weight, 20; got != want {
 		t.Fatalf("fragment weight = %d, want %d", got, want)
 	}
 	if got, want := fragment.Score, 0; got != want {

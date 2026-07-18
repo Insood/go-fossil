@@ -118,7 +118,9 @@ func floodFillArtifactRegionWithPoints(data *ArtifactData, startX, startY int, t
 func applyArtifactRegion(game *Game, manager *ArtifactManager, chunk *TerrainChunk, region artifactRegion) {
 	score := scoreArtifactRegion(manager, chunk, region)
 	fragment := manager.CreateFragmentFromRegionWithScore(chunk.SurfaceTexture.BaseImage, chunk.ArtifactImage, region.bounds, region.points, score)
-	game.TotalScore += fragment.Score
+	if fragment != nil {
+		game.TotalScore += fragment.Score
+	}
 
 	for _, point := range region.points {
 		chunk.ArtifactData.SetID(point.X, point.Y, -1)

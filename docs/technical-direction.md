@@ -60,7 +60,7 @@ Chunk artifact placements are baked into two layers:
 - `ArtifactImage`, the visible overlay texture
 - `ArtifactData`, the per-pixel artifact ID mask used for cutout detection and scoring
 
-`ArtifactCutoutDetectionSystem` scans damaged chunks every `artifactCutoutDetectionScanTicks`. It flood-fills remaining artifact ID regions, accepts regions smaller than `MaximumRegionSize`, scores the recovered pixels by artifact value and original artifact size, clears the accepted overlay pixels, softens the burn overlay, adds to `Game.TotalScore`, and saves fragment PNGs under `generated/artifact-fragments`.
+`ArtifactCutoutDetectionSystem` scans damaged chunks every `artifactCutoutDetectionScanTicks`. It flood-fills remaining artifact ID regions, accepts regions smaller than `MaximumRegionSize`, scores the recovered pixels by artifact value and original artifact size, creates in-memory fragments for regions at or above `artifactFragmentMinPixels`, clears the accepted overlay pixels, softens the burn overlay, and adds created fragment scores to `Game.TotalScore`.
 
 ## Entity Model
 

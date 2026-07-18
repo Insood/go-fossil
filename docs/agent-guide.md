@@ -22,7 +22,7 @@ The current slice includes:
 - laser burns painted onto terrain overlay state
 - embedded artifact overlays and per-pixel artifact ID masks
 - periodic artifact cutout detection
-- scored artifact fragments saved to disk and shown in UI
+- scored artifact fragments stored in memory and shown in UI
 - generated chunk spawning after score increases
 - shadow mapping plus debug tuning overlays
 

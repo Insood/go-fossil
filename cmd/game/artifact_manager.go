@@ -5,27 +5,22 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"math"
-	"os"
-	"path/filepath"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type ArtifactManager struct {
-	nextID            int32
-	nextFragmentID    int32
-	artifacts         map[int32]*Artifact
-	fragments         map[int32]*ArtifactFragment
-	fragmentOutputDir string
+	nextID         int32
+	nextFragmentID int32
+	artifacts      map[int32]*Artifact
+	fragments      map[int32]*ArtifactFragment
 }
 
 func NewArtifactManager() *ArtifactManager {
 	return &ArtifactManager{
-		artifacts:         make(map[int32]*Artifact),
-		fragments:         make(map[int32]*ArtifactFragment),
-		fragmentOutputDir: artifactFragmentOutputDir,
+		artifacts: make(map[int32]*Artifact),
+		fragments: make(map[int32]*ArtifactFragment),
 	}
 }
 
@@ -87,6 +82,11 @@ func (manager *ArtifactManager) CreateFragmentFromRegionWithScore(background ima
 }
 
 func (manager *ArtifactManager) createFragmentFromRegion(background image.Image, foreground image.Image, bounds image.Rectangle, points []image.Point, score float64) *ArtifactFragment {
+	weight := artifactFragmentPixelSize(bounds, points)
+	if weight < artifactFragmentMinPixels {
+		return nil
+	}
+
 	manager.nextFragmentID++
 	fragmentID := manager.nextFragmentID
 
@@ -121,7 +121,6 @@ func (manager *ArtifactManager) createFragmentFromRegion(background image.Image,
 		}
 	}
 	fragmentTexture := loadTextureFromImage(fragmentImage)
-	weight := len(points)
 
 	fragment := &ArtifactFragment{
 		ID:      fragmentID,
@@ -133,30 +132,20 @@ func (manager *ArtifactManager) createFragmentFromRegion(background image.Image,
 
 	manager.fragments[fragmentID] = fragment
 	fmt.Printf("Created artifact fragment %d: weight=%d score=%d raw=%.3f\n", fragment.ID, fragment.Weight, fragment.Score, score)
-	manager.saveFragmentImage(fragmentID, fragmentImage)
 	return fragment
+}
+
+func artifactFragmentPixelSize(bounds image.Rectangle, points []image.Point) int {
+	if len(points) > 0 {
+		return len(points)
+	}
+
+	return bounds.Dx() * bounds.Dy()
 }
 
 func (manager *ArtifactManager) Unload() {
 	for _, fragment := range manager.fragments {
 		rl.UnloadTexture(fragment.Texture)
 		fragment.Texture = rl.Texture2D{}
-	}
-}
-
-func (manager *ArtifactManager) saveFragmentImage(id int32, img image.Image) {
-	if err := os.MkdirAll(manager.fragmentOutputDir, 0o755); err != nil {
-		panic(fmt.Errorf("create artifact fragment output dir %q: %w", manager.fragmentOutputDir, err))
-	}
-
-	path := filepath.Join(manager.fragmentOutputDir, fmt.Sprintf("fragment-%06d.png", id))
-	file, err := os.Create(path)
-	if err != nil {
-		panic(fmt.Errorf("create artifact fragment file %q: %w", path, err))
-	}
-	defer file.Close()
-
-	if err := png.Encode(file, img); err != nil {
-		panic(fmt.Errorf("encode artifact fragment png %q: %w", path, err))
 	}
 }

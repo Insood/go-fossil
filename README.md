@@ -23,7 +23,7 @@ The setting reads as an archaeological dig site crossed with an e-waste graveyar
 - Terrain: 8x8 chunk meshes generated from metadata and 9x9 inline height samples
 - Artifacts: JSON definitions, texture overlays, per-pixel ID masks, values, and recovered fragment records
 - Cutting: laser burns painted into terrain overlay state; cutting does not mutate height samples
-- Scoring: accepted artifact regions create scored fragments, save PNGs, and increase total score
+- Scoring: accepted artifact regions create scored fragments above the configured pixel minimum and increase total score
 - World growth: generated chunks spawn on exposed loaded-chunk edges after score gains
 
 ## Documentation Map

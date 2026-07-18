@@ -53,6 +53,7 @@ const (
 	artifactFragmentStartY       = 16
 	artifactFragmentTextGap      = 12
 	artifactFragmentDisplayCount = 8
+	artifactFragmentMinPixels    = 20
 	totalScoreTextX              = 16
 	totalScoreTextY              = 16
 
@@ -67,7 +68,6 @@ const (
 	MaximumRegionSize                = 4096
 	burnOverlayAlpha                 = 255
 	dugOutOverlayAlpha               = 128
-	artifactFragmentOutputDir        = "generated/artifact-fragments"
 
 	lightHeight         = 10
 	defaultLightOffsetX = 0

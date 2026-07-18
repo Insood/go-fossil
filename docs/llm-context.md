@@ -7,43 +7,77 @@ This repo is a small 3D salvage game built in Go and raylib. If you are a coding
 Read these files first:
 
 - [README.md](../README.md) for the project summary and repo shape
-- [docs/project-brief.md](project-brief.md) for the gameplay pillars and prototype goals
 - [docs/technical-direction.md](technical-direction.md) for architecture and ownership guidance
 - [docs/agent-guide.md](agent-guide.md) for small-slice workflow rules
 
-## Default Code Shape
+## Code Shape
 
-This project is intended to follow the same overall structure as `go-towerdefense`.
+- `cmd/game` is the executable game and owns most gameplay code.
+- `cmd/game/components.go` defines ECS components.
+- `cmd/game/*_system.go` contains one system per file.
+- `cmd/game/config.go` stores gameplay constants and tuning values.
+- `cmd/game/game.go` owns initialization, system order, and asset lifecycle.
+- `internal/terrain` owns terrain chunk parsing, validation, mesh data, baked texture generation, and terrain sampling helpers.
 
-- `cmd/game` is the executable game
-- `cmd/game/components.go` defines ECS components
-- `cmd/game/*_system.go` contains one system per file
-- `cmd/game/config.go` stores gameplay constants
-- `cmd/game/game.go` owns initialization, system order, and asset lifecycle
-- `internal/*` packages are reserved for focused game-rule domains that need separation
-
-## What This Repo Is
+## Current Game
 
 - The game uses an ECS architecture with `mlange-42/ark`.
-- The world is 3D and rendered with an orthographic camera to feel isometric.
+- The world is 3D and rendered with an orthographic main camera for an isometric-style presentation.
+- The player controls one drone with keyboard or gamepad movement.
+- The drone follows loaded terrain height with a constant hover offset and a small sine-wave hover motion.
+- Drone movement is clamped so its 1x1 footprint stays inside loaded terrain chunk extents in X/Z.
 - The main camera uses a sliding dead zone so it only follows the drone once the drone moves far enough from center.
-- The shadow-casting light tracks the drone overhead so the shadow map stays centered on the active area.
-- Terrain starts as a mesh derived from chunk metadata and inline height samples.
-- The current bootstrap loads the authored default chunk at `(0,0)` and a generated flat neighbor at `(0,-1)`.
-- The core loop is movement, discovery, cutting, and pickup under light pressure.
-- Gameplay code should stay small and easy to follow.
+- A single shadow-casting light tracks the drone overhead so the shadow map stays centered on the active area.
+- Terrain chunks are 8x8 tile meshes derived from chunk metadata and 9x9 inline height samples.
+- Startup loads the authored default chunk at `(0,0)`.
+- Generated terrain chunks are added as the running score increases, placed on exposed edges of the loaded chunk set.
+- Generated chunks use random height samples that match loaded neighbor borders and random artifact placements from loaded artifact definitions.
+- Artifacts are embedded as baked texture overlays plus a per-pixel artifact ID mask.
+- The salvage loop is movement, downward drone-camera aiming, laser burning, cutout detection, fragment scoring, and chunk expansion.
 
-## Early Invariants
+## Current Systems
 
-- World coordinates should remain truly 3D.
-- Camera choices are presentation, not world-model rules.
-- Terrain should be easy to render and easy to mutate experimentally.
-- The cutting mechanic is more important than early generality.
-- A visible, playable slice is better than a broad abstraction pass.
+Systems are registered in this order in `cmd/game/game.go`:
 
-## Where To Make Changes
+1. `InputSystem`
+2. `DroneInputSystem`
+3. `DroneFireControlSystem`
+4. `PhysicsSystem`
+5. `DroneHeightSystem`
+6. `CameraSystem`
+7. `LightSystem`
+8. `LaserSystem`
+9. `ArtifactCutoutDetectionSystem`
+10. `ChunkSpawnerSystem`
+11. `RenderSystem3D`
+12. `UserInterfaceSystem`
+13. `DebugRender3DSystem`
+14. `DebugRenderSystem2D`
 
-Use this as the default change map:
+Important ownership notes:
+
+- `AssetManager` loads runtime images, textures, shaders, models, and artifact definitions from disk beside the built executable.
+- `ChunkManager` loads authored chunk JSON, generates runtime chunks, builds terrain meshes/textures, caches chunks, samples terrain height, registers terrain chunk ECS entities, and applies burn marks.
+- `ArtifactManager` owns runtime artifact records, unique artifact IDs, scored fragment records, fragment textures, and saved fragment PNGs under `generated/artifact-fragments`.
+- `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor, maps gamepad target axes into viewport space, and stores firing state on `DroneFireControl`.
+- `LaserSystem` maps the stored drone viewport cursor to a terrain-sampled world target, draws an active laser target through `Laser`, stamps the chunk burn overlay while firing, and marks damaged chunks for cutout scanning.
+- `ArtifactCutoutDetectionSystem` periodically scans damaged chunks, flood-fills remaining artifact ID regions, accepts regions below `MaximumRegionSize`, scores recovered artifact pixels, clears accepted artifact overlay pixels, softens the burn overlay, and creates saved fragment images.
+- `ChunkSpawnerSystem` watches score deltas and adds generated chunks after enough artifact value is recovered.
+- `RenderSystem3D` owns the shadow pass, main scene pass, drone bottom-camera viewport pass, laser rendering, and shadow-depth export.
+- `UserInterfaceSystem` draws total score, the drone viewport, the reticle, and recent fragment thumbnails with weight and score.
+- `DebugRender3DSystem` draws axes, the drone ground ray, the light guide, and artifact ID labels when debug overlays are visible.
+- `DebugRenderSystem2D` owns the raygui shadow tuning overlay.
+
+## Rendering Notes
+
+- `Framebuffer` in `cmd/game/framebuffer.go` wraps off-screen render targets.
+- The scene has one `Light` entity. `LightSystem` rebuilds its orthographic camera from component data every frame.
+- `Renderable` carries `castsShadow` and `receivesShadow` flags for render-pass participation.
+- Terrain models use the `shadow_receiver` shader, with albedo, artifact emission, burn occlusion, and shadow depth textures bound through material maps.
+- `F10` toggles debug overlays. The left gamepad trigger also toggles debug overlays.
+- `F11` exports the shadow depth framebuffer for inspection.
+
+## Change Map
 
 | Feature type | Usually change these files |
 | --- | --- |
@@ -51,12 +85,12 @@ Use this as the default change map:
 | New gameplay system | `cmd/game/*_system.go` |
 | New render behavior | `cmd/game/render_system.go` or a dedicated render system |
 | Framebuffer / render-target setup | `cmd/game/framebuffer.go` |
-| New input behavior | `cmd/game/input_system.go` |
+| New input behavior | `cmd/game/input_system.go`, `cmd/game/drone_input_system.go`, or `cmd/game/drone_fire_control_system.go` |
 | System order changes | `cmd/game/game.go` |
 | Gameplay constants | `cmd/game/config.go` |
 | Shared small helpers | `cmd/game/utils.go` |
-| Terrain loading, generation, or mutation rules | `internal/terrain/*` |
-| Salvage/extraction rules that outgrow `cmd/game` | `internal/salvage/*` |
+| Terrain loading, generation, or sampling rules | `internal/terrain/*` and `cmd/game/chunk_manager.go` |
+| Artifact placement, masking, scoring, or fragments | `cmd/game/artifact*.go` |
 
 ## Implementation Pattern
 
@@ -66,7 +100,7 @@ When adding a feature, prefer this order:
 2. Put the rule in the narrowest file that clearly owns it.
 3. Add or update ECS components and systems.
 4. Wire the system into `cmd/game/game.go` in the correct order.
-5. Update docs if the change affects ownership, coordinate assumptions, camera behavior, terrain behavior, or system order.
+5. Update docs if the change affects ownership, coordinate assumptions, camera behavior, terrain behavior, system order, or gameplay rules.
 
 ## Code Style
 
@@ -76,26 +110,10 @@ When adding a feature, prefer this order:
 - Let hard programmer errors panic instead of hiding them behind silent branches or broad fallback handling.
 - Do not add extra abstractions, interfaces, or helper layers unless they clearly reduce duplication or clarify ownership.
 
-## Current Implementation Notes
-
-- `AssetManager` owns loading runtime assets from disk beside the built executable. `ChunkManager` owns loading terrain chunk JSON from disk, generating simple runtime chunks, converting them into terrain meshes/textures, and caching the built chunks. `internal/terrain` owns chunk JSON parsing, validation, terrain mesh data generation, baked terrain image composition, and world-to-terrain UV helpers.
-- Terrain chunks now carry the rendered artifact overlay plus a per-pixel artifact ID mask, while `ArtifactManager` owns the runtime artifact records and unique IDs.
-- There is a dedicated `Framebuffer` wrapper in `cmd/game/framebuffer.go` for off-screen render targets.
-- The scene currently has a single `Light` entity. `LightSystem` rebuilds its camera from component data, and the render pipeline consumes that camera.
-- `Renderable` carries `castsShadow` and `receivesShadow` flags so future render passes can filter participation without adding extra ECS components.
-- `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor, maps gamepad target axes into viewport space, and stores whether firing is active on the drone's `DroneFireControl` component.
-- `LaserSystem` reads the drone's `DroneFireControl` component, maps the stored cursor inside the drone viewport to a terrain-sampled target point for the player drone's `Laser` component, and stamps the chunk burn overlay at that point while firing is active.
-- `RenderSystem3D` currently owns the main scene render flow, the drone bottom-camera viewport pass, and the temporary shadow-depth debug pass.
-- `ChunkSpawnerSystem` watches the running score and adds a new generated terrain chunk when the player clears enough artifact value, placing the chunk on an exposed edge of the existing chunk set.
-- `DebugRenderSystem2D` owns the top-right raygui overlay for live shadow tuning controls, including the current light origin and orthographic size.
-- `F10` toggles the debug overlays, and `F11` exports the framebuffer depth texture for inspection.
-- Drone movement is clamped so its 1x1 footprint stays within loaded terrain chunk extents in X/Z.
-- The current shadow work is intentionally incremental; prefer tiny, verifiable slices before introducing actual shadow sampling into the lit scene.
-
 ## Things Not To Do
 
 - Do not move core gameplay logic into `main.go`.
 - Do not create new packages without a clear ownership reason.
-- Do not introduce speculative systems for inventory, progression, or AI depth.
-- Do not make terrain architecture complex before the cutting mechanic proves itself.
-- Do not leave architectural decisions undocumented if future agents will depend on them.
+- Do not introduce speculative systems for inventory, progression, enemies, hazards, or AI.
+- Do not replace the current texture/mask-based cutting loop with a larger terrain architecture unless the task explicitly calls for that change.
+- Do not leave architectural decisions undocumented if other agents depend on them.

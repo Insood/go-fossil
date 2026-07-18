@@ -8,84 +8,92 @@
 
 ## Rendering Model
 
-The game is fundamentally 3D, but presented with an orthographic camera to achieve an isometric feel.
+The game is a 3D world presented through an orthographic main camera for an isometric-style view. Gameplay positions remain fully 3D even when movement is constrained to X/Z over terrain.
 
-The main camera should feel dynamic without being locked to the player at all times. A sliding dead zone works well for keeping the drone readable while letting the camera remain still during small local moves.
-Shadow casting should stay centered on the drone's current area so the active terrain chunks remain within the shadow map.
+Current rendering passes:
 
-Implications:
+- a shadow pass into `Game.shadowFramebuffer` from the active `Light` camera
+- a main scene pass through `Game.camera`
+- a downward drone-camera pass into `Game.droneFramebuffer`
+- 2D UI and debug overlay passes after the 3D scene
 
-- world positions should remain fully 3D
-- gameplay logic should not assume a 2D plane even if movement is initially constrained
-- camera code should be treated as presentation, not world-model logic
+The main camera keeps a fixed offset from its focus point and slides only when the drone exits the configured X/Z or Y dead zone. The light camera is orthographic and tracks the drone overhead every frame.
+
+Terrain models use the `shadow_receiver` shader. Terrain albedo, artifact overlay, burn overlay, and shadow depth textures are bound through raylib material maps. Renderable ECS models use `castsShadow` and `receivesShadow` flags to participate in the shadow pass and shadow receiver setup.
 
 ## Terrain Model
 
-Initial terrain is a mesh generated from chunk metadata plus inline height samples. The bootstrap currently loads one authored chunk at `(0,0)` and one generated flat neighbor at `(0,-1)`, each using the same 8x8 tile footprint and 9x9 height sample grid.
+Terrain chunks use a fixed 8x8 tile footprint with a 9x9 height sample grid.
 
-Desired properties:
+Authored chunks:
 
-- easy to render
-- easy to inspect visually
-- compatible with terrain modification experiments
-- simple to validate from authored content files
+- live in `cmd/game/assets/terrain_chunks/*.json`
+- define a chunk name, tile index grid, tile texture definitions, height samples, and artifact placements
+- are parsed and validated by `internal/terrain`
 
-Current terrain rendering approach:
+Generated chunks:
 
-- one or more terrain meshes generated from chunk height samples on an 8x8 footprint
-- one baked albedo texture composed from tile textures
-- a baked artifact overlay texture composed from authored artifact placements
-- a matching burn overlay texture tracks laser marks and other painted state
-- small cutout regions can be converted from hard burn marks into a softer dug-out overlay once the detector accepts the region
-- accepted cutout regions also clear the artifact overlay so the remaining view is burned ground without the hidden artifact art
-- accepted cutout regions also produce saved artifact fragments for inspection during development
+- are created by `ChunkGenerator`
+- start with the ground grid tile definition
+- receive random height samples in `ChunkManager`
+- copy loaded neighbor border heights to keep seams continuous
+- receive random artifact placements from loaded artifact definitions
 
-Open question for future implementation:
+Built terrain chunks contain:
 
-- whether terrain cutting mutates the stored height samples themselves, a secondary mask, or a localized voxel/submesh structure
+- a raylib mesh/model generated from height samples
+- a baked base albedo image/texture assembled from tile textures
+- a baked artifact overlay image/texture
+- a per-pixel artifact ID mask
+- a burn overlay image/texture
+- registered runtime artifact records
+- a `TerrainChunkComponent` ECS entity
 
-For early slices, prefer a fake or simplified cutting representation if it helps validate the gameplay loop faster.
+Laser cutting is currently represented by texture and mask state. Burn marks paint the burn overlay and clear artifact IDs at the affected pixels. Height samples are not mutated by cutting.
+
+## Artifact And Salvage Model
+
+Artifact definitions live in `cmd/game/assets/artifacts/*.json` and reference texture images. `AssetManager` loads definitions, verifies referenced images, and computes each artifact's non-transparent pixel size.
+
+Chunk artifact placements are baked into two layers:
+
+- `ArtifactImage`, the visible overlay texture
+- `ArtifactData`, the per-pixel artifact ID mask used for cutout detection and scoring
+
+`ArtifactCutoutDetectionSystem` scans damaged chunks every `artifactCutoutDetectionScanTicks`. It flood-fills remaining artifact ID regions, accepts regions smaller than `MaximumRegionSize`, scores the recovered pixels by artifact value and original artifact size, clears the accepted overlay pixels, softens the burn overlay, adds to `Game.TotalScore`, and saves fragment PNGs under `generated/artifact-fragments`.
 
 ## Entity Model
 
-Use ECS for gameplay entities and systems.
+The current runtime entities are:
 
-Likely early entities:
+- one player drone with position, velocity, renderable model, drone tag, hover motion, laser, and fire-control components
+- one light entity with a mutable orthographic camera
+- one terrain chunk entity per loaded chunk
 
-- player drone
-- salvageable artifact
-- security drone
-- junkyard rat
-- terrain markers or interaction probes
+Current ECS components:
 
-Likely early component categories:
+- `Position3`
+- `Velocity3`
+- `Renderable`
+- `HoverMotion`
+- `Light`
+- `Laser`
+- `TerrainChunkComponent`
+- `TerrainChunkDamaged`
+- `Drone`
+- `DroneFireControl`
 
-- transform / position
-- velocity
-- render model reference
-- drone control
-- collider or bounds
-- salvageable
-- laser cutter
-- AI state
-- health or integrity
+## System Ownership
 
-## Separation Guidelines
-
-Keep these concerns separate as long as possible:
-
-- rendering
-- input
-- ECS world state
-- terrain generation
-- terrain modification
-- gameplay rules
-
-This will make small agent-driven slices safer and easier to review.
+- Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; aim/firing state in `DroneFireControlSystem`.
+- Motion: `PhysicsSystem` applies velocity; `DroneHeightSystem` snaps the drone to terrain height plus hover offset.
+- Presentation: `CameraSystem` updates the main orthographic camera; `LightSystem` updates the shadow camera.
+- Salvage: `LaserSystem` maps the drone viewport cursor to terrain and applies burns; `ArtifactCutoutDetectionSystem` scores accepted artifact regions.
+- World growth: `ChunkSpawnerSystem` adds generated chunks after score increases.
+- Rendering: `RenderSystem3D` owns shadow, scene, drone viewport, laser rendering, and depth export.
+- UI/debug: `UserInterfaceSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, fragment thumbnails, viewport, reticle, artifact labels, debug guides, and shadow tuning controls.
 
 ## Repository Shape
-
-Because this project will be structured similarly to the earlier `go-towerdefense` codebase, this layout should be treated as the default unless a strong reason emerges to change it:
 
 ```text
 cmd/game/
@@ -95,8 +103,6 @@ cmd/game/
   config.go
   *_system.go
 internal/terrain/
-internal/world/
-internal/salvage/
 docs/
 ```
 
@@ -106,36 +112,18 @@ Guidelines:
 - keep ECS components in `cmd/game/components.go`
 - keep one system per file under `cmd/game/*_system.go`
 - keep `main.go` thin
-- create `internal/*` packages only when a gameplay rule or data model clearly benefits from separate ownership
-- do not split code into many packages before the first playable loop exists
-
-Likely early internal package candidates:
-
-- `internal/terrain` for chunk loading, terrain generation, and mutation rules
-- `internal/world` for coordinate helpers or spatial rules if they outgrow `cmd/game`
-- `internal/salvage` for extraction-specific logic if it becomes distinct from rendering and ECS wiring
-
-## Prototype Bias
-
-Prefer the simplest version that preserves future flexibility:
-
-- placeholder geometry over final models
-- hardcoded test maps over content pipelines
-- basic ECS systems over generalized frameworks
+- keep constants and tuning values in `cmd/game/config.go`
+- keep asset loading and cleanup in `cmd/game/game.go` and `cmd/game/asset_manager.go`
+- keep terrain parsing, validation, mesh generation, baked terrain texture generation, and terrain sampling helpers in `internal/terrain`
+- create another `internal/*` package only when a gameplay rule or data model has a clear independent owner
 
 ## Code Style
 
 - Prefer direct code over defensive code when the repo or library already enforces the invariant.
-- Do not add extra null checks, “should never happen” branches, or fallback paths just to feel safe.
+- Do not add extra null checks, "should never happen" branches, or fallback paths just to feel safe.
 - If a state is truly invalid for the game, let it panic loudly instead of being silently swallowed.
 - Keep abstractions minimal; avoid extra interfaces and helper layers unless they make the code materially clearer.
 
 ## Performance Guidance
 
-Do not optimize first. Establish working data flow and visual correctness before investing in terrain mutation or rendering performance.
-
-Performance work becomes important after:
-
-1. the terrain representation is chosen
-2. cutting behavior is proven fun enough to keep
-3. actual bottlenecks are measured
+Keep the default implementation straightforward and measurable. Optimize only around observed costs in the current data flow, such as per-frame chunk sorting, repeated material texture binding, texture upload regions, or render-pass work.

@@ -1,26 +1,44 @@
 # Agent Guide
 
-This repository will be developed incrementally with coding agents. The goal of this document is to keep work coherent even when many small contributions happen over time.
+This repository is developed incrementally with coding agents. The goal of this document is to keep changes coherent while the playable slice grows through small contributions.
 
 ## Working Style
 
 - Make very small changes.
 - Prefer vertical slices over broad scaffolding.
 - Leave the project runnable after each meaningful step when possible.
-- Document assumptions when they affect later architecture.
+- Document assumptions when they affect architecture, terrain behavior, camera behavior, system ownership, or gameplay rules.
+
+## Current Playable Slice
+
+The current slice includes:
+
+- a raylib application shell and game loop
+- an orthographic 3D main camera with dead-zone following
+- heightmap-derived terrain chunks
+- an ECS world with drone, light, and terrain chunk entities
+- keyboard and gamepad drone movement
+- a downward drone viewport with reticle aiming
+- laser burns painted onto terrain overlay state
+- embedded artifact overlays and per-pixel artifact ID masks
+- periodic artifact cutout detection
+- scored artifact fragments saved to disk and shown in UI
+- generated chunk spawning after score increases
+- shadow mapping plus debug tuning overlays
 
 ## Definition Of A Small Slice
 
-A good slice usually changes one thing that can be observed or verified, such as:
+A good slice changes one thing that can be observed or verified, such as:
 
-- opening a window
-- drawing terrain
-- spawning the player drone
-- moving the drone
-- drawing a salvageable artifact
-- cutting a visible chunk of terrain
+- adjusting drone control
+- changing camera follow behavior
+- improving terrain generation
+- changing artifact placement or scoring
+- refining laser burn behavior
+- improving fragment display
+- tuning shadow rendering
 
-Avoid slices that only create abstractions with no immediate behavior unless they unblock the next concrete step.
+Avoid slices that only create abstractions with no immediate behavior unless they unblock a concrete change.
 
 ## Priorities For Agents
 
@@ -36,9 +54,8 @@ When choosing between options, prefer:
 
 - Keep naming concrete and gameplay-oriented.
 - Do not introduce large frameworks beyond the stated stack unless requested.
-- Avoid speculative systems for progression, inventory, AI, or content pipelines.
-- Keep public APIs small until real usage patterns emerge.
-- Default to the `go-towerdefense` repo shape.
+- Avoid speculative systems for progression, inventory, enemies, hazards, AI, or content pipelines.
+- Keep public APIs small.
 - Use `cmd/game` for the executable and most ECS code.
 - Keep one system per file.
 - Only add `internal/*` packages when they own real game rules instead of convenience wrappers.
@@ -48,9 +65,11 @@ When choosing between options, prefer:
 - Put ECS components in `cmd/game/components.go`.
 - Put one system per file in `cmd/game/*_system.go`.
 - Put constants and tuning values in `cmd/game/config.go`.
-- Put bootstrapping, system order, and asset lifecycle in `cmd/game/game.go`.
+- Put bootstrapping, system order, and game-owned asset lifecycle in `cmd/game/game.go`.
+- Put asset loading details in `cmd/game/asset_manager.go`.
 - Keep `main.go` as small as possible.
-- Put isolated domain logic in `internal/*` only when the package boundary is clearly useful.
+- Put terrain chunk parsing, validation, mesh data generation, baked terrain texture generation, and terrain sampling helpers in `internal/terrain`.
+- Keep artifact runtime records, overlays, masks, scoring, and fragments in `cmd/game/artifact*.go` until those rules need a clearer boundary.
 
 ## Expectations For Documentation
 
@@ -58,20 +77,20 @@ When a code change introduces a meaningful architectural decision, update docs i
 
 Examples:
 
-- chosen terrain mutation strategy
+- terrain mutation strategy
 - ECS component naming conventions
 - camera behavior assumptions
 - coordinate system conventions
+- system ownership or ordering
+- gameplay scoring rules
 
 ## Coordination Rules
 
 Agents should explicitly note:
 
-- what assumption they made
-- what remains incomplete
+- what changed
 - how the result can be verified
-
-This matters because future work will likely continue from partial prototypes rather than finished systems.
+- any tracked files intentionally left untouched
 
 ## Do Not
 
@@ -79,7 +98,8 @@ This matters because future work will likely continue from partial prototypes ra
 - Do not create extra packages for speculative architecture.
 - Do not add new dependencies unless they solve a real problem.
 - Do not change core coordinate, camera, or terrain assumptions without updating docs.
+- Do not replace the current texture/mask-based cutting loop with a larger terrain architecture unless requested.
 
 ## First Principle
 
-If a task can be solved with a temporary, clear, playable implementation, prefer that over a larger “correct” architecture that delays feedback.
+If a task can be solved with a temporary, clear, playable implementation, prefer that over a larger architecture that delays feedback.

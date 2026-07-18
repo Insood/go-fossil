@@ -1,59 +1,56 @@
 # go-fossil
 
-`go-fossil` is a 3D salvage game built with Go and raylib.
+`go-fossil` is a small 3D salvage game built with Go and raylib.
 
-The player controls a drone exploring a fossilized junkyard from an orthographic, isometric-style camera view. The drone searches for valuable artifacts embedded in the terrain, cuts them free with a laser, and avoids hazards such as security drones and junkyard rats.
+The player controls a drone exploring a fossilized junkyard from an orthographic, isometric-style camera view. The drone searches for valuable artifacts embedded in terrain, aims through a downward viewport, cuts overlay regions with a laser, and recovers scored fragments.
 
 ## Core Fantasy
 
-Fly low through a dead-tech graveyard, scan the landscape, carve out buried relics, and escape with the best finds.
+Fly low through a dead-tech graveyard, scan the landscape, carve out buried relics, and uncover more ground through careful salvage.
 
-## Project Direction
+## Design Tone
+
+The setting reads as an archaeological dig site crossed with an e-waste graveyard: dead hardware, compressed layers of discarded technology, and relics from different eras buried together.
+
+## Current Implementation
 
 - Engine language: Go
 - Rendering library: raylib
-- World presentation: 3D scene rendered with an orthographic camera
-- Terrain: mesh generated from chunk metadata plus inline height samples
-- Gameplay interaction: the drone can cut terrain to expose and extract embedded objects
 - Entity model: ECS using [`mlange-42/ark`](https://github.com/mlange-42/ark)
-- Development style: extremely small, testable implementation slices
-
-## Near-Term Priorities
-
-1. Establish the application shell and game loop.
-2. Render a simple orthographic 3D scene.
-3. Load or generate a small terrain mesh from chunk metadata and height samples.
-4. Spawn a controllable drone entity.
-5. Define the first ECS components and systems.
-6. Add one interactive salvageable object.
-7. Prototype terrain cutting in the smallest possible vertical slice.
+- World presentation: 3D scene rendered with an orthographic camera
+- Camera: dead-zone following around the player drone
+- Lighting: a drone-following orthographic light and shadow map
+- Terrain: 8x8 chunk meshes generated from metadata and 9x9 inline height samples
+- Artifacts: JSON definitions, texture overlays, per-pixel ID masks, values, and recovered fragment records
+- Cutting: laser burns painted into terrain overlay state; cutting does not mutate height samples
+- Scoring: accepted artifact regions create scored fragments, save PNGs, and increase total score
+- World growth: generated chunks spawn on exposed loaded-chunk edges after score gains
 
 ## Documentation Map
 
-- [docs/project-brief.md](docs/project-brief.md): game premise, pillars, and scope guardrails
-- [docs/technical-direction.md](docs/technical-direction.md): architecture choices and technical constraints
+- [docs/technical-direction.md](docs/technical-direction.md): architecture choices, current systems, and technical constraints
 - [docs/agent-guide.md](docs/agent-guide.md): working agreements for coding agents
-- [docs/llm-context.md](docs/llm-context.md): implementation map for future coding agents
-- [docs/initial-slices.md](docs/initial-slices.md): suggested early implementation sequence
+- [docs/llm-context.md](docs/llm-context.md): implementation map for coding agents
 
 ## Repository Shape
 
-This project is expected to follow the same general structure as the earlier `go-towerdefense` project:
-
 - `cmd/game` holds the executable game and most ECS-facing code
 - `cmd/game/components.go` defines ECS components
-- `cmd/game/*_system.go` keeps one gameplay or render system per file
+- `cmd/game/*_system.go` keeps one gameplay, UI, debug, or render system per file
 - `cmd/game/config.go` stores gameplay constants and tuning values
-- `cmd/game/game.go` owns bootstrapping, system wiring, and asset lifecycle
-- `internal/*` packages are used sparingly for focused domain logic that deserves isolation
+- `cmd/game/game.go` owns bootstrapping, system wiring, and game-owned asset lifecycle
+- `cmd/game/asset_manager.go` owns asset loading details
+- `internal/terrain` owns terrain chunk parsing, validation, mesh data generation, baked terrain texture generation, and terrain sampling helpers
+- `docs` holds project and agent-facing documentation
 
-Current terrain content format:
+Current content format:
 
 - chunk metadata lives in `cmd/game/assets/terrain_chunks/*.json`
-- tile layout stays in JSON
+- artifact definitions live in `cmd/game/assets/artifacts/*.json`
+- tile layout stays in chunk JSON
 - vertex heights come from inline height samples sized `(width+1) x (height+1)`
-- `AssetManager` loads runtime assets from disk beside the built executable, and `internal/terrain` validates/parses terrain chunk content
-- terrain rendering now uses terrain meshes generated from the height samples plus baked world textures assembled from the chunk tile textures
+- artifact placements in chunk JSON reference artifact definitions by name
+- `AssetManager` loads runtime assets from disk beside the built executable
 
 ## Build
 
@@ -84,8 +81,8 @@ make run
 - Favor readable prototypes over premature optimization.
 - Prefer one clear gameplay loop over many half-finished systems.
 - Keep each change narrow enough that another agent can pick up the next step with minimal context.
-- Avoid coupling terrain, rendering, and gameplay code too early.
+- Keep terrain, rendering, input, UI, and gameplay ownership clear.
 
 ## Current State
 
-The repository is at project bootstrap stage. Documentation currently serves as the main source of shared context for future coding work.
+The repository contains a playable salvage slice: drone movement, height-sampled terrain chunks, embedded artifact overlays, viewport laser cutting, cutout detection, fragment scoring, generated chunk expansion, UI, shadow rendering, and debug overlays.

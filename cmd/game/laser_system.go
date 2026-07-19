@@ -9,24 +9,23 @@ import (
 )
 
 type LaserSystem struct {
-	filter    *ecs.Filter4[Position3, Drone, Laser, DroneFireControl]
+	filter    *ecs.Filter5[Position3, Drone, Laser, DroneFireControl, Battery]
 	damageMap *ecs.Map[TerrainChunkDamaged]
 }
 
 func (system *LaserSystem) Initialize(game *Game) {
-	system.filter = ecs.NewFilter4[Position3, Drone, Laser, DroneFireControl](game.world)
+	system.filter = ecs.NewFilter5[Position3, Drone, Laser, DroneFireControl, Battery](game.world)
 	system.damageMap = ecs.NewMap[TerrainChunkDamaged](game.world)
 }
 
 func (system *LaserSystem) Update(game *Game) {
 	query := system.filter.Query()
-	defer query.Close()
 	burnTargets := make([]rl.Vector3, 0, 1)
 
 	for query.Next() {
-		position, _, laser, control := query.Get()
+		position, _, laser, control, battery := query.Get()
 		laser.active = false
-		if !control.firing {
+		if !control.firing || battery.charge <= 0 {
 			continue
 		}
 
@@ -54,9 +53,11 @@ func (system *LaserSystem) Update(game *Game) {
 
 		laser.active = true
 		laser.target = droneTargets[len(droneTargets)-1]
+		drainLaserBattery(battery)
 		burnTargets = append(burnTargets, droneTargets...)
 	}
 
+	query.Close()
 	system.applyBurnTargets(game, burnTargets)
 }
 
@@ -84,7 +85,18 @@ func laserBurnCursors(control DroneFireControl) []rl.Vector2 {
 	return cursors
 }
 
+func drainLaserBattery(battery *Battery) {
+	battery.charge -= laserBatteryDrainPerBurn
+	if battery.charge < 0 {
+		battery.charge = 0
+	}
+}
+
 func (system *LaserSystem) applyBurnTargets(game *Game, targets []rl.Vector3) {
+	if len(targets) == 0 {
+		return
+	}
+
 	for _, target := range targets {
 		chunk, ok := game.chunkManager.ChunkForWorldPosition(target.X, target.Z)
 		if !ok {

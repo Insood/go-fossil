@@ -27,6 +27,7 @@ const (
 	droneTopSpeed          = 4.0
 	droneHoverAmplitude    = 0.05
 	droneHoverCyclesPerSec = 0.2
+	droneBatteryCharge     = 100.0
 
 	droneGamepadIndex       = 0
 	droneGamepadMoveAxisX   = 0
@@ -47,6 +48,10 @@ const (
 	droneViewNearPlane = 0.01
 	droneViewFarPlane  = 16.0
 
+	droneBatteryBarHeight  = 8
+	droneBatteryBarGap     = 6
+	droneBatteryBarPadding = 1
+
 	artifactFragmentThumbSize    = 64
 	artifactFragmentRowStep      = 70
 	artifactFragmentStartX       = 16
@@ -64,6 +69,7 @@ const (
 
 	laserHitMarkerRadius             = 0.015
 	laserCursorBurnStepPixels        = 5.0
+	laserBatteryDrainPerBurn         = 0.1
 	artifactCutoutDetectionScanTicks = 60
 	MaximumRegionSize                = 4096
 	burnOverlayAlpha                 = 255

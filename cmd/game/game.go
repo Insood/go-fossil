@@ -84,7 +84,7 @@ func (game *Game) registerSystems() {
 
 func (game *Game) spawnDrone() {
 	baseY := game.chunkManager.SampleHeight(droneWorldSpawnX, droneWorldSpawnZ) + droneCenterY
-	droneMapper := ecs.NewMap7[Position3, Velocity3, Renderable, Drone, HoverMotion, Laser, DroneFireControl](game.world)
+	droneMapper := ecs.NewMap8[Position3, Velocity3, Renderable, Drone, HoverMotion, Laser, DroneFireControl, Battery](game.world)
 	droneMapper.NewEntity(
 		&Position3{X: droneWorldSpawnX, Y: baseY, Z: droneWorldSpawnZ},
 		&Velocity3{},
@@ -102,6 +102,7 @@ func (game *Game) spawnDrone() {
 		},
 		&Laser{},
 		&DroneFireControl{},
+		&Battery{charge: droneBatteryCharge},
 	)
 }
 

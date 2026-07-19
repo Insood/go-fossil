@@ -44,6 +44,10 @@ type TerrainChunkDamaged struct{}
 
 type Drone struct{}
 
+type Battery struct {
+	charge float32
+}
+
 type DroneFireControl struct {
 	cursor     rl.Vector2
 	firing     bool

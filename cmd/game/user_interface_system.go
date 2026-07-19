@@ -9,17 +9,18 @@ import (
 )
 
 type UserInterfaceSystem struct {
-	filter          *ecs.Filter1[DroneFireControl]
+	filter          *ecs.Filter2[DroneFireControl, Battery]
 	artifactManager *ArtifactManager
 }
 
 func (system *UserInterfaceSystem) Initialize(game *Game) {
-	system.filter = ecs.NewFilter1[DroneFireControl](game.world)
+	system.filter = ecs.NewFilter2[DroneFireControl, Battery](game.world)
 	system.artifactManager = game.artifactManager
 }
 
 func (system *UserInterfaceSystem) Update(game *Game) {
 	system.drawTotalScore(game)
+	system.drawDroneBattery()
 	system.drawDroneViewport(game)
 	system.drawDroneReticle()
 	system.drawArtifactFragments()
@@ -50,12 +51,40 @@ func (system *UserInterfaceSystem) drawDroneViewport(game *Game) {
 	)
 }
 
+func (system *UserInterfaceSystem) drawDroneBattery() {
+	query := system.filter.Query()
+	defer query.Close()
+
+	viewport := droneViewportRectangle()
+	barX := int32(viewport.X)
+	barY := int32(viewport.Y) - droneBatteryBarGap - droneBatteryBarHeight
+	barWidth := int32(viewport.Width)
+	fillWidth := int32(0)
+
+	for query.Next() {
+		_, battery := query.Get()
+		chargePercent := clampFloat32(battery.charge/droneBatteryCharge, 0, 1)
+		innerWidth := barWidth - droneBatteryBarPadding*2
+		fillWidth = int32(float32(innerWidth) * chargePercent)
+		break
+	}
+
+	rl.DrawRectangle(barX, barY, barWidth, droneBatteryBarHeight, rl.Fade(rl.Black, 0.8))
+	rl.DrawRectangle(
+		barX+droneBatteryBarPadding,
+		barY+droneBatteryBarPadding,
+		fillWidth,
+		droneBatteryBarHeight-droneBatteryBarPadding*2,
+		rl.Lime,
+	)
+}
+
 func (system *UserInterfaceSystem) drawDroneReticle() {
 	query := system.filter.Query()
 	defer query.Close()
 
 	for query.Next() {
-		control := query.Get()
+		control, _ := query.Get()
 		center := control.cursor
 		halfSize := int32(5)
 

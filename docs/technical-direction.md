@@ -69,7 +69,7 @@ Chunk artifact placements are baked into two layers:
 
 The current runtime entities are:
 
-- one player drone with position, velocity, renderable model, drone tag, hover motion, laser, and fire-control components
+- one player drone with position, velocity, renderable model, drone tag, hover motion, laser, fire-control, and battery components
 - one light entity with a mutable orthographic camera
 - one terrain chunk entity per loaded chunk
 
@@ -84,6 +84,7 @@ Current ECS components:
 - `TerrainChunkComponent`
 - `TerrainChunkDamaged`
 - `Drone`
+- `Battery`
 - `DroneFireControl`
 
 ## System Ownership
@@ -91,10 +92,10 @@ Current ECS components:
 - Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; aim/firing state in `DroneFireControlSystem`. Debug overlays release drone fire control so the OS cursor can interact with raygui controls.
 - Motion: `PhysicsSystem` applies velocity; `DroneHeightSystem` snaps the drone to terrain height plus hover offset.
 - Presentation: `CameraSystem` updates the main orthographic camera; `LightSystem` updates the shadow camera.
-- Salvage: `LaserSystem` maps the drone viewport cursor path to terrain and applies burns; `ArtifactCutoutDetectionSystem` scores accepted artifact regions.
+- Salvage: `LaserSystem` maps the drone viewport cursor path to terrain, applies burns while battery charge is positive, and drains charge once per active firing update; `ArtifactCutoutDetectionSystem` scores accepted artifact regions.
 - World growth: `ChunkSpawnerSystem` adds generated chunks after score increases.
 - Rendering: `RenderSystem3D` owns shadow, scene, drone viewport, laser rendering, and depth export.
-- UI/debug: `UserInterfaceSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, fragment thumbnails, viewport, reticle, artifact labels, debug guides, shadow tuning controls, and the slope shade tuning control.
+- UI/debug: `UserInterfaceSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, the drone battery bar, fragment thumbnails, viewport, reticle, artifact labels, debug guides, shadow tuning controls, and the slope shade tuning control.
 
 ## Repository Shape
 

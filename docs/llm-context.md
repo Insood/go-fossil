@@ -23,6 +23,7 @@ Read these files first:
 - The game uses an ECS architecture with `mlange-42/ark`.
 - The world is 3D and rendered with an orthographic main camera for an isometric-style presentation.
 - The player controls one drone with keyboard or gamepad movement.
+- The drone has a battery charge that gates laser firing and is shown above the drone viewport.
 - The drone follows loaded terrain height with a constant hover offset and a small sine-wave hover motion.
 - Drone movement is clamped so its 1x1 footprint stays inside loaded terrain chunk extents in X/Z.
 - The main camera uses a sliding dead zone so it only follows the drone once the drone moves far enough from center.
@@ -59,11 +60,11 @@ Important ownership notes:
 - `ChunkManager` loads authored chunk JSON, generates runtime chunks, builds terrain meshes/textures, caches chunks, samples terrain height, registers terrain chunk ECS entities, and applies burn marks.
 - `ArtifactManager` owns runtime artifact records, unique artifact IDs, scored fragment records, and fragment textures.
 - `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps gamepad target axes into viewport space, and stores current and previous cursor/firing state on `DroneFireControl`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.
-- `LaserSystem` maps the stored drone viewport cursor to terrain-sampled world targets, interpolates between consecutive firing cursors at the configured pixel step, stamps the chunk burn overlay while firing, and marks damaged chunks for cutout scanning.
+- `LaserSystem` maps the stored drone viewport cursor to terrain-sampled world targets, interpolates between consecutive firing cursors at the configured pixel step, stamps the chunk burn overlay while firing, drains drone battery charge once per active firing update, and marks damaged chunks for cutout scanning. Lasers only fire while battery charge is positive.
 - `ArtifactCutoutDetectionSystem` periodically scans damaged chunks, flood-fills remaining artifact ID regions, accepts regions below `MaximumRegionSize`, scores recovered artifact pixels, creates fragments for regions at or above `artifactFragmentMinPixels`, clears accepted artifact overlay pixels, and softens the burn overlay.
 - `ChunkSpawnerSystem` watches score deltas and adds generated chunks after enough artifact value is recovered.
 - `RenderSystem3D` owns the shadow pass, main scene pass, drone bottom-camera viewport pass, laser rendering, slope shade shader tuning, and shadow-depth export.
-- `UserInterfaceSystem` draws total score, the drone viewport, the reticle, and recent fragment thumbnails with weight and score.
+- `UserInterfaceSystem` draws total score, the drone battery bar, the drone viewport, the reticle, and recent fragment thumbnails with weight and score.
 - `DebugRender3DSystem` draws axes, the drone ground ray, the light guide, and artifact ID labels when debug overlays are visible.
 - `DebugRenderSystem2D` owns the raygui shadow tuning overlay, including the normal-based terrain slope shade strength.
 

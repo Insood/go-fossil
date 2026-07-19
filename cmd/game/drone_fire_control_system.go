@@ -15,6 +15,14 @@ func (system *DroneFireControlSystem) Initialize(game *Game) {
 }
 
 func (system *DroneFireControlSystem) Update(game *Game) {
+	if debugOverlayVisible {
+		rl.ShowCursor()
+		system.clearFireControlState()
+		return
+	}
+
+	rl.HideCursor()
+
 	viewport := droneViewportRectangle()
 	mouse := rl.GetMousePosition()
 	cursor := droneViewportCursorFromMouse(mouse, viewport)
@@ -41,6 +49,18 @@ func (system *DroneFireControlSystem) Update(game *Game) {
 		control.lastFiring = control.firing
 		control.cursor = cursor
 		control.firing = firing
+	}
+}
+
+func (system *DroneFireControlSystem) clearFireControlState() {
+	query := system.filter.Query()
+	defer query.Close()
+
+	for query.Next() {
+		control := query.Get()
+		control.lastCursor = control.cursor
+		control.lastFiring = control.firing
+		control.firing = false
 	}
 }
 

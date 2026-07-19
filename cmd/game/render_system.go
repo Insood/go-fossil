@@ -208,6 +208,7 @@ func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCam
 	shadowSlopeBiasLoc := rl.GetShaderLocation(shadowShader, "shadowSlopeBias")
 	shadowNormalBiasLoc := rl.GetShaderLocation(shadowShader, "shadowNormalBias")
 	shadowDarknessLoc := rl.GetShaderLocation(shadowShader, "shadowDarkness")
+	slopeShadeStrengthLoc := rl.GetShaderLocation(shadowShader, "slopeShadeStrength")
 
 	query := system.filter.Query()
 	defer query.Close()
@@ -232,6 +233,7 @@ func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCam
 	rl.SetShaderValue(shadowShader, shadowSlopeBiasLoc, []float32{shadowSlopeBias}, rl.ShaderUniformFloat)
 	rl.SetShaderValue(shadowShader, shadowNormalBiasLoc, []float32{shadowNormalBias}, rl.ShaderUniformFloat)
 	rl.SetShaderValue(shadowShader, shadowDarknessLoc, []float32{darkness}, rl.ShaderUniformFloat)
+	rl.SetShaderValue(shadowShader, slopeShadeStrengthLoc, []float32{slopeShadeStrength}, rl.ShaderUniformFloat)
 }
 
 func (system *RenderSystem3D) withClipPlanes(nearPlane, farPlane float32, draw func()) {

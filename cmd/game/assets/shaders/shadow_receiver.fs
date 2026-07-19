@@ -14,6 +14,7 @@ uniform vec3 lightDirection;
 uniform float shadowBias;
 uniform float shadowSlopeBias;
 uniform float shadowDarkness;
+uniform float slopeShadeStrength;
 
 out vec4 finalColor;
 
@@ -47,7 +48,9 @@ void main() {
     baseColor = mix(baseColor, burnOverlay.rgb, burnOverlay.a);
 
     float shadow = sampleShadow(fragLightClipPosition, fragWorldNormal);
-    vec3 shadedColor = baseColor * (1.0 - shadow);
+    vec3 worldNormal = normalize(fragWorldNormal);
+    float slopeShade = (1.0 - clamp(worldNormal.y, 0.0, 1.0)) * slopeShadeStrength;
+    vec3 shadedColor = baseColor * (1.0 - shadow) * (1.0 - slopeShade);
 
     float alpha = colDiffuse.a * groundLayer.a;
     finalColor = vec4(shadedColor, alpha);

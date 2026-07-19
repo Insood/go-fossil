@@ -58,21 +58,21 @@ Important ownership notes:
 - `AssetManager` loads runtime images, textures, shaders, models, and artifact definitions from disk beside the built executable.
 - `ChunkManager` loads authored chunk JSON, generates runtime chunks, builds terrain meshes/textures, caches chunks, samples terrain height, registers terrain chunk ECS entities, and applies burn marks.
 - `ArtifactManager` owns runtime artifact records, unique artifact IDs, scored fragment records, and fragment textures.
-- `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor, maps gamepad target axes into viewport space, and stores current and previous cursor/firing state on `DroneFireControl`.
+- `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps gamepad target axes into viewport space, and stores current and previous cursor/firing state on `DroneFireControl`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.
 - `LaserSystem` maps the stored drone viewport cursor to terrain-sampled world targets, interpolates between consecutive firing cursors at the configured pixel step, stamps the chunk burn overlay while firing, and marks damaged chunks for cutout scanning.
 - `ArtifactCutoutDetectionSystem` periodically scans damaged chunks, flood-fills remaining artifact ID regions, accepts regions below `MaximumRegionSize`, scores recovered artifact pixels, creates fragments for regions at or above `artifactFragmentMinPixels`, clears accepted artifact overlay pixels, and softens the burn overlay.
 - `ChunkSpawnerSystem` watches score deltas and adds generated chunks after enough artifact value is recovered.
-- `RenderSystem3D` owns the shadow pass, main scene pass, drone bottom-camera viewport pass, laser rendering, and shadow-depth export.
+- `RenderSystem3D` owns the shadow pass, main scene pass, drone bottom-camera viewport pass, laser rendering, slope shade shader tuning, and shadow-depth export.
 - `UserInterfaceSystem` draws total score, the drone viewport, the reticle, and recent fragment thumbnails with weight and score.
 - `DebugRender3DSystem` draws axes, the drone ground ray, the light guide, and artifact ID labels when debug overlays are visible.
-- `DebugRenderSystem2D` owns the raygui shadow tuning overlay.
+- `DebugRenderSystem2D` owns the raygui shadow tuning overlay, including the normal-based terrain slope shade strength.
 
 ## Rendering Notes
 
 - `Framebuffer` in `cmd/game/framebuffer.go` wraps off-screen render targets.
 - The scene has one `Light` entity. `LightSystem` rebuilds its orthographic camera from component data every frame.
 - `Renderable` carries `castsShadow` and `receivesShadow` flags for render-pass participation.
-- Terrain models use the `shadow_receiver` shader, with albedo, artifact emission, burn occlusion, and shadow depth textures bound through material maps.
+- Terrain models use the `shadow_receiver` shader, with albedo, artifact emission, burn occlusion, and shadow depth textures bound through material maps. The shader also darkens sloped terrain based on surface normals and `slopeShadeStrength`.
 - `F10` toggles debug overlays. The left gamepad trigger also toggles debug overlays.
 - `F11` exports the shadow depth framebuffer for inspection.
 

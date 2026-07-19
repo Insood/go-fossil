@@ -20,7 +20,7 @@ Current rendering passes:
 
 The main camera keeps a fixed offset from its focus point and slides only when the drone exits the configured X/Z or Y dead zone. The light camera is orthographic and tracks the drone overhead every frame.
 
-Terrain models use the `shadow_receiver` shader. Terrain albedo, artifact overlay, burn overlay, and shadow depth textures are bound through raylib material maps. Renderable ECS models use `castsShadow` and `receivesShadow` flags to participate in the shadow pass and shadow receiver setup.
+Terrain models use the `shadow_receiver` shader. Terrain albedo, artifact overlay, burn overlay, and shadow depth textures are bound through raylib material maps. The shader applies shadow-map darkening and a light normal-based slope shade: flat upward-facing terrain keeps its original color, while sloped terrain is darkened by `slopeShadeStrength` according to the surface normal's Y component. Renderable ECS models use `castsShadow` and `receivesShadow` flags to participate in the shadow pass and shadow receiver setup.
 
 ## Terrain Model
 
@@ -88,13 +88,13 @@ Current ECS components:
 
 ## System Ownership
 
-- Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; aim/firing state in `DroneFireControlSystem`.
+- Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; aim/firing state in `DroneFireControlSystem`. Debug overlays release drone fire control so the OS cursor can interact with raygui controls.
 - Motion: `PhysicsSystem` applies velocity; `DroneHeightSystem` snaps the drone to terrain height plus hover offset.
 - Presentation: `CameraSystem` updates the main orthographic camera; `LightSystem` updates the shadow camera.
 - Salvage: `LaserSystem` maps the drone viewport cursor path to terrain and applies burns; `ArtifactCutoutDetectionSystem` scores accepted artifact regions.
 - World growth: `ChunkSpawnerSystem` adds generated chunks after score increases.
 - Rendering: `RenderSystem3D` owns shadow, scene, drone viewport, laser rendering, and depth export.
-- UI/debug: `UserInterfaceSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, fragment thumbnails, viewport, reticle, artifact labels, debug guides, and shadow tuning controls.
+- UI/debug: `UserInterfaceSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, fragment thumbnails, viewport, reticle, artifact labels, debug guides, shadow tuning controls, and the slope shade tuning control.
 
 ## Repository Shape
 

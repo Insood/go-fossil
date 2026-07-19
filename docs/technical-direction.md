@@ -56,14 +56,14 @@ Laser cutting is currently represented by texture and mask state. Burn marks pai
 
 ## Artifact And Salvage Model
 
-Artifact definitions live in `cmd/game/assets/artifacts/*.json` and reference texture images. `AssetManager` loads definitions, verifies referenced images, and computes each artifact's non-transparent pixel size. Artifact placement rotation uses `gift.Rotate` with nearest-neighbor interpolation.
+Artifact definitions live in `cmd/game/assets/artifacts/*.json` and reference texture images. `AssetManager` loads definitions and verifies referenced images. Artifact placement rotation uses `gift.Rotate` with nearest-neighbor interpolation, and each runtime `Artifact.Size` is counted from the rotated placement image.
 
 Chunk artifact placements are baked into two layers:
 
 - `ArtifactImage`, the visible overlay texture composited with standard `image/draw`
 - `ArtifactData`, the per-pixel artifact ID mask used for cutout detection and scoring
 
-`ArtifactCutoutDetectionSystem` scans damaged chunks every `artifactCutoutDetectionScanTicks`. It flood-fills remaining artifact ID regions, accepts regions smaller than `MaximumRegionSize`, scores the recovered pixels by artifact value and original artifact size, creates in-memory fragments for regions at or above `artifactFragmentMinPixels`, clears the accepted overlay pixels, softens the burn overlay, and adds created fragment scores to `Game.TotalScore`.
+`ArtifactCutoutDetectionSystem` scans damaged chunks every `artifactCutoutDetectionScanTicks`. It flood-fills remaining artifact ID regions, accepts regions smaller than `MaximumRegionSize`, scores the recovered pixels by artifact value and the rotated runtime artifact size, creates in-memory fragments for regions at or above `artifactFragmentMinPixels`, clears the accepted overlay pixels, softens the burn overlay, and adds created fragment scores to `Game.TotalScore`.
 
 ## Entity Model
 

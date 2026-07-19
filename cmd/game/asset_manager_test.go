@@ -87,9 +87,6 @@ func TestLoadImagesAndArtifactDefinitions(t *testing.T) {
 	if definition.ImagePath != "textures/phone.png" {
 		t.Fatalf("definition.ImagePath = %q, want textures/phone.png", definition.ImagePath)
 	}
-	if definition.Size != 3 {
-		t.Fatalf("definition.Size = %d, want 3", definition.Size)
-	}
 }
 
 func TestLoadArtifactDefinitionsValidatesReferencedImages(t *testing.T) {

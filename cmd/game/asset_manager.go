@@ -189,11 +189,10 @@ func (assets *AssetManager) loadArtifactDefinitions() {
 			panic(fmt.Errorf("artifact definition %q declared more than once", definition.Name))
 		}
 
-		img, ok := assets.LookupImage(definition.ImagePath)
+		_, ok := assets.LookupImage(definition.ImagePath)
 		if !ok {
 			panic(fmt.Errorf("artifact definition %q references missing image %q", definition.Name, definition.ImagePath))
 		}
-		definition.Size = countNonTransparentPixels(img)
 		definitionCopy := definition
 		assets.artifactDefinitions[definitionCopy.Name] = &definitionCopy
 	}

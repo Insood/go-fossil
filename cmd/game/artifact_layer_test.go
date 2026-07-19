@@ -19,7 +19,6 @@ func TestBuildArtifactImageLayerPlacesAndRotatesArtifact(t *testing.T) {
 				Width:     2,
 				Height:    1,
 				Value:     10,
-				Size:      2,
 			},
 		},
 		images: map[string]image.Image{
@@ -59,7 +58,6 @@ func TestBuildArtifactDataLayerRegistersAndMarksArtifactPixels(t *testing.T) {
 				Width:     2,
 				Height:    1,
 				Value:     10,
-				Size:      2,
 			},
 		},
 		images: map[string]image.Image{
@@ -120,6 +118,53 @@ func TestBuildArtifactDataLayerRegistersAndMarksArtifactPixels(t *testing.T) {
 	}
 	if got := artifactData.IDAt(0, 0); got != int32(0) {
 		t.Fatalf("artifact mask at (0,0) = %d, want 0", got)
+	}
+}
+
+func TestBuildArtifactDataLayerSizesArtifactAfterRotation(t *testing.T) {
+	t.Parallel()
+
+	sourceImage := solidArtifactImage([][]color.RGBA{
+		{{R: 255, A: 255}, {}},
+		{{}, {G: 255, A: 255}},
+	})
+	rotatedImage := rotateImageClockwiseNearest(sourceImage, 45)
+	rotatedSize := countNonTransparentPixels(rotatedImage)
+
+	assets := fakeArtifactSource{
+		definitions: map[string]*ArtifactDefinition{
+			"phone": {
+				Name:      "phone",
+				ImagePath: "textures/phone.png",
+				Width:     2,
+				Height:    2,
+				Value:     10,
+			},
+		},
+		images: map[string]image.Image{
+			"textures/phone.png": sourceImage,
+		},
+	}
+
+	manager := NewArtifactManager()
+	chunk := &TerrainChunk{
+		Coords: ChunkCoords{X: 0, Z: 0},
+		Data: terrain.ChunkData{
+			Name: "Artifact Test",
+			Artifacts: []terrain.ArtifactPlacement{
+				{Name: "phone", X: 2, Z: 2, Orientation: 45},
+			},
+		},
+	}
+
+	_ = buildArtifactDataLayer(manager, chunk, assets, image.Rect(0, 0, 6, 6))
+
+	artifact, ok := manager.Lookup(1)
+	if !ok {
+		t.Fatal("artifact manager lookup failed for id 1")
+	}
+	if got, want := artifact.Size, rotatedSize; got != want {
+		t.Fatalf("artifact size = %d, want rotated image size %d", got, want)
 	}
 }
 

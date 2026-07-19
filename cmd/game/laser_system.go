@@ -78,10 +78,7 @@ func laserBurnCursors(control DroneFireControl) []rl.Vector2 {
 	cursors := make([]rl.Vector2, 0, steps)
 	for step := 1; step <= steps; step++ {
 		t := float32(step) / float32(steps)
-		cursors = append(cursors, rl.NewVector2(
-			control.lastCursor.X+(control.cursor.X-control.lastCursor.X)*t,
-			control.lastCursor.Y+(control.cursor.Y-control.lastCursor.Y)*t,
-		))
+		cursors = append(cursors, rl.Vector2Lerp(control.lastCursor, control.cursor, t))
 	}
 
 	return cursors

@@ -3,6 +3,8 @@ package terrain
 import (
 	"fmt"
 	"image"
+
+	"github.com/disintegration/gift"
 )
 
 type SurfaceTexture struct {
@@ -40,15 +42,6 @@ func BuildSurfaceTexture(chunk ChunkData, tileImages map[string]image.Image, pix
 }
 
 func drawScaledTile(dst *image.RGBA, dstX, dstY, size int, src image.Image) {
-	srcBounds := src.Bounds()
-	srcWidth := srcBounds.Dx()
-	srcHeight := srcBounds.Dy()
-
-	for y := 0; y < size; y++ {
-		srcY := srcBounds.Min.Y + (y*srcHeight)/size
-		for x := 0; x < size; x++ {
-			srcX := srcBounds.Min.X + (x*srcWidth)/size
-			dst.Set(dstX+x, dstY+y, src.At(srcX, srcY))
-		}
-	}
+	filter := gift.New(gift.Resize(size, size, gift.NearestNeighborResampling))
+	filter.DrawAt(dst, src, image.Pt(dstX, dstY), gift.CopyOperator)
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"math"
 
 	"go-fossil/internal/terrain"
@@ -55,18 +56,7 @@ func blitArtifactImage(dst *image.RGBA, src image.Image, centerX, centerY float3
 	srcBounds := src.Bounds()
 	left := int(math.Round(float64(centerX))) - srcBounds.Dx()/2
 	top := int(math.Round(float64(centerY))) - srcBounds.Dy()/2
-	for y := dstRect.Min.Y; y < dstRect.Max.Y; y++ {
-		srcY := y - top + srcBounds.Min.Y
-		for x := dstRect.Min.X; x < dstRect.Max.X; x++ {
-			srcX := x - left + srcBounds.Min.X
-			pixel := color.RGBAModel.Convert(src.At(srcX, srcY)).(color.RGBA)
-			if pixel.A == 0 {
-				continue
-			}
-
-			dst.SetRGBA(x, y, pixel)
-		}
-	}
+	draw.Draw(dst, dstRect, src, image.Pt(dstRect.Min.X-left+srcBounds.Min.X, dstRect.Min.Y-top+srcBounds.Min.Y), draw.Over)
 }
 
 func blitArtifactData(artifactData *ArtifactData, src image.Image, artifactID int32, centerX, centerY float32) {

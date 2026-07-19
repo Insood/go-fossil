@@ -5,7 +5,7 @@
 - Language: Go
 - Rendering and platform layer: raylib
 - Architecture: ECS via `mlange-42/ark`
-- Image processing: `github.com/disintegration/gift` for artifact sprite rotation
+- Image processing: `github.com/disintegration/gift` for artifact sprite rotation and terrain tile scaling
 
 ## Rendering Model
 
@@ -24,7 +24,7 @@ Terrain models use the `shadow_receiver` shader. Terrain albedo, artifact overla
 
 ## Terrain Model
 
-Terrain chunks use a fixed 8x8 tile footprint with a 9x9 height sample grid.
+Terrain chunks use a fixed 8x8 tile footprint with a 9x9 height sample grid. Terrain tile images are scaled into the baked base texture with `gift.Resize` using nearest-neighbor resampling.
 
 Authored chunks:
 
@@ -50,6 +50,8 @@ Built terrain chunks contain:
 - registered runtime artifact records
 - a `TerrainChunkComponent` ECS entity
 
+`internal/terrain` uses raylib vector helpers for mesh normal accumulation while still owning the terrain mesh data shape.
+
 Laser cutting is currently represented by texture and mask state. Burn marks paint the burn overlay and clear artifact IDs at the affected pixels. Height samples are not mutated by cutting.
 
 ## Artifact And Salvage Model
@@ -58,7 +60,7 @@ Artifact definitions live in `cmd/game/assets/artifacts/*.json` and reference te
 
 Chunk artifact placements are baked into two layers:
 
-- `ArtifactImage`, the visible overlay texture
+- `ArtifactImage`, the visible overlay texture composited with standard `image/draw`
 - `ArtifactData`, the per-pixel artifact ID mask used for cutout detection and scoring
 
 `ArtifactCutoutDetectionSystem` scans damaged chunks every `artifactCutoutDetectionScanTicks`. It flood-fills remaining artifact ID regions, accepts regions smaller than `MaximumRegionSize`, scores the recovered pixels by artifact value and original artifact size, creates in-memory fragments for regions at or above `artifactFragmentMinPixels`, clears the accepted overlay pixels, softens the burn overlay, and adds created fragment scores to `Game.TotalScore`.

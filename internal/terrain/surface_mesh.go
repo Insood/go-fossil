@@ -3,6 +3,8 @@ package terrain
 import (
 	"fmt"
 	"math"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type SurfaceMesh struct {
@@ -97,41 +99,44 @@ func accumulateNormals(surface *SurfaceMesh) {
 		b := int(surface.Indices[i+1]) * 3
 		c := int(surface.Indices[i+2]) * 3
 
-		ax, ay, az := surface.Vertices[a], surface.Vertices[a+1], surface.Vertices[a+2]
-		bx, by, bz := surface.Vertices[b], surface.Vertices[b+1], surface.Vertices[b+2]
-		cx, cy, cz := surface.Vertices[c], surface.Vertices[c+1], surface.Vertices[c+2]
+		va := vector3FromSlice(surface.Vertices, a)
+		vb := vector3FromSlice(surface.Vertices, b)
+		vc := vector3FromSlice(surface.Vertices, c)
+		normal := rl.Vector3CrossProduct(
+			rl.Vector3Subtract(vb, va),
+			rl.Vector3Subtract(vc, va),
+		)
 
-		abx, aby, abz := bx-ax, by-ay, bz-az
-		acx, acy, acz := cx-ax, cy-ay, cz-az
-		nx := aby*acz - abz*acy
-		ny := abz*acx - abx*acz
-		nz := abx*acy - aby*acx
-
-		surface.Normals[a] += nx
-		surface.Normals[a+1] += ny
-		surface.Normals[a+2] += nz
-		surface.Normals[b] += nx
-		surface.Normals[b+1] += ny
-		surface.Normals[b+2] += nz
-		surface.Normals[c] += nx
-		surface.Normals[c+1] += ny
-		surface.Normals[c+2] += nz
+		addVector3ToSlice(surface.Normals, a, normal)
+		addVector3ToSlice(surface.Normals, b, normal)
+		addVector3ToSlice(surface.Normals, c, normal)
 	}
 
 	for i := 0; i < len(surface.Normals); i += 3 {
-		nx := surface.Normals[i]
-		ny := surface.Normals[i+1]
-		nz := surface.Normals[i+2]
-		length := float32(math.Sqrt(float64(nx*nx + ny*ny + nz*nz)))
-		if length == 0 {
+		normal := vector3FromSlice(surface.Normals, i)
+		if normal == (rl.Vector3{}) {
 			surface.Normals[i+1] = 1
 			continue
 		}
 
-		surface.Normals[i] /= length
-		surface.Normals[i+1] /= length
-		surface.Normals[i+2] /= length
+		setVector3InSlice(surface.Normals, i, rl.Vector3Normalize(normal))
 	}
+}
+
+func vector3FromSlice(values []float32, index int) rl.Vector3 {
+	return rl.NewVector3(values[index], values[index+1], values[index+2])
+}
+
+func addVector3ToSlice(values []float32, index int, vector rl.Vector3) {
+	values[index] += vector.X
+	values[index+1] += vector.Y
+	values[index+2] += vector.Z
+}
+
+func setVector3InSlice(values []float32, index int, vector rl.Vector3) {
+	values[index] = vector.X
+	values[index+1] = vector.Y
+	values[index+2] = vector.Z
 }
 
 func clampRange(value, minValue, maxValue float32) float32 {

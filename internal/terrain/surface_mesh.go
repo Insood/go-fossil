@@ -18,7 +18,21 @@ type SurfaceMesh struct {
 }
 
 func BuildSurfaceMesh(chunk ChunkData) (*SurfaceMesh, error) {
-	vertexCount := (chunk.Width + 1) * (chunk.Height + 1)
+	return buildSurfaceMesh(chunk, 1)
+}
+
+func BuildSubdividedSurfaceMesh(chunk ChunkData, subdivisionsPerTile int) (*SurfaceMesh, error) {
+	return buildSurfaceMesh(chunk, subdivisionsPerTile)
+}
+
+func buildSurfaceMesh(chunk ChunkData, subdivisionsPerTile int) (*SurfaceMesh, error) {
+	if subdivisionsPerTile < 1 {
+		subdivisionsPerTile = 1
+	}
+
+	meshWidth := chunk.Width * subdivisionsPerTile
+	meshHeight := chunk.Height * subdivisionsPerTile
+	vertexCount := (meshWidth + 1) * (meshHeight + 1)
 	if vertexCount > math.MaxUint16+1 {
 		return nil, fmt.Errorf("chunk %q has %d vertices, exceeds uint16 mesh index limit", chunk.Name, vertexCount)
 	}
@@ -30,29 +44,31 @@ func BuildSurfaceMesh(chunk ChunkData) (*SurfaceMesh, error) {
 		Vertices:      make([]float32, 0, vertexCount*3),
 		Normals:       make([]float32, vertexCount*3),
 		Texcoords:     make([]float32, 0, vertexCount*2),
-		Indices:       make([]uint16, 0, chunk.Width*chunk.Height*6),
+		Indices:       make([]uint16, 0, meshWidth*meshHeight*6),
 	}
 
 	halfWidth := float32(chunk.Width) / 2
 	halfHeight := float32(chunk.Height) / 2
-	for z := 0; z <= chunk.Height; z++ {
-		for x := 0; x <= chunk.Width; x++ {
+	for z := 0; z <= meshHeight; z++ {
+		for x := 0; x <= meshWidth; x++ {
+			localX := float32(x) / float32(subdivisionsPerTile)
+			localZ := float32(z) / float32(subdivisionsPerTile)
 			surface.Vertices = append(surface.Vertices,
-				float32(x)-halfWidth,
-				chunk.HeightSamples[z][x],
-				float32(z)-halfHeight,
+				localX-halfWidth,
+				sampleHeight(chunk.HeightSamples, chunk.Width, chunk.Height, localX, localZ),
+				localZ-halfHeight,
 			)
 			surface.Texcoords = append(surface.Texcoords,
-				float32(x)/float32(chunk.Width),
-				float32(z)/float32(chunk.Height),
+				localX/float32(chunk.Width),
+				localZ/float32(chunk.Height),
 			)
 		}
 	}
 
-	for z := 0; z < chunk.Height; z++ {
-		for x := 0; x < chunk.Width; x++ {
-			topLeft := uint16(z*(chunk.Width+1) + x)
-			bottomLeft := uint16((z+1)*(chunk.Width+1) + x)
+	for z := 0; z < meshHeight; z++ {
+		for x := 0; x < meshWidth; x++ {
+			topLeft := uint16(z*(meshWidth+1) + x)
+			bottomLeft := uint16((z+1)*(meshWidth+1) + x)
 			topRight := topLeft + 1
 			bottomRight := bottomLeft + 1
 
@@ -72,21 +88,25 @@ func (surface *SurfaceMesh) SampleHeight(worldX, worldZ float32) float32 {
 		return 0
 	}
 
-	x := clampRange(worldX, 0, float32(surface.Width))
-	z := clampRange(worldZ, 0, float32(surface.Height))
+	return sampleHeight(surface.HeightSamples, surface.Width, surface.Height, worldX, worldZ)
+}
+
+func sampleHeight(heightSamples [][]float32, width, height int, sampleX, sampleZ float32) float32 {
+	x := clampRange(sampleX, 0, float32(width))
+	z := clampRange(sampleZ, 0, float32(height))
 
 	x0 := int(math.Floor(float64(x)))
 	z0 := int(math.Floor(float64(z)))
-	x1 := minInt(x0+1, surface.Width)
-	z1 := minInt(z0+1, surface.Height)
+	x1 := minInt(x0+1, width)
+	z1 := minInt(z0+1, height)
 
 	tx := x - float32(x0)
 	tz := z - float32(z0)
 
-	h00 := surface.HeightSamples[z0][x0]
-	h10 := surface.HeightSamples[z0][x1]
-	h01 := surface.HeightSamples[z1][x0]
-	h11 := surface.HeightSamples[z1][x1]
+	h00 := heightSamples[z0][x0]
+	h10 := heightSamples[z0][x1]
+	h01 := heightSamples[z1][x0]
+	h11 := heightSamples[z1][x1]
 
 	h0 := h00 + (h10-h00)*tx
 	h1 := h01 + (h11-h01)*tx

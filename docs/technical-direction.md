@@ -20,7 +20,7 @@ Current rendering passes:
 
 The main camera keeps a fixed offset from its focus point and slides only when the drone exits the configured X/Z or Y dead zone. The light camera is orthographic and tracks the drone overhead every frame.
 
-Terrain models use the `shadow_receiver` shader. Terrain albedo, artifact overlay, burn overlay, and shadow depth textures are bound through raylib material maps. The shader applies shadow-map darkening and a light normal-based slope shade: flat upward-facing terrain keeps its original color, while sloped terrain is darkened by `slopeShadeStrength` according to the surface normal's Y component. Renderable ECS models use `castsShadow` and `receivesShadow` flags to participate in the shadow pass and shadow receiver setup.
+Terrain models use the `shadow_receiver` shader. Terrain albedo, artifact overlay, burn overlay, and shadow depth textures are bound through raylib material maps. The shader applies shadow-map darkening and a light normal-based slope shade: flat upward-facing terrain keeps its original color, while sloped terrain is darkened by `slopeShadeStrength` according to the surface normal's Y component. Accepted cutout regions are visually lowered by `terrainCutoutDivotDepth` using the burn overlay as a shader displacement mask. Renderable ECS models use `castsShadow` and `receivesShadow` flags to participate in the shadow pass and shadow receiver setup.
 
 ## Terrain Model
 
@@ -42,7 +42,7 @@ Generated chunks:
 
 Built terrain chunks contain:
 
-- a raylib mesh/model generated from height samples
+- a raylib render mesh/model generated from interpolated height samples
 - a baked base albedo image/texture assembled from tile textures
 - a baked artifact overlay image/texture
 - a per-pixel artifact ID mask
@@ -52,7 +52,7 @@ Built terrain chunks contain:
 
 `internal/terrain` uses raylib vector helpers for mesh normal accumulation while still owning the terrain mesh data shape.
 
-Laser cutting is currently represented by texture and mask state. Burn marks paint the burn overlay and clear artifact IDs at the affected pixels. Height samples are not mutated by cutting.
+Laser cutting is currently represented by texture and mask state. Burn marks paint the burn overlay and clear artifact IDs at the affected pixels. Accepted cutout regions soften the burn overlay and are rendered as shallow shader-side divots. Height samples are not mutated by cutting.
 
 ## Artifact And Salvage Model
 

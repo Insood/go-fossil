@@ -162,7 +162,7 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 		tileImages[tileDefinition] = Must(manager.assets.LookupImage(path.Join("textures", tileDefinition)))
 	}
 
-	surfaceMesh, err := terrain.BuildSurfaceMesh(chunkData)
+	surfaceMesh, err := terrain.BuildSubdividedSurfaceMesh(chunkData, terrainRenderSubdivisionsPerTile)
 	if err != nil {
 		panic(fmt.Errorf("build terrain mesh for chunk %s: %w", coords.String(), err))
 	}
@@ -192,6 +192,10 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 	model.Materials.Shader.UpdateLocation(
 		rl.ShaderLocMapEmission,
 		rl.GetShaderLocation(model.Materials.Shader, "texture1"),
+	)
+	model.Materials.Shader.UpdateLocation(
+		rl.ShaderLocMapOcclusion,
+		rl.GetShaderLocation(model.Materials.Shader, "texture2"),
 	)
 
 	chunk.SurfaceMesh = surfaceMesh

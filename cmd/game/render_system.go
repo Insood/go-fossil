@@ -209,6 +209,8 @@ func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCam
 	shadowNormalBiasLoc := rl.GetShaderLocation(shadowShader, "shadowNormalBias")
 	shadowDarknessLoc := rl.GetShaderLocation(shadowShader, "shadowDarkness")
 	slopeShadeStrengthLoc := rl.GetShaderLocation(shadowShader, "slopeShadeStrength")
+	terrainCutoutDivotDepthLoc := rl.GetShaderLocation(shadowShader, "terrainCutoutDivotDepth")
+	terrainCutoutOverlayAlphaLoc := rl.GetShaderLocation(shadowShader, "terrainCutoutOverlayAlpha")
 
 	query := system.filter.Query()
 	defer query.Close()
@@ -234,6 +236,8 @@ func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCam
 	rl.SetShaderValue(shadowShader, shadowNormalBiasLoc, []float32{shadowNormalBias}, rl.ShaderUniformFloat)
 	rl.SetShaderValue(shadowShader, shadowDarknessLoc, []float32{darkness}, rl.ShaderUniformFloat)
 	rl.SetShaderValue(shadowShader, slopeShadeStrengthLoc, []float32{slopeShadeStrength}, rl.ShaderUniformFloat)
+	rl.SetShaderValue(shadowShader, terrainCutoutDivotDepthLoc, []float32{terrainCutoutDivotDepth}, rl.ShaderUniformFloat)
+	rl.SetShaderValue(shadowShader, terrainCutoutOverlayAlphaLoc, []float32{float32(dugOutOverlayAlpha) / 255}, rl.ShaderUniformFloat)
 }
 
 func (system *RenderSystem3D) withClipPlanes(nearPlane, farPlane float32, draw func()) {

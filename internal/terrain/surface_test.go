@@ -53,6 +53,41 @@ func TestBuildSurfaceGeometry(t *testing.T) {
 	assertClose(t, surface.Texcoords[11], 1)
 }
 
+func TestBuildSubdividedSurfaceGeometry(t *testing.T) {
+	t.Parallel()
+
+	chunk := ChunkData{
+		Name:   "Subdivided Geometry Test",
+		Width:  2,
+		Height: 1,
+		Tiles: [][]int{
+			{0, 1},
+		},
+		TileDefinitions: []string{"red.png", "blue.png"},
+		HeightSamples: [][]float32{
+			{0, 1, 2},
+			{1, 2, 3},
+		},
+	}
+
+	surface, err := BuildSubdividedSurfaceMesh(chunk, 2)
+	if err != nil {
+		t.Fatalf("BuildSubdividedSurfaceMesh() error = %v", err)
+	}
+
+	if got, want := len(surface.Vertices)/3, 15; got != want {
+		t.Fatalf("vertex count = %d, want %d", got, want)
+	}
+	if got, want := len(surface.Indices)/3, 16; got != want {
+		t.Fatalf("triangle count = %d, want %d", got, want)
+	}
+
+	assertClose(t, surface.Vertices[4], 0.5)
+	assertClose(t, surface.Vertices[7], 1)
+	assertClose(t, surface.Texcoords[2], 0.25)
+	assertClose(t, surface.Texcoords[3], 0)
+}
+
 func TestBuildSurfaceTextureComposition(t *testing.T) {
 	t.Parallel()
 

@@ -12,7 +12,9 @@ const (
 	windowTitle  = "go-fossil"
 	targetFPS    = 60
 
-	terrainTexturePixelsPerTile = 64
+	terrainTexturePixelsPerTile      = 64
+	terrainRenderSubdivisionsPerTile = 8
+	terrainCutoutDivotDepth          = 0.1
 
 	debugAxisLength = 3.0
 

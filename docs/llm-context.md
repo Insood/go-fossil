@@ -28,7 +28,7 @@ Read these files first:
 - Drone movement is clamped so its 1x1 footprint stays inside loaded terrain chunk extents in X/Z.
 - The main camera uses a sliding dead zone so it only follows the drone once the drone moves far enough from center.
 - A single shadow-casting light tracks the drone overhead so the shadow map stays centered on the active area.
-- Terrain chunks are 8x8 tile meshes derived from chunk metadata and 9x9 inline height samples.
+- Terrain chunks are 8x8 tile render meshes derived from chunk metadata and interpolated from 9x9 inline height samples.
 - Startup loads the authored default chunk at `(0,0)`.
 - Generated terrain chunks are added as the running score increases, placed on exposed edges of the loaded chunk set.
 - Generated chunks use random height samples that match loaded neighbor borders and random artifact placements from loaded artifact definitions.
@@ -61,7 +61,7 @@ Important ownership notes:
 - `ArtifactManager` owns runtime artifact records, unique artifact IDs, scored fragment records, and fragment textures.
 - `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps gamepad target axes into viewport space, and stores current and previous cursor/firing state on `DroneFireControl`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.
 - `LaserSystem` maps the stored drone viewport cursor to terrain-sampled world targets, interpolates between consecutive firing cursors at the configured pixel step, stamps the chunk burn overlay while firing, drains drone battery charge once per active firing update, and marks damaged chunks for cutout scanning. Lasers only fire while battery charge is positive.
-- `ArtifactCutoutDetectionSystem` periodically scans damaged chunks, flood-fills remaining artifact ID regions, accepts regions below `MaximumRegionSize`, scores recovered artifact pixels, creates fragments for regions at or above `artifactFragmentMinPixels`, clears accepted artifact overlay pixels, and softens the burn overlay.
+- `ArtifactCutoutDetectionSystem` periodically scans damaged chunks, flood-fills remaining artifact ID regions, accepts regions below `MaximumRegionSize`, scores recovered artifact pixels, creates fragments for regions at or above `artifactFragmentMinPixels`, clears accepted artifact overlay pixels, and softens the burn overlay so the terrain shader renders a shallow divot.
 - `ChunkSpawnerSystem` watches score deltas and adds generated chunks after enough artifact value is recovered.
 - `RenderSystem3D` owns the shadow pass, main scene pass, drone bottom-camera viewport pass, laser rendering, slope shade shader tuning, and shadow-depth export.
 - `UserInterfaceSystem` draws total score, the drone battery bar, the drone viewport, the reticle, and recent fragment thumbnails with weight and score.
@@ -73,7 +73,7 @@ Important ownership notes:
 - `Framebuffer` in `cmd/game/framebuffer.go` wraps off-screen render targets.
 - The scene has one `Light` entity. `LightSystem` rebuilds its orthographic camera from component data every frame.
 - `Renderable` carries `castsShadow` and `receivesShadow` flags for render-pass participation.
-- Terrain models use the `shadow_receiver` shader, with albedo, artifact emission, burn occlusion, and shadow depth textures bound through material maps. The shader also darkens sloped terrain based on surface normals and `slopeShadeStrength`.
+- Terrain models use the `shadow_receiver` shader, with albedo, artifact emission, burn occlusion, and shadow depth textures bound through material maps. The shader also darkens sloped terrain based on surface normals and `slopeShadeStrength`, and lowers accepted cutout regions by `terrainCutoutDivotDepth`.
 - `F10` toggles debug overlays. The left gamepad trigger also toggles debug overlays.
 - `F11` exports the shadow depth framebuffer for inspection.
 

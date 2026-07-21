@@ -3,19 +3,28 @@ package main
 import (
 	"fmt"
 	"math"
+	"math/rand"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
 )
 
 type LaserSystem struct {
-	filter    *ecs.Filter5[Position3, Drone, Laser, DroneFireControl, Battery]
-	damageMap *ecs.Map[TerrainChunkDamaged]
+	filter          *ecs.Filter5[Position3, Drone, Laser, DroneFireControl, Battery]
+	damageMap       *ecs.Map[TerrainChunkDamaged]
+	particleSpawner *ParticleSpawnerFactory
 }
 
 func (system *LaserSystem) Initialize(game *Game) {
 	system.filter = ecs.NewFilter5[Position3, Drone, Laser, DroneFireControl, Battery](game.world)
 	system.damageMap = ecs.NewMap[TerrainChunkDamaged](game.world)
+	if game.assets != nil {
+		model, ok := game.assets.LookupModel("particle_cube")
+		if ok {
+			system.particleSpawner = NewParticleSpawnerFactory(game.world, model, rand.New(rand.NewSource(time.Now().UnixNano())))
+		}
+	}
 }
 
 func (system *LaserSystem) Update(game *Game) {
@@ -104,6 +113,9 @@ func (system *LaserSystem) applyBurnTargets(game *Game, targets []rl.Vector3) {
 		}
 		if !game.chunkManager.BurnAtWorldPosition(target.X, target.Z) {
 			panic(fmt.Sprintf("failed to burn terrain at %v", target))
+		}
+		if system.particleSpawner != nil {
+			system.particleSpawner.SpawnLaserStrikeParticles(target)
 		}
 		if system.damageMap.Has(chunk.Entity) {
 			continue

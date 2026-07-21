@@ -240,6 +240,7 @@ func (assets *AssetManager) loadTextures() {
 
 func (assets *AssetManager) loadModels() {
 	assets.models["drone"] = assets.loadDroneModel()
+	assets.models["particle_cube"] = assets.loadUnitParticleCubeModel()
 	assets.models["prop_cube"] = assets.loadUnitCubeModel()
 	assets.models["prop_sphere"] = assets.loadUnitSphereModel()
 }
@@ -252,6 +253,11 @@ func (assets *AssetManager) loadDroneModel() *rl.Model {
 func (assets *AssetManager) loadUnitCubeModel() *rl.Model {
 	cube := rl.LoadModelFromMesh(rl.GenMeshCube(1.0, 1.0, 1.0))
 	configureShadowReceiverMaterial(&cube, assets)
+	return &cube
+}
+
+func (assets *AssetManager) loadUnitParticleCubeModel() *rl.Model {
+	cube := rl.LoadModelFromMesh(rl.GenMeshCube(1.0, 1.0, 1.0))
 	return &cube
 }
 

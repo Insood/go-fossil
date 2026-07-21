@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"math/rand"
 	"testing"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -176,6 +177,51 @@ func TestLaserSystemApplyBurnTargetsSkipsEmptyTargets(t *testing.T) {
 	}
 	if system.damageMap.Has(chunk.Entity) {
 		t.Fatal("chunk entity should not be marked damaged")
+	}
+}
+
+func TestLaserSystemApplyBurnTargetsSpawnsParticlesAfterSuccessfulBurn(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	manager := &ChunkManager{
+		world:           world,
+		terrainChunkMap: ecs.NewMap1[TerrainChunkComponent](world),
+		chunks:          make(map[ChunkCoords]*TerrainChunk),
+	}
+	chunk := &TerrainChunk{
+		Coords:  ChunkCoords{X: 0, Z: 0},
+		OriginX: 0,
+		OriginZ: 0,
+		Data: terrain.ChunkData{
+			Width:  4,
+			Height: 4,
+		},
+		BurnOverlayImage: image.NewRGBA(image.Rect(0, 0, 4, 4)),
+	}
+
+	manager.registerTerrainChunkEntity(chunk)
+	manager.chunks[chunk.Coords] = chunk
+
+	model := &rl.Model{}
+	system := &LaserSystem{}
+	game := &Game{world: world, chunkManager: manager}
+	system.Initialize(game)
+	system.particleSpawner = NewParticleSpawnerFactory(world, model, rand.New(rand.NewSource(1)))
+
+	system.applyBurnTargets(game, []rl.Vector3{rl.NewVector3(0, 0, 0)})
+
+	particleFilter := ecs.NewFilter1[Particle](world)
+	query := particleFilter.Query()
+	defer query.Close()
+
+	count := 0
+	for query.Next() {
+		count++
+	}
+
+	if count != laserStrikeParticleCount {
+		t.Fatalf("particle count = %d, want %d", count, laserStrikeParticleCount)
 	}
 }
 

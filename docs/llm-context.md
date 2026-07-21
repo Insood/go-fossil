@@ -34,6 +34,7 @@ Read these files first:
 - Generated chunks use random height samples that match loaded neighbor borders and random artifact placements from loaded artifact definitions.
 - Artifacts are embedded as baked texture overlays plus a per-pixel artifact ID mask.
 - The salvage loop is movement, downward drone-camera aiming, laser burning, cutout detection, fragment scoring, and chunk expansion.
+- Successful laser terrain strikes spawn short-lived tinted cube particles that travel upward in a narrow cone and fade out.
 
 ## Current Systems
 
@@ -47,12 +48,13 @@ Systems are registered in this order in `cmd/game/game.go`:
 6. `CameraSystem`
 7. `LightSystem`
 8. `LaserSystem`
-9. `ArtifactCutoutDetectionSystem`
-10. `ChunkSpawnerSystem`
-11. `RenderSystem3D`
-12. `UserInterfaceSystem`
-13. `DebugRender3DSystem`
-14. `DebugRenderSystem2D`
+9. `ParticleSystem`
+10. `ArtifactCutoutDetectionSystem`
+11. `ChunkSpawnerSystem`
+12. `RenderSystem3D`
+13. `UserInterfaceSystem`
+14. `DebugRender3DSystem`
+15. `DebugRenderSystem2D`
 
 Important ownership notes:
 
@@ -61,6 +63,8 @@ Important ownership notes:
 - `ArtifactManager` owns runtime artifact records, unique artifact IDs, scored fragment records, and fragment textures.
 - `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps gamepad target axes into viewport space, and stores current and previous cursor/firing state on `DroneFireControl`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.
 - `LaserSystem` maps the stored drone viewport cursor to terrain-sampled world targets, interpolates between consecutive firing cursors at the configured pixel step, stamps the chunk burn overlay while firing, drains drone battery charge once per active firing update, and marks damaged chunks for cutout scanning. Lasers only fire while battery charge is positive.
+- `LaserSystem` also creates particle entities at successful terrain burn positions. These particles reuse the shared cube model, do not cast or receive shadows, and have no gameplay interaction.
+- `ParticleSystem` advances particle lifetimes, fades `Renderable.tint`, and removes expired particle entities. `PhysicsSystem` moves particles because they carry `Velocity3`.
 - `ArtifactCutoutDetectionSystem` periodically scans damaged chunks, flood-fills remaining artifact ID regions, accepts regions below `MaximumRegionSize`, scores recovered artifact pixels, creates fragments for regions at or above `artifactFragmentMinPixels`, clears accepted artifact overlay pixels, and softens the burn overlay so the terrain shader renders a shallow divot.
 - `ChunkSpawnerSystem` watches score deltas and adds generated chunks after enough artifact value is recovered.
 - `RenderSystem3D` owns the shadow pass, main scene pass, drone bottom-camera viewport pass, laser rendering, slope shade shader tuning, and shadow-depth export.

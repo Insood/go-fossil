@@ -36,6 +36,13 @@ type Laser struct {
 	target rl.Vector3
 }
 
+type Particle struct {
+	age       float32
+	lifespan  float32
+	startTint color.RGBA
+	endTint   color.RGBA
+}
+
 type TerrainChunkComponent struct {
 	Chunk *TerrainChunk
 }

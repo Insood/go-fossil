@@ -72,6 +72,14 @@ const (
 	laserHitMarkerRadius             = 0.015
 	laserCursorBurnStepPixels        = 5.0
 	laserBatteryDrainPerBurn         = 0.1
+	laserStrikeParticleCount         = 4
+	laserStrikeParticleLifespanMin   = 0.1
+	laserStrikeParticleLifespanMax   = 0.5
+	laserStrikeParticleScale         = 0.035
+	laserStrikeParticleSpeedMin      = 0.6
+	laserStrikeParticleSpeedMax      = 1.8
+	laserStrikeParticleSpawnLift     = 0.035
+	laserStrikeParticleMaxConeAngle  = math.Pi / 4
 	artifactCutoutDetectionScanTicks = 60
 	MaximumRegionSize                = 4096
 	burnOverlayAlpha                 = 255

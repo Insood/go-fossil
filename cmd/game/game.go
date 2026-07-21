@@ -74,6 +74,7 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&CameraSystem{})
 	game.AddSystem(&LightSystem{})
 	game.AddSystem(&LaserSystem{})
+	game.AddSystem(&ParticleSystem{})
 	game.AddSystem(&ArtifactCutoutDetectionSystem{})
 	game.AddSystem(&ChunkSpawnerSystem{})
 	game.AddSystem(&RenderSystem3D{})

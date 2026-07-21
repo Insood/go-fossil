@@ -85,3 +85,15 @@ make run
 ## Current State
 
 The repository contains a playable salvage slice: drone movement, height-sampled terrain chunks, embedded artifact overlays, viewport laser cutting, cutout detection, fragment scoring, generated chunk expansion, UI, shadow rendering, and debug overlays.
+
+
+## Assets from
+# Fossils
+
+Remixed from
+https://opengameart.org/content/fossil-undead-rpg-enemy-mod-therapsid-charset (CC-BY 3.0 Flying Tiger Comics)
+Which are themselves remixed from
+https://opengameart.org/content/fossil-undead-rpg-enemy-sprites (CC-BY 3.0 Stephen Challener (Redshrike))
+
+Cellphone?
+{Unknown}

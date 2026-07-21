@@ -1,0 +1,7 @@
+{
+  "name": "tail_fossil",
+  "image_path": "textures/tail_fossil.png",
+  "width": 128,
+  "height": 64,
+  "value": 500
+}

@@ -44,11 +44,13 @@ const (
 	cameraFollowDeadZoneXZ = 4.0
 	cameraFollowDeadZoneY  = 1.5
 
-	droneViewFOV       = 45
-	droneViewPixels    = 256
-	droneViewMargin    = 16
-	droneViewNearPlane = 0.01
-	droneViewFarPlane  = 16.0
+	droneViewFOV              = 45
+	droneViewPixels           = 256
+	droneViewMargin           = 16
+	droneViewNearPlane        = 0.01
+	droneViewFarPlane         = 16.0
+	droneViewReticleHalfSize  = 5.0
+	droneViewReticleThickness = 2.0
 
 	droneBatteryBarHeight  = 8
 	droneBatteryBarGap     = 6

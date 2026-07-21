@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 
+	"slices"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
-	"slices"
 )
 
 type UserInterfaceSystem struct {
@@ -86,20 +87,17 @@ func (system *UserInterfaceSystem) drawDroneReticle() {
 	for query.Next() {
 		control, _ := query.Get()
 		center := control.cursor
-		halfSize := int32(5)
 
-		rl.DrawLine(
-			int32(center.X)-halfSize,
-			int32(center.Y),
-			int32(center.X)+halfSize,
-			int32(center.Y),
+		rl.DrawLineEx(
+			rl.Vector2{X: center.X - droneViewReticleHalfSize, Y: center.Y},
+			rl.Vector2{X: center.X + droneViewReticleHalfSize, Y: center.Y},
+			droneViewReticleThickness,
 			rl.Red,
 		)
-		rl.DrawLine(
-			int32(center.X),
-			int32(center.Y)-halfSize,
-			int32(center.X),
-			int32(center.Y)+halfSize,
+		rl.DrawLineEx(
+			rl.Vector2{X: center.X, Y: center.Y - droneViewReticleHalfSize},
+			rl.Vector2{X: center.X, Y: center.Y + droneViewReticleHalfSize},
+			droneViewReticleThickness,
 			rl.Red,
 		)
 	}

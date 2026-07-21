@@ -66,6 +66,11 @@ const (
 	totalScoreTextX              = 16
 	totalScoreTextY              = 16
 
+	tutorialPromptTopY           int32 = 0
+	tutorialPromptFontSize       int32 = 48
+	tutorialPromptImageGap       int32 = 8
+	tutorialMoveDroneTextureName       = "tutorial_01"
+
 	generatedArtifactEdgeMarginPixels   = 96
 	generatedArtifactMinCenterGapPixels = 160
 	generatedArtifactMaxCount           = 3

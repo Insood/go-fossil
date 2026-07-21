@@ -80,6 +80,7 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&ChunkSpawnerSystem{})
 	game.AddSystem(&RenderSystem3D{})
 	game.AddSystem(&UserInterfaceSystem{})
+	game.AddSystem(&TutorialSystem{})
 	game.AddSystem(&DebugRender3DSystem{})
 	game.AddSystem(&DebugRenderSystem2D{})
 }

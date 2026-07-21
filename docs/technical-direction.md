@@ -98,8 +98,9 @@ Current ECS components:
 - Sound: `SoundSystem` tracks loaded sound streams by name and updates raylib music streams while their gameplay-driven sound state is playing. The burning stream plays while any laser is active.
 - Particles: `ParticleSystem` advances particle lifetimes, fades renderable tint alpha, and removes expired particle entities. Particle motion uses the shared velocity-driven physics system.
 - World growth: `ChunkSpawnerSystem` adds generated chunks after score increases.
+- Tutorial: `TutorialSystem` owns the active tutorial step, starts each run at step 1, completes the first step once the drone moves away from its starting X/Z position, and draws the active tutorial prompt.
 - Rendering: `RenderSystem3D` owns shadow, scene, drone viewport, laser rendering, and depth export.
-- UI/debug: `UserInterfaceSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, the drone battery bar, fragment thumbnails, viewport, reticle, artifact labels, debug guides, shadow tuning controls, and the slope shade tuning control.
+- UI/debug: `UserInterfaceSystem`, `TutorialSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, the drone battery bar, fragment thumbnails, viewport, reticle, the active tutorial prompt, artifact labels, debug guides, shadow tuning controls, and the slope shade tuning control.
 
 ## Repository Shape
 

@@ -87,7 +87,7 @@ make run
 The repository contains a playable salvage slice: drone movement, height-sampled terrain chunks, embedded artifact overlays, viewport laser cutting, cutout detection, fragment scoring, generated chunk expansion, UI, shadow rendering, and debug overlays.
 
 
-## Assets from
+## Assets
 # Fossils
 
 Remixed from
@@ -98,5 +98,16 @@ https://opengameart.org/content/fossil-undead-rpg-enemy-sprites (CC-BY 3.0 Steph
 Cellphone?
 {Unknown}
 
+# Other Images
+Steamdeck by ExxiIon ("Feel free to use and change however you like, just make sure to credit me" License)
+https://www.reddit.com/r/SteamDeck/comments/trztvf/my_pixel_art_submission_for_rplace_feel_free_to/
+
+# Sounds
 Burning Sound by Freesound Community
 https://pixabay.com/sound-effects/film-special-effects-burning-fire-steam-87118/
+
+# Fonts
+Grixel Acme 9 by Nikos Giannakopoulos (Creative Commons Attribution-NoDerivs 2.5)
+https://www.dafont.com/grixel-acme-9.font
+http://creativecommons.org/licenses/by-nd/2.5/
+

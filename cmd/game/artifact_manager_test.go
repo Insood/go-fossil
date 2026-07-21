@@ -30,6 +30,26 @@ func TestCreateFragmentFromRegionSkipsSmallFragments(t *testing.T) {
 	}
 }
 
+func TestArtifactManagerArtifactsReturnsArtifactsSortedByID(t *testing.T) {
+	t.Parallel()
+
+	manager := NewArtifactManager()
+	manager.artifacts[3] = &Artifact{ID: 3}
+	manager.artifacts[1] = &Artifact{ID: 1}
+	manager.artifacts[2] = &Artifact{ID: 2}
+
+	artifacts := manager.Artifacts()
+	want := []int32{1, 2, 3}
+	if len(artifacts) != len(want) {
+		t.Fatalf("artifact count = %d, want %d", len(artifacts), len(want))
+	}
+	for i, artifact := range artifacts {
+		if artifact.ID != want[i] {
+			t.Fatalf("artifact %d ID = %d, want %d", i, artifact.ID, want[i])
+		}
+	}
+}
+
 func TestCreateFragmentFromRegionUsesExactPixels(t *testing.T) {
 	t.Parallel()
 

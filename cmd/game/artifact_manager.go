@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"image/draw"
 	"math"
+	"slices"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -32,6 +33,30 @@ func (manager *ArtifactManager) Lookup(id int32) (*Artifact, bool) {
 func (manager *ArtifactManager) LookupFragment(id int32) (*ArtifactFragment, bool) {
 	fragment, ok := manager.fragments[id]
 	return fragment, ok
+}
+
+func (manager *ArtifactManager) Artifacts() []*Artifact {
+	if manager == nil || len(manager.artifacts) == 0 {
+		return nil
+	}
+
+	artifacts := make([]*Artifact, 0, len(manager.artifacts))
+	for _, artifact := range manager.artifacts {
+		artifacts = append(artifacts, artifact)
+	}
+
+	slices.SortFunc(artifacts, func(left, right *Artifact) int {
+		switch {
+		case left.ID < right.ID:
+			return -1
+		case left.ID > right.ID:
+			return 1
+		default:
+			return 0
+		}
+	})
+
+	return artifacts
 }
 
 func (manager *ArtifactManager) RegisterChunkArtifact(

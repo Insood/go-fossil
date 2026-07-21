@@ -1,8 +1,10 @@
 package main
 
 import (
+	"image"
 	"testing"
 
+	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
 )
 
@@ -41,14 +43,14 @@ func TestTutorialStepOneIgnoresDroneYChanges(t *testing.T) {
 
 	position, _ := mapper.Get(entity)
 	position.Y += 1
-	system.Update(game)
+	system.updateCurrentStep(game)
 
 	if got, want := system.state.currentStep, tutorialStepMoveDrone; got != want {
 		t.Fatalf("current step = %d, want %d", got, want)
 	}
 }
 
-func TestTutorialStepOneCompletesWhenDroneMovesOnXZ(t *testing.T) {
+func TestTutorialStepOneStartsFindArtifactStepWhenDroneMovesOnXZ(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
@@ -64,9 +66,110 @@ func TestTutorialStepOneCompletesWhenDroneMovesOnXZ(t *testing.T) {
 
 	position, _ := mapper.Get(entity)
 	position.X += 0.001
-	system.Update(game)
+	system.updateCurrentStep(game)
+
+	if got, want := system.state.currentStep, tutorialStepFindArtifact; got != want {
+		t.Fatalf("current step = %d, want %d", got, want)
+	}
+}
+
+func TestTutorialStepTwoSpawnsMarkersAtArtifactCenters(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	droneMapper := ecs.NewMap2[Position3, Drone](world)
+	droneEntity := droneMapper.NewEntity(
+		&Position3{X: 1, Y: 2, Z: 3},
+		&Drone{},
+	)
+
+	artifactManager := NewArtifactManager()
+	chunk := newTestTerrainChunk(ChunkCoords{X: 1, Z: 0}, 8, 0, 2)
+	artifactManager.RegisterChunkArtifact(chunk, "phone", 10, 20, 128, 192, image.Rectangle{})
+
+	model := &rl.Model{}
+	game := &Game{
+		world:           world,
+		artifactManager: artifactManager,
+		assets: &AssetManager{
+			models: map[string]*rl.Model{
+				tutorialArtifactMarkerModelName: model,
+			},
+		},
+	}
+	system := &TutorialSystem{}
+	system.Initialize(game)
+
+	position, _ := droneMapper.Get(droneEntity)
+	position.X += 1
+	system.updateCurrentStep(game)
+
+	markers := tutorialMarkers(system)
+	if len(markers) != 1 {
+		t.Fatalf("marker count = %d, want 1", len(markers))
+	}
+
+	marker := markers[0]
+	assertVector3(t, marker.position, 10, 2+tutorialArtifactMarkerLift, 3)
+	if marker.renderable.model != model {
+		t.Fatal("marker renderable does not use tutorial cone model")
+	}
+	if marker.renderable.tint != rl.Red {
+		t.Fatalf("marker tint = %#v, want red", marker.renderable.tint)
+	}
+}
+
+func TestTutorialStepTwoCompletesAndRemovesMarkersWhenDroneReachesMarker(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	droneMapper := ecs.NewMap2[Position3, Drone](world)
+	droneEntity := droneMapper.NewEntity(
+		&Position3{X: 1, Y: 2, Z: 3},
+		&Drone{},
+	)
+
+	system := &TutorialSystem{}
+	game := &Game{world: world}
+	system.Initialize(game)
+	system.state.currentStep = tutorialStepFindArtifact
+	system.markersSpawned = true
+	markerEntity := system.markerMapper.NewEntity(
+		&Position3{X: 2, Y: 1, Z: 3},
+		&Renderable{},
+		&TutorialMarker{},
+	)
+
+	position, _ := droneMapper.Get(droneEntity)
+	position.X = 1.6
+	system.updateCurrentStep(game)
 
 	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
 		t.Fatalf("current step = %d, want %d", got, want)
 	}
+	if world.Alive(markerEntity) {
+		t.Fatal("tutorial marker entity is still alive")
+	}
+}
+
+type tutorialMarkerSnapshot struct {
+	position   rl.Vector3
+	renderable *Renderable
+}
+
+func tutorialMarkers(system *TutorialSystem) []tutorialMarkerSnapshot {
+	query := system.markerFilter.Query()
+	defer query.Close()
+
+	markers := make([]tutorialMarkerSnapshot, 0)
+	for query.Next() {
+		position, _ := query.Get()
+		_, renderable, _ := system.markerMapper.Get(query.Entity())
+		markers = append(markers, tutorialMarkerSnapshot{
+			position:   rl.Vector3(*position),
+			renderable: renderable,
+		})
+	}
+
+	return markers
 }

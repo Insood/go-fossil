@@ -8,6 +8,7 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"io/fs"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -268,6 +269,7 @@ func (assets *AssetManager) loadModels() {
 	assets.models["particle_cube"] = assets.loadUnitParticleCubeModel()
 	assets.models["prop_cube"] = assets.loadUnitCubeModel()
 	assets.models["prop_sphere"] = assets.loadUnitSphereModel()
+	assets.models[tutorialArtifactMarkerModelName] = assets.loadTutorialConeModel()
 }
 
 func (assets *AssetManager) loadSounds() {
@@ -308,6 +310,20 @@ func (assets *AssetManager) loadUnitSphereModel() *rl.Model {
 	sphere := rl.LoadModelFromMesh(rl.GenMeshSphere(0.5, 24, 24))
 	configureShadowReceiverMaterial(&sphere, assets)
 	return &sphere
+}
+
+func (assets *AssetManager) loadTutorialConeModel() *rl.Model {
+	cone := rl.LoadModelFromMesh(rl.GenMeshCone(
+		tutorialArtifactMarkerRadius,
+		tutorialArtifactMarkerHeight,
+		tutorialArtifactMarkerSlices,
+	))
+	cone.Transform = rl.MatrixRotateX(float32(math.Pi))
+	materials := cone.GetMaterials()
+	for i := range materials {
+		materials[i].Shader = Must(assets.LookupShader("tutorial_marker"))
+	}
+	return &cone
 }
 
 func configureShadowReceiverMaterial(model *rl.Model, assets *AssetManager) {

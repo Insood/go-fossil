@@ -66,10 +66,16 @@ const (
 	totalScoreTextX              = 16
 	totalScoreTextY              = 16
 
-	tutorialPromptTopY           int32 = 0
-	tutorialPromptFontSize       int32 = 48
-	tutorialPromptImageGap       int32 = 8
-	tutorialMoveDroneTextureName       = "tutorial_01"
+	tutorialPromptTopY              int32 = 0
+	tutorialPromptFontSize          int32 = 48
+	tutorialPromptImageGap          int32 = 8
+	tutorialArtifactMarkerRadius          = 0.25
+	tutorialArtifactMarkerHeight          = 0.75
+	tutorialArtifactMarkerSlices          = 6
+	tutorialArtifactMarkerLift            = 1.0
+	tutorialArtifactMarkerProximity       = 0.5
+	tutorialMoveDroneTextureName          = "tutorial_01"
+	tutorialArtifactMarkerModelName       = "tutorial_cone"
 
 	generatedArtifactEdgeMarginPixels   = 96
 	generatedArtifactMinCenterGapPixels = 160
@@ -95,7 +101,7 @@ const (
 	lightHeight         = 10
 	defaultLightOffsetX = 0
 	defaultLightOffsetZ = 0
-	defaultLightSize    = 10.0
+	defaultLightSize    = 15
 	shadowDarkness      = 0.55
 	shadowMapSize       = 2048
 )

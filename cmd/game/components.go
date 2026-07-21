@@ -49,6 +49,8 @@ type TerrainChunkComponent struct {
 
 type TerrainChunkDamaged struct{}
 
+type TutorialMarker struct{}
+
 type Drone struct{}
 
 type Battery struct {

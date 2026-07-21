@@ -70,7 +70,7 @@ Important ownership notes:
 - `ParticleSystem` advances particle lifetimes, fades `Renderable.tint`, and removes expired particle entities. `PhysicsSystem` moves particles because they carry `Velocity3`.
 - `ArtifactCutoutDetectionSystem` periodically scans damaged chunks, flood-fills remaining artifact ID regions, accepts regions below `MaximumRegionSize`, scores recovered artifact pixels, creates fragments for regions at or above `artifactFragmentMinPixels`, clears accepted artifact overlay pixels, and softens the burn overlay so the terrain shader renders a shallow divot.
 - `ChunkSpawnerSystem` watches score deltas and adds generated chunks after enough artifact value is recovered.
-- `TutorialSystem` owns the active tutorial step, starts each run at tutorial step 1, tracks the drone's starting X/Z position, completes the step once the drone moves on X or Z, and draws the active tutorial step prompt.
+- `TutorialSystem` owns the active tutorial step, starts each run at tutorial step 1, tracks the drone's starting X/Z position, advances to step 2 once the drone moves on X or Z, spawns red shader-styled tutorial cones over artifact centers for step 2, completes step 2 once the drone moves within 0.5 X/Z units of a cone, removes tutorial marker entities, and draws the active tutorial step prompt.
 - `RenderSystem3D` owns the shadow pass, main scene pass, drone bottom-camera viewport pass, laser rendering, slope shade shader tuning, and shadow-depth export.
 - `UserInterfaceSystem` draws total score, the drone battery bar, the drone viewport, the reticle, and recent fragment thumbnails with weight and score.
 - `DebugRender3DSystem` draws axes, the drone ground ray, the light guide, and artifact ID labels when debug overlays are visible.

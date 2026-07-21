@@ -8,6 +8,9 @@ func main() {
 	rl.InitWindow(screenWidth, screenHeight, windowTitle)
 	defer rl.CloseWindow()
 
+	rl.InitAudioDevice()
+	defer rl.CloseAudioDevice()
+
 	game := InitializeGame()
 	defer game.UnloadAssets()
 

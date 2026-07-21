@@ -49,7 +49,7 @@ Current content format:
 - tile layout stays in chunk JSON
 - vertex heights come from inline height samples sized `(width+1) x (height+1)`
 - artifact placements in chunk JSON reference artifact definitions by name
-- `AssetManager` loads runtime assets from disk beside the built executable
+- `AssetManager` loads runtime images, textures, shaders, models, streamed sounds, and artifact definitions from disk beside the built executable
 
 ## Build
 
@@ -97,3 +97,6 @@ https://opengameart.org/content/fossil-undead-rpg-enemy-sprites (CC-BY 3.0 Steph
 
 Cellphone?
 {Unknown}
+
+Burning Sound by Freesound Community
+https://pixabay.com/sound-effects/film-special-effects-burning-fire-steam-87118/

@@ -28,6 +28,9 @@ func TestAssetManagerLookupsReturnFalseForMissingValues(t *testing.T) {
 	if _, ok := assets.LookupShader("missing"); ok {
 		t.Fatal("LookupShader() ok = true, want false")
 	}
+	if _, ok := assets.LookupSound("missing"); ok {
+		t.Fatal("LookupSound() ok = true, want false")
+	}
 	if _, ok := assets.LookupTexture("missing"); ok {
 		t.Fatal("LookupTexture() ok = true, want false")
 	}
@@ -43,6 +46,30 @@ func TestMustPanicsOnMissingLookup(t *testing.T) {
 	}()
 
 	_ = Must((*ArtifactDefinition)(nil), false)
+}
+
+func TestSoundNamesReturnsSortedLoadedSoundNames(t *testing.T) {
+	t.Parallel()
+
+	assets := &AssetManager{
+		sounds: map[string]rl.Music{
+			"laser":   {},
+			"burning": {},
+			"pickup":  {},
+		},
+	}
+
+	got := assets.SoundNames()
+	want := []string{"burning", "laser", "pickup"}
+	if len(got) != len(want) {
+		t.Fatalf("len(SoundNames()) = %d, want %d", len(got), len(want))
+	}
+
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("SoundNames()[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
 }
 
 func TestLoadImagesAndArtifactDefinitions(t *testing.T) {
@@ -69,6 +96,7 @@ func TestLoadImagesAndArtifactDefinitions(t *testing.T) {
 		images:              make(map[string]image.Image),
 		models:              make(map[string]*rl.Model),
 		shaders:             make(map[string]rl.Shader),
+		sounds:              make(map[string]rl.Music),
 		textures:            make(map[string]rl.Texture2D),
 		assetFS:             assetFS,
 	}

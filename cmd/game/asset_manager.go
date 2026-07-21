@@ -22,6 +22,7 @@ type AssetManager struct {
 	images              map[string]image.Image
 	models              map[string]*rl.Model
 	shaders             map[string]rl.Shader
+	sounds              map[string]rl.Music
 	textures            map[string]rl.Texture2D
 	assetRoot           string
 	assetFS             fs.FS
@@ -34,6 +35,7 @@ func NewAssetManager() *AssetManager {
 		images:              make(map[string]image.Image),
 		models:              make(map[string]*rl.Model),
 		shaders:             make(map[string]rl.Shader),
+		sounds:              make(map[string]rl.Music),
 		textures:            make(map[string]rl.Texture2D),
 		assetRoot:           assetRoot,
 		assetFS:             os.DirFS(assetRoot),
@@ -46,6 +48,7 @@ func (assets *AssetManager) Load() {
 	assets.loadTextures()
 	assets.loadShaders()
 	assets.loadModels()
+	assets.loadSounds()
 }
 
 func (assets *AssetManager) LookupArtifactDefinition(name string) (*ArtifactDefinition, bool) {
@@ -82,6 +85,25 @@ func (assets *AssetManager) LookupShader(name string) (rl.Shader, bool) {
 	return shader, ok
 }
 
+func (assets *AssetManager) LookupSound(name string) (rl.Music, bool) {
+	sound, ok := assets.sounds[name]
+	return sound, ok
+}
+
+func (assets *AssetManager) SoundNames() []string {
+	if len(assets.sounds) == 0 {
+		return nil
+	}
+
+	names := make([]string, 0, len(assets.sounds))
+	for name := range assets.sounds {
+		names = append(names, name)
+	}
+
+	slices.Sort(names)
+	return names
+}
+
 func (assets *AssetManager) LookupTexture(name string) (rl.Texture2D, bool) {
 	texture, ok := assets.textures[name]
 	return texture, ok
@@ -106,6 +128,9 @@ func (assets *AssetManager) Unload() {
 	}
 	for _, shader := range assets.shaders {
 		rl.UnloadShader(shader)
+	}
+	for _, sound := range assets.sounds {
+		rl.UnloadMusicStream(sound)
 	}
 }
 
@@ -243,6 +268,24 @@ func (assets *AssetManager) loadModels() {
 	assets.models["particle_cube"] = assets.loadUnitParticleCubeModel()
 	assets.models["prop_cube"] = assets.loadUnitCubeModel()
 	assets.models["prop_sphere"] = assets.loadUnitSphereModel()
+}
+
+func (assets *AssetManager) loadSounds() {
+	const soundDir = "sounds"
+
+	fileNames := assetFileNames(assets.assetFS, soundDir, ".mp3", ".ogg", ".wav")
+	for _, fileName := range fileNames {
+		soundName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+		if _, exists := assets.sounds[soundName]; exists {
+			panic(fmt.Errorf("sound %q declared more than once", soundName))
+		}
+
+		sound := rl.LoadMusicStream(assets.assetPath(soundDir, fileName))
+		if !rl.IsMusicValid(sound) {
+			panic(fmt.Errorf("load sound stream asset %q", path.Join(soundDir, fileName)))
+		}
+		assets.sounds[soundName] = sound
+	}
 }
 
 func (assets *AssetManager) loadDroneModel() *rl.Model {

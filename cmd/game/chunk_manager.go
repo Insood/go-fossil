@@ -21,6 +21,7 @@ type ChunkManager struct {
 	artifactManager *ArtifactManager
 	rng             *rand.Rand
 	terrainChunkMap *ecs.Map1[TerrainChunkComponent]
+	renderableMap   *ecs.Map2[Position3, Renderable]
 	chunkData       map[ChunkCoords]terrain.ChunkData
 	chunks          map[ChunkCoords]*TerrainChunk
 }
@@ -32,6 +33,7 @@ func NewChunkManager(world *ecs.World, assets *AssetManager, artifactManager *Ar
 		artifactManager: artifactManager,
 		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
 		terrainChunkMap: ecs.NewMap1[TerrainChunkComponent](world),
+		renderableMap:   ecs.NewMap2[Position3, Renderable](world),
 		chunkData:       make(map[ChunkCoords]terrain.ChunkData),
 		chunks:          make(map[ChunkCoords]*TerrainChunk),
 	}
@@ -140,6 +142,7 @@ func (manager *ChunkManager) Chunks() []*TerrainChunk {
 
 func (manager *ChunkManager) Unload() {
 	for _, chunk := range manager.chunks {
+		manager.removeChunkModelEntities(chunk)
 		if chunk.Entity != (ecs.Entity{}) && manager.world != nil && manager.world.Alive(chunk.Entity) {
 			manager.world.RemoveEntity(chunk.Entity)
 			chunk.Entity = ecs.Entity{}
@@ -177,7 +180,7 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 	mesh := newTerrainMesh(surfaceMesh)
 	rl.UploadMesh(&mesh, false)
 	model := rl.LoadModelFromMesh(mesh)
-	model.Materials.Shader = Must(manager.assets.LookupShader("shadow_receiver"))
+	model.Materials.Shader = Must(manager.assets.LookupShader("terrain_shader"))
 	baseTexture := loadTextureFromImage(surfaceTexture.BaseImage)
 	rl.SetMaterialTexture(model.Materials, rl.MapAlbedo, baseTexture)
 	artifactTexture := loadTextureFromImage(artifactImage)
@@ -210,6 +213,7 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 	chunk.BurnOverlayTexture = burnOverlayTexture
 
 	manager.registerTerrainChunkEntity(chunk)
+	manager.registerChunkModelEntities(chunk)
 	return chunk
 }
 
@@ -416,6 +420,56 @@ func (manager *ChunkManager) registerTerrainChunkEntity(chunk *TerrainChunk) {
 	chunk.Entity = manager.terrainChunkMap.NewEntity(&TerrainChunkComponent{
 		Chunk: chunk,
 	})
+}
+
+func (manager *ChunkManager) registerChunkModelEntities(chunk *TerrainChunk) {
+	if manager == nil || manager.world == nil || manager.assets == nil || chunk == nil || len(chunk.Data.Models) == 0 {
+		return
+	}
+	if manager.renderableMap == nil {
+		manager.renderableMap = ecs.NewMap2[Position3, Renderable](manager.world)
+	}
+
+	for modelIndex, placement := range chunk.Data.Models {
+		model, ok := manager.assets.LookupModel(placement.Name)
+		if !ok || model == nil {
+			panic(fmt.Errorf("chunk %s model placement %d references missing model %q", chunk.Coords.String(), modelIndex, placement.Name))
+		}
+
+		position := chunkModelPlacementPosition(chunk, placement)
+		entity := manager.renderableMap.NewEntity(
+			&Position3{X: position.X, Y: position.Y, Z: position.Z},
+			&Renderable{
+				model:          model,
+				scale:          1.0,
+				tint:           rl.White,
+				castsShadow:    true,
+				receivesShadow: true,
+			},
+		)
+		chunk.ModelEntities = append(chunk.ModelEntities, entity)
+	}
+}
+
+func (manager *ChunkManager) removeChunkModelEntities(chunk *TerrainChunk) {
+	if manager == nil || manager.world == nil || chunk == nil {
+		return
+	}
+
+	for _, entity := range chunk.ModelEntities {
+		if entity != (ecs.Entity{}) && manager.world.Alive(entity) {
+			manager.world.RemoveEntity(entity)
+		}
+	}
+	chunk.ModelEntities = nil
+}
+
+func chunkModelPlacementPosition(chunk *TerrainChunk, placement terrain.ModelPlacement) rl.Vector3 {
+	return rl.NewVector3(
+		chunk.OriginX+placement.X/float32(terrainTexturePixelsPerTile),
+		placement.Y/float32(terrainTexturePixelsPerTile),
+		chunk.OriginZ+placement.Z/float32(terrainTexturePixelsPerTile),
+	)
 }
 
 func (manager *ChunkManager) loadChunkData(coords ChunkCoords, chunkName string) terrain.ChunkData {

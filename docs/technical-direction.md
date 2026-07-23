@@ -20,7 +20,7 @@ Current rendering passes:
 
 The main camera keeps a fixed offset from its focus point and slides only when the drone exits the configured X/Z or Y dead zone. The light camera is orthographic and tracks the drone overhead every frame.
 
-Terrain models use the `shadow_receiver` shader. Terrain albedo, artifact overlay, burn overlay, and shadow depth textures are bound through raylib material maps. The shader applies shadow-map darkening and a light normal-based slope shade: flat upward-facing terrain keeps its original color, while sloped terrain is darkened by `slopeShadeStrength` according to the surface normal's Y component. Accepted cutout regions are visually lowered by `terrainCutoutDivotDepth` using the burn overlay as a shader displacement mask. Renderable ECS models use `castsShadow` and `receivesShadow` flags to participate in the shadow pass and shadow receiver setup.
+Terrain uses the dedicated `terrain_shader`. Terrain albedo, artifact overlay, burn overlay, and shadow depth textures are bound through raylib material maps. The terrain shader applies shadow-map darkening, light normal-based slope shading, and accepted cutout divots from the burn overlay. Shadow-receiving non-terrain models use `model_shadow_receiver`, which preserves model albedo textures and applies the same shadow-map projection without terrain slope, artifact, burn, or cutout code. Model receiver shadow depth is bound to every model material through `MapNormal`/`texture2`, including raylib's extra default GLB material; terrain shadow depth remains bound through `MapHeight`/`shadowMap`. Renderable ECS models use `castsShadow` and `receivesShadow` flags to participate in the shadow pass and shadow receiver setup.
 
 ## Terrain Model
 
@@ -29,7 +29,8 @@ Terrain chunks use a fixed 8x8 tile footprint with a 9x9 height sample grid. Ter
 Authored chunks:
 
 - live in `cmd/game/assets/terrain_chunks/*.json`
-- define a chunk name, tile index grid, tile texture definitions, height samples, and artifact placements
+- define a chunk name, tile index grid, tile texture definitions, height samples, artifact placements, and model placements
+- express artifact and model placement coordinates in baked texture pixels, converted to world units by `terrainTexturePixelsPerTile`
 - are parsed and validated by `internal/terrain`
 
 Generated chunks:
@@ -48,6 +49,7 @@ Built terrain chunks contain:
 - a per-pixel artifact ID mask
 - a burn overlay image/texture
 - registered runtime artifact records
+- chunk-owned model entities spawned from authored model placements as shadow casters and receivers
 - a `TerrainChunkComponent` ECS entity
 
 `internal/terrain` uses raylib vector helpers for mesh normal accumulation while still owning the terrain mesh data shape.

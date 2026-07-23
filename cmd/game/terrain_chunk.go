@@ -15,6 +15,7 @@ type TerrainChunk struct {
 	Coords             ChunkCoords
 	OriginX            float32
 	OriginZ            float32
+	ModelEntities      []ecs.Entity
 	Data               terrain.ChunkData
 	SurfaceMesh        *terrain.SurfaceMesh
 	SurfaceTexture     *terrain.SurfaceTexture

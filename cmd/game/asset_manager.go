@@ -326,6 +326,7 @@ func (assets *AssetManager) loadAnimations() {
 
 func (assets *AssetManager) loadModels() {
 	assets.models["drone"] = assets.loadDroneModel()
+	assets.models["charging_pad"] = assets.loadShadowReceiverModel("charging_pad")
 	assets.models["particle_cube"] = assets.loadUnitParticleCubeModel()
 	assets.models["prop_cube"] = assets.loadUnitCubeModel()
 	assets.models["prop_sphere"] = assets.loadUnitSphereModel()
@@ -353,6 +354,12 @@ func (assets *AssetManager) loadSounds() {
 func (assets *AssetManager) loadDroneModel() *rl.Model {
 	drone := rl.LoadModel(assets.assetPath("models", "drone.glb"))
 	return &drone
+}
+
+func (assets *AssetManager) loadShadowReceiverModel(name string) *rl.Model {
+	model := rl.LoadModel(assets.assetPath("models", name+".glb"))
+	configureShadowReceiverMaterial(&model, assets)
+	return &model
 }
 
 func (assets *AssetManager) loadUnitCubeModel() *rl.Model {
@@ -389,32 +396,21 @@ func (assets *AssetManager) loadTutorialConeModel() *rl.Model {
 func configureShadowReceiverMaterial(model *rl.Model, assets *AssetManager) {
 	materials := model.GetMaterials()
 	for i := range materials {
-		materials[i].Shader = Must(assets.LookupShader("shadow_receiver"))
+		materials[i].Shader = Must(assets.LookupShader("model_shadow_receiver"))
+		configureModelShadowReceiverShaderLocations(&materials[i].Shader)
 		materials[i].GetMap(rl.MapAlbedo).Color = rl.White
 		if materials[i].GetMap(rl.MapAlbedo).Texture.ID == 0 {
 			rl.SetMaterialTexture(&materials[i], rl.MapAlbedo, Must(assets.LookupTexture("white")))
 		}
-		materials[i].GetMap(rl.MapEmission).Color = rl.White
-		if materials[i].GetMap(rl.MapEmission).Texture.ID == 0 {
-			rl.SetMaterialTexture(&materials[i], rl.MapEmission, Must(assets.LookupTexture("blank")))
-		}
-		materials[i].GetMap(rl.MapOcclusion).Color = rl.White
-		if materials[i].GetMap(rl.MapOcclusion).Texture.ID == 0 {
-			rl.SetMaterialTexture(&materials[i], rl.MapOcclusion, Must(assets.LookupTexture("blank")))
-		}
-		materials[i].Shader.UpdateLocation(
-			rl.ShaderLocMapHeight,
-			rl.GetShaderLocation(materials[i].Shader, "shadowMap"),
-		)
-		materials[i].Shader.UpdateLocation(
-			rl.ShaderLocMapEmission,
-			rl.GetShaderLocation(materials[i].Shader, "texture1"),
-		)
-		materials[i].Shader.UpdateLocation(
-			rl.ShaderLocMapOcclusion,
-			rl.GetShaderLocation(materials[i].Shader, "texture2"),
-		)
 	}
+}
+
+func configureModelShadowReceiverShaderLocations(shader *rl.Shader) {
+	shader.UpdateLocation(rl.ShaderLocMatrixMvp, rl.GetShaderLocation(*shader, "mvp"))
+	shader.UpdateLocation(rl.ShaderLocMatrixModel, rl.GetShaderLocation(*shader, "matModel"))
+	shader.UpdateLocation(rl.ShaderLocColorDiffuse, rl.GetShaderLocation(*shader, "colDiffuse"))
+	shader.UpdateLocation(rl.ShaderLocMapAlbedo, rl.GetShaderLocation(*shader, "texture0"))
+	shader.UpdateLocation(rl.ShaderLocMapNormal, rl.GetShaderLocation(*shader, "texture2"))
 }
 
 type shaderFiles struct {

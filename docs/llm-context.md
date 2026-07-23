@@ -61,7 +61,8 @@ Systems are registered in this order in `cmd/game/game.go`:
 Important ownership notes:
 
 - `AssetManager` loads runtime images, textures, GIF animations, shaders, models, streamed sounds, and artifact definitions from disk beside the built executable.
-- `ChunkManager` loads authored chunk JSON, generates runtime chunks, builds terrain meshes/textures, caches chunks, samples terrain height, registers terrain chunk ECS entities, and applies burn marks.
+- `ChunkManager` loads authored chunk JSON, generates runtime chunks, builds terrain meshes/textures, caches chunks, samples terrain height, registers terrain chunk ECS entities, spawns chunk-owned model renderables from authored placements as shadow casters and receivers, and applies burn marks.
+- Authored artifact and model placement coordinates are stored in baked texture pixels and converted to world units with `terrainTexturePixelsPerTile`.
 - `ArtifactManager` owns runtime artifact records, unique artifact IDs, scored fragment records, and fragment textures.
 - `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps mouse/gamepad aiming into normalized drone viewport coordinates from -1 to 1 on each axis, and stores current and previous cursor/firing state on `DroneFireControl`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.
 - `LaserSystem` maps the stored normalized drone viewport cursor to terrain-sampled world targets, interpolates between consecutive firing cursors at the configured pixel step, stamps the chunk burn overlay while firing, drains drone battery charge once per active firing update, and marks damaged chunks for cutout scanning. Lasers only fire while battery charge is positive.
@@ -81,7 +82,7 @@ Important ownership notes:
 - `Framebuffer` in `cmd/game/framebuffer.go` wraps off-screen render targets.
 - The scene has one `Light` entity. `LightSystem` rebuilds its orthographic camera from component data every frame.
 - `Renderable` carries `castsShadow` and `receivesShadow` flags for render-pass participation.
-- Terrain models use the `shadow_receiver` shader, with albedo, artifact emission, burn occlusion, and shadow depth textures bound through material maps. The shader also darkens sloped terrain based on surface normals and `slopeShadeStrength`, and lowers accepted cutout regions by `terrainCutoutDivotDepth`.
+- Terrain uses the dedicated `terrain_shader`, with terrain-only slope, artifact, burn, and cutout logic. Shadow-receiving non-terrain models use `model_shadow_receiver`, which preserves model albedo textures and applies the same shadow-map projection without terrain-specific code. Model receiver shadow depth is bound to every material through `MapNormal`/`texture2`, including raylib's extra default GLB material; terrain shadow depth stays on `MapHeight`/`shadowMap`.
 - `F10` toggles debug overlays. The left gamepad trigger also toggles debug overlays.
 - `F11` exports the shadow depth framebuffer for inspection.
 

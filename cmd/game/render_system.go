@@ -201,13 +201,8 @@ func (system *RenderSystem3D) saveDepthBufferScreenshot(game *Game) {
 }
 
 func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCamera rl.Camera3D, darkness float32) {
-	shadowShader := Must(game.assets.LookupShader("shadow_receiver"))
-	lightViewProjectionLoc := rl.GetShaderLocation(shadowShader, "lightViewProjection")
-	lightDirectionLoc := rl.GetShaderLocation(shadowShader, "lightDirection")
-	shadowBiasLoc := rl.GetShaderLocation(shadowShader, "shadowBias")
-	shadowSlopeBiasLoc := rl.GetShaderLocation(shadowShader, "shadowSlopeBias")
-	shadowNormalBiasLoc := rl.GetShaderLocation(shadowShader, "shadowNormalBias")
-	shadowDarknessLoc := rl.GetShaderLocation(shadowShader, "shadowDarkness")
+	shadowShader := Must(game.assets.LookupShader("terrain_shader"))
+	modelShadowShader := Must(game.assets.LookupShader("model_shadow_receiver"))
 	slopeShadeStrengthLoc := rl.GetShaderLocation(shadowShader, "slopeShadeStrength")
 	terrainCutoutDivotDepthLoc := rl.GetShaderLocation(shadowShader, "terrainCutoutDivotDepth")
 	terrainCutoutOverlayAlphaLoc := rl.GetShaderLocation(shadowShader, "terrainCutoutOverlayAlpha")
@@ -221,7 +216,10 @@ func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCam
 			continue
 		}
 
-		rl.SetMaterialTexture(renderable.model.Materials, rl.MapHeight, game.shadowFramebuffer.Target.Depth)
+		materials := renderable.model.GetMaterials()
+		for i := range materials {
+			rl.SetMaterialTexture(&materials[i], rl.MapNormal, game.shadowFramebuffer.Target.Depth)
+		}
 	}
 
 	for _, chunk := range game.chunkManager.Chunks() {
@@ -229,15 +227,28 @@ func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCam
 	}
 
 	lightDirection := rl.Vector3Normalize(rl.Vector3Subtract(lightCamera.Target, lightCamera.Position))
-	rl.SetShaderValueMatrix(shadowShader, lightViewProjectionLoc, lightViewProjectionMatrix(lightCamera, game.shadowFramebuffer))
-	rl.SetShaderValue(shadowShader, lightDirectionLoc, []float32{lightDirection.X, lightDirection.Y, lightDirection.Z}, rl.ShaderUniformVec3)
-	rl.SetShaderValue(shadowShader, shadowBiasLoc, []float32{shadowBias}, rl.ShaderUniformFloat)
-	rl.SetShaderValue(shadowShader, shadowSlopeBiasLoc, []float32{shadowSlopeBias}, rl.ShaderUniformFloat)
-	rl.SetShaderValue(shadowShader, shadowNormalBiasLoc, []float32{shadowNormalBias}, rl.ShaderUniformFloat)
-	rl.SetShaderValue(shadowShader, shadowDarknessLoc, []float32{darkness}, rl.ShaderUniformFloat)
+	lightViewProjection := lightViewProjectionMatrix(lightCamera, game.shadowFramebuffer)
+	configureShadowShaderValues(shadowShader, lightViewProjection, lightDirection, darkness)
+	configureShadowShaderValues(modelShadowShader, lightViewProjection, lightDirection, darkness)
 	rl.SetShaderValue(shadowShader, slopeShadeStrengthLoc, []float32{slopeShadeStrength}, rl.ShaderUniformFloat)
 	rl.SetShaderValue(shadowShader, terrainCutoutDivotDepthLoc, []float32{terrainCutoutDivotDepth}, rl.ShaderUniformFloat)
 	rl.SetShaderValue(shadowShader, terrainCutoutOverlayAlphaLoc, []float32{float32(dugOutOverlayAlpha) / 255}, rl.ShaderUniformFloat)
+}
+
+func configureShadowShaderValues(shader rl.Shader, lightViewProjection rl.Matrix, lightDirection rl.Vector3, darkness float32) {
+	lightViewProjectionLoc := rl.GetShaderLocation(shader, "lightViewProjection")
+	lightDirectionLoc := rl.GetShaderLocation(shader, "lightDirection")
+	shadowBiasLoc := rl.GetShaderLocation(shader, "shadowBias")
+	shadowSlopeBiasLoc := rl.GetShaderLocation(shader, "shadowSlopeBias")
+	shadowNormalBiasLoc := rl.GetShaderLocation(shader, "shadowNormalBias")
+	shadowDarknessLoc := rl.GetShaderLocation(shader, "shadowDarkness")
+
+	rl.SetShaderValueMatrix(shader, lightViewProjectionLoc, lightViewProjection)
+	rl.SetShaderValue(shader, lightDirectionLoc, []float32{lightDirection.X, lightDirection.Y, lightDirection.Z}, rl.ShaderUniformVec3)
+	rl.SetShaderValue(shader, shadowBiasLoc, []float32{shadowBias}, rl.ShaderUniformFloat)
+	rl.SetShaderValue(shader, shadowSlopeBiasLoc, []float32{shadowSlopeBias}, rl.ShaderUniformFloat)
+	rl.SetShaderValue(shader, shadowNormalBiasLoc, []float32{shadowNormalBias}, rl.ShaderUniformFloat)
+	rl.SetShaderValue(shader, shadowDarknessLoc, []float32{darkness}, rl.ShaderUniformFloat)
 }
 
 func (system *RenderSystem3D) withClipPlanes(nearPlane, farPlane float32, draw func()) {

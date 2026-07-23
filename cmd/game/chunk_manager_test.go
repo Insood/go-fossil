@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"testing"
 
+	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
 
 	"go-fossil/internal/terrain"
@@ -130,6 +131,59 @@ func TestChunkManagerRegistersTerrainChunkEntity(t *testing.T) {
 	}
 	if got, want := component.Chunk, chunk; got != want {
 		t.Fatalf("chunk component points to %#v, want %#v", got, want)
+	}
+}
+
+func TestChunkManagerRegistersChunkModelEntities(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	model := &rl.Model{}
+	manager := &ChunkManager{
+		world:         world,
+		assets:        &AssetManager{models: map[string]*rl.Model{"charging_pad": model}},
+		renderableMap: ecs.NewMap2[Position3, Renderable](world),
+	}
+	chunk := &TerrainChunk{
+		Coords:  ChunkCoords{X: 1, Z: -1},
+		OriginX: 8,
+		OriginZ: -8,
+		Data: terrain.ChunkData{
+			Models: []terrain.ModelPlacement{
+				{Name: "charging_pad", X: 96, Y: 64, Z: 416},
+			},
+		},
+	}
+
+	manager.registerChunkModelEntities(chunk)
+
+	if got, want := len(chunk.ModelEntities), 1; got != want {
+		t.Fatalf("model entity count = %d, want %d", got, want)
+	}
+
+	entity := chunk.ModelEntities[0]
+	if !world.Alive(entity) {
+		t.Fatal("model entity is not alive")
+	}
+
+	position, renderable := manager.renderableMap.Get(entity)
+	assertVector3(t, rl.Vector3(*position), 9.5, 1, -1.5)
+	if got, want := renderable.model, model; got != want {
+		t.Fatalf("renderable model = %p, want %p", got, want)
+	}
+	if !renderable.castsShadow {
+		t.Fatal("renderable castsShadow = false, want true")
+	}
+	if !renderable.receivesShadow {
+		t.Fatal("renderable receivesShadow = false, want true")
+	}
+
+	manager.removeChunkModelEntities(chunk)
+	if world.Alive(entity) {
+		t.Fatal("model entity is still alive after removal")
+	}
+	if len(chunk.ModelEntities) != 0 {
+		t.Fatalf("model entity count after removal = %d, want 0", len(chunk.ModelEntities))
 	}
 }
 

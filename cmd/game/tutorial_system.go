@@ -13,6 +13,7 @@ const (
 	tutorialStepFindArtifact
 	tutorialStepMoveLaser
 	tutorialStepFireLaser
+	tutorialStepCutOutFossil
 )
 
 type TutorialState struct {
@@ -32,6 +33,7 @@ type TutorialSystem struct {
 	state                   TutorialState
 	initialDronePosition    rl.Vector3
 	initialLaserCursor      rl.Vector2
+	promptAnimationTime     float32
 	hasInitialDronePosition bool
 	hasInitialLaserCursor   bool
 	markersSpawned          bool
@@ -50,6 +52,16 @@ func (system *TutorialSystem) Initialize(game *Game) {
 func (system *TutorialSystem) Update(game *Game) {
 	system.updateCurrentStep(game)
 	system.drawCurrentStep(game)
+	system.updatePromptAnimationTime()
+}
+
+func (system *TutorialSystem) updatePromptAnimationTime() {
+	if system.state.currentStep != tutorialStepCutOutFossil {
+		system.promptAnimationTime = 0
+		return
+	}
+
+	system.promptAnimationTime += rl.GetFrameTime()
 }
 
 func (system *TutorialSystem) updateCurrentStep(game *Game) {
@@ -61,7 +73,9 @@ func (system *TutorialSystem) updateCurrentStep(game *Game) {
 	case tutorialStepMoveLaser:
 		system.updateMoveLaserStep()
 	case tutorialStepFireLaser:
-		system.updateFireLaserStep()
+		system.updateFireLaserStep(game)
+	case tutorialStepCutOutFossil:
+		system.updateCutOutFossilStep(game)
 	}
 }
 
@@ -112,8 +126,16 @@ func (system *TutorialSystem) updateMoveLaserStep() {
 	system.state.currentStep = tutorialStepFireLaser
 }
 
-func (system *TutorialSystem) updateFireLaserStep() {
+func (system *TutorialSystem) updateFireLaserStep(game *Game) {
 	if !system.anyLaserActive() {
+		return
+	}
+
+	system.state.currentStep = tutorialStepCutOutFossil
+}
+
+func (system *TutorialSystem) updateCutOutFossilStep(game *Game) {
+	if game.artifactManager == nil || game.artifactManager.FragmentCount() == 0 {
 		return
 	}
 
@@ -130,6 +152,8 @@ func (system *TutorialSystem) drawCurrentStep(game *Game) {
 		system.drawMoveLaserPrompt(game)
 	case tutorialStepFireLaser:
 		system.drawFireLaserPrompt(game)
+	case tutorialStepCutOutFossil:
+		system.drawCutOutFossilPrompt(game)
 	}
 }
 
@@ -179,6 +203,26 @@ func (system *TutorialSystem) drawFireLaserPrompt(game *Game) {
 	system.drawCenteredTextureBelowPrompt(texture)
 }
 
+func (system *TutorialSystem) drawCutOutFossilPrompt(game *Game) {
+	system.drawCenteredPromptText("Cut out the fossil")
+
+	if game.assets == nil {
+		return
+	}
+
+	animation, ok := game.assets.LookupAnimation(tutorialCutOutFossilAnimationName)
+	if !ok {
+		return
+	}
+
+	frame, ok := animationFrameAt(animation, system.promptAnimationTime)
+	if !ok || frame.Texture.ID == 0 {
+		return
+	}
+
+	system.drawCenteredTextureBelowPrompt(frame.Texture)
+}
+
 func (system *TutorialSystem) drawCenteredPromptText(text string) {
 	textWidth := rl.MeasureText(text, tutorialPromptFontSize)
 	textX := (screenWidth - textWidth) / 2
@@ -189,6 +233,41 @@ func (system *TutorialSystem) drawCenteredTextureBelowPrompt(texture rl.Texture2
 	imageX := (screenWidth - texture.Width) / 2
 	imageY := tutorialPromptTopY + tutorialPromptFontSize + tutorialPromptImageGap
 	rl.DrawTexture(texture, imageX, imageY, rl.White)
+}
+
+func animationFrameAt(animation *Animation, elapsed float32) (AnimationFrame, bool) {
+	if animation == nil || len(animation.Frames) == 0 {
+		return AnimationFrame{}, false
+	}
+
+	totalDuration := animationDuration(animation)
+	if totalDuration <= 0 {
+		return animation.Frames[0], true
+	}
+
+	elapsed -= float32(int(elapsed/totalDuration)) * totalDuration
+	for _, frame := range animation.Frames {
+		if frame.Duration <= 0 {
+			continue
+		}
+		if elapsed < frame.Duration {
+			return frame, true
+		}
+		elapsed -= frame.Duration
+	}
+
+	return animation.Frames[len(animation.Frames)-1], true
+}
+
+func animationDuration(animation *Animation) float32 {
+	duration := float32(0)
+	for _, frame := range animation.Frames {
+		if frame.Duration > 0 {
+			duration += frame.Duration
+		}
+	}
+
+	return duration
 }
 
 func (system *TutorialSystem) spawnArtifactMarkers(game *Game) {

@@ -35,6 +35,14 @@ func (manager *ArtifactManager) LookupFragment(id int32) (*ArtifactFragment, boo
 	return fragment, ok
 }
 
+func (manager *ArtifactManager) FragmentCount() int {
+	if manager == nil {
+		return 0
+	}
+
+	return len(manager.fragments)
+}
+
 func (manager *ArtifactManager) Artifacts() []*Artifact {
 	if manager == nil || len(manager.artifacts) == 0 {
 		return nil

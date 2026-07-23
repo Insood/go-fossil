@@ -50,6 +50,20 @@ func TestArtifactManagerArtifactsReturnsArtifactsSortedByID(t *testing.T) {
 	}
 }
 
+func TestArtifactManagerFragmentCount(t *testing.T) {
+	t.Parallel()
+
+	manager := NewArtifactManager()
+	if got, want := manager.FragmentCount(), 0; got != want {
+		t.Fatalf("fragment count = %d, want %d", got, want)
+	}
+
+	manager.fragments[1] = &ArtifactFragment{ID: 1}
+	if got, want := manager.FragmentCount(), 1; got != want {
+		t.Fatalf("fragment count = %d, want %d", got, want)
+	}
+}
+
 func TestCreateFragmentFromRegionUsesExactPixels(t *testing.T) {
 	t.Parallel()
 

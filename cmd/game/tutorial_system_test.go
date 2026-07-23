@@ -203,7 +203,7 @@ func TestTutorialStepThreeStartsFireLaserStepAfterCursorMovesThreshold(t *testin
 	}
 }
 
-func TestTutorialStepFourWaitsForActiveLaser(t *testing.T) {
+func TestTutorialStepFourStartsCutOutFossilStepWhenLaserIsActive(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
@@ -222,8 +222,58 @@ func TestTutorialStepFourWaitsForActiveLaser(t *testing.T) {
 
 	laserMapper.Get(laserEntity).active = true
 	system.updateCurrentStep(game)
-	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
+	if got, want := system.state.currentStep, tutorialStepCutOutFossil; got != want {
 		t.Fatalf("current step = %d, want %d after laser is active", got, want)
+	}
+}
+
+func TestTutorialStepFiveWaitsForArtifactFragment(t *testing.T) {
+	t.Parallel()
+
+	system := &TutorialSystem{}
+	game := &Game{
+		world:           ecs.NewWorld(),
+		artifactManager: NewArtifactManager(),
+	}
+	system.Initialize(game)
+	system.state.currentStep = tutorialStepCutOutFossil
+
+	system.updateCurrentStep(game)
+	if got, want := system.state.currentStep, tutorialStepCutOutFossil; got != want {
+		t.Fatalf("current step = %d, want %d before fragment exists", got, want)
+	}
+
+	game.artifactManager.fragments[1] = &ArtifactFragment{ID: 1}
+	system.updateCurrentStep(game)
+	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
+		t.Fatalf("current step = %d, want %d after fragment exists", got, want)
+	}
+}
+
+func TestAnimationFrameAtStartsAndLoopsFromFirstFrame(t *testing.T) {
+	t.Parallel()
+
+	animation := &Animation{
+		Frames: []AnimationFrame{
+			{Texture: rl.Texture2D{ID: 1}, Duration: 0.1},
+			{Texture: rl.Texture2D{ID: 2}, Duration: 0.2},
+		},
+	}
+
+	frame, ok := animationFrameAt(animation, 0)
+	if !ok {
+		t.Fatal("animationFrameAt() ok = false, want true")
+	}
+	if got, want := frame.Texture.ID, uint32(1); got != want {
+		t.Fatalf("frame at start = %d, want %d", got, want)
+	}
+
+	frame, ok = animationFrameAt(animation, 0.3)
+	if !ok {
+		t.Fatal("animationFrameAt() ok = false, want true")
+	}
+	if got, want := frame.Texture.ID, uint32(1); got != want {
+		t.Fatalf("frame after loop = %d, want %d", got, want)
 	}
 }
 

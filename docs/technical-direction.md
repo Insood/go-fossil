@@ -91,14 +91,14 @@ Current ECS components:
 
 ## System Ownership
 
-- Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; aim/firing state in `DroneFireControlSystem`. Debug overlays release drone fire control so the OS cursor can interact with raygui controls.
+- Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; aim/firing state in `DroneFireControlSystem`. Drone fire-control cursors are stored as normalized drone viewport coordinates from -1 to 1 on each axis. Debug overlays release drone fire control so the OS cursor can interact with raygui controls.
 - Motion: `PhysicsSystem` applies velocity; `DroneHeightSystem` snaps the drone to terrain height plus hover offset.
 - Presentation: `CameraSystem` updates the main orthographic camera; `LightSystem` updates the shadow camera.
 - Salvage: `LaserSystem` maps the drone viewport cursor path to terrain, applies burns while battery charge is positive, drains charge once per active firing update, and spawns short-lived cube particles at successful terrain strikes; `ArtifactCutoutDetectionSystem` scores accepted artifact regions.
 - Sound: `SoundSystem` tracks loaded sound streams by name and updates raylib music streams while their gameplay-driven sound state is playing. The burning stream plays while any laser is active.
 - Particles: `ParticleSystem` advances particle lifetimes, fades renderable tint alpha, and removes expired particle entities. Particle motion uses the shared velocity-driven physics system.
 - World growth: `ChunkSpawnerSystem` adds generated chunks after score increases.
-- Tutorial: `TutorialSystem` owns the active tutorial step, starts each run at step 1, advances to step 2 once the drone moves away from its starting X/Z position, spawns red shader-styled tutorial cones over artifact centers for step 2, completes step 2 once the drone moves within 0.5 X/Z units of a cone, removes tutorial marker entities, and draws the active tutorial prompt.
+- Tutorial: `TutorialSystem` owns the active tutorial step, starts each run at step 1, advances to step 2 once the drone moves away from its starting X/Z position, spawns red shader-styled tutorial cones over artifact centers for step 2, advances to step 3 once the drone moves within 0.5 X/Z units of a cone, removes tutorial marker entities, completes step 3 once the drone viewport cursor moves at least 25% of the drone viewport, and draws the active tutorial prompt.
 - Rendering: `RenderSystem3D` owns shadow, scene, drone viewport, laser rendering, and depth export.
 - UI/debug: `UserInterfaceSystem`, `TutorialSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, the drone battery bar, fragment thumbnails, viewport, reticle, the active tutorial prompt, artifact labels, debug guides, shadow tuning controls, and the slope shade tuning control.
 

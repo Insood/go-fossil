@@ -11,6 +11,7 @@ const (
 	tutorialStepComplete tutorialStep = iota
 	tutorialStepMoveDrone
 	tutorialStepFindArtifact
+	tutorialStepMoveLaser
 )
 
 type TutorialState struct {
@@ -23,16 +24,20 @@ func NewTutorialState() *TutorialState {
 
 type TutorialSystem struct {
 	droneFilter             *ecs.Filter2[Position3, Drone]
+	fireControlFilter       *ecs.Filter1[DroneFireControl]
 	markerMapper            *ecs.Map3[Position3, Renderable, TutorialMarker]
 	markerFilter            *ecs.Filter2[Position3, TutorialMarker]
 	state                   TutorialState
 	initialDronePosition    rl.Vector3
+	initialLaserCursor      rl.Vector2
 	hasInitialDronePosition bool
+	hasInitialLaserCursor   bool
 	markersSpawned          bool
 }
 
 func (system *TutorialSystem) Initialize(game *Game) {
 	system.droneFilter = ecs.NewFilter2[Position3, Drone](game.world)
+	system.fireControlFilter = ecs.NewFilter1[DroneFireControl](game.world)
 	system.markerMapper = ecs.NewMap3[Position3, Renderable, TutorialMarker](game.world)
 	system.markerFilter = ecs.NewFilter2[Position3, TutorialMarker](game.world)
 	system.state = *NewTutorialState()
@@ -50,6 +55,8 @@ func (system *TutorialSystem) updateCurrentStep(game *Game) {
 		system.updateMoveDroneStep(game)
 	case tutorialStepFindArtifact:
 		system.updateFindArtifactStep(game)
+	case tutorialStepMoveLaser:
+		system.updateMoveLaserStep()
 	}
 }
 
@@ -79,6 +86,24 @@ func (system *TutorialSystem) updateFindArtifactStep(game *Game) {
 	}
 
 	system.removeArtifactMarkers(game)
+	system.state.currentStep = tutorialStepMoveLaser
+	system.hasInitialLaserCursor = false
+}
+
+func (system *TutorialSystem) updateMoveLaserStep() {
+	control, ok := system.fireControl()
+	if !ok {
+		return
+	}
+	if !system.hasInitialLaserCursor {
+		system.initialLaserCursor = control.cursor
+		system.hasInitialLaserCursor = true
+		return
+	}
+	if rl.Vector2Distance(system.initialLaserCursor, control.cursor) < tutorialLaserMoveThresholdNormalized {
+		return
+	}
+
 	system.state.currentStep = tutorialStepComplete
 }
 
@@ -88,6 +113,8 @@ func (system *TutorialSystem) drawCurrentStep(game *Game) {
 		system.drawMoveDronePrompt(game)
 	case tutorialStepFindArtifact:
 		system.drawFindArtifactPrompt()
+	case tutorialStepMoveLaser:
+		system.drawMoveLaserPrompt(game)
 	}
 }
 
@@ -107,6 +134,20 @@ func (system *TutorialSystem) drawMoveDronePrompt(game *Game) {
 
 func (system *TutorialSystem) drawFindArtifactPrompt() {
 	system.drawCenteredPromptText("Move here")
+}
+
+func (system *TutorialSystem) drawMoveLaserPrompt(game *Game) {
+	if game.assets == nil {
+		return
+	}
+
+	texture, ok := game.assets.LookupTexture(tutorialMoveLaserTextureName)
+	if !ok || texture.ID == 0 {
+		return
+	}
+
+	system.drawCenteredPromptText("Move the laser")
+	system.drawCenteredTextureBelowPrompt(texture)
 }
 
 func (system *TutorialSystem) drawCenteredPromptText(text string) {
@@ -220,4 +261,15 @@ func (system *TutorialSystem) dronePosition() (rl.Vector3, bool) {
 
 	position, _ := query.Get()
 	return rl.Vector3(*position), true
+}
+
+func (system *TutorialSystem) fireControl() (DroneFireControl, bool) {
+	query := system.fireControlFilter.Query()
+	defer query.Close()
+
+	if !query.Next() {
+		return DroneFireControl{}, false
+	}
+
+	return *query.Get(), true
 }

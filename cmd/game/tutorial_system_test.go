@@ -119,7 +119,7 @@ func TestTutorialStepTwoSpawnsMarkersAtArtifactCenters(t *testing.T) {
 	}
 }
 
-func TestTutorialStepTwoCompletesAndRemovesMarkersWhenDroneReachesMarker(t *testing.T) {
+func TestTutorialStepTwoStartsMoveLaserStepAndRemovesMarkersWhenDroneReachesMarker(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
@@ -144,11 +144,62 @@ func TestTutorialStepTwoCompletesAndRemovesMarkersWhenDroneReachesMarker(t *test
 	position.X = 1.6
 	system.updateCurrentStep(game)
 
-	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
+	if got, want := system.state.currentStep, tutorialStepMoveLaser; got != want {
 		t.Fatalf("current step = %d, want %d", got, want)
 	}
 	if world.Alive(markerEntity) {
 		t.Fatal("tutorial marker entity is still alive")
+	}
+}
+
+func TestTutorialStepThreeWaitsForCursorMovement(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	fireControlMapper := ecs.NewMap1[DroneFireControl](world)
+	fireControlEntity := fireControlMapper.NewEntity(&DroneFireControl{
+		cursor: rl.NewVector2(0, 0),
+	})
+
+	system := &TutorialSystem{}
+	game := &Game{world: world}
+	system.Initialize(game)
+	system.state.currentStep = tutorialStepMoveLaser
+
+	system.updateCurrentStep(game)
+	control := fireControlMapper.Get(fireControlEntity)
+	control.cursor = rl.NewVector2(0, 0)
+	system.updateCurrentStep(game)
+
+	control.cursor = rl.NewVector2(tutorialLaserMoveThresholdNormalized-0.01, 0)
+	system.updateCurrentStep(game)
+	if got, want := system.state.currentStep, tutorialStepMoveLaser; got != want {
+		t.Fatalf("current step = %d, want %d before enough laser movement", got, want)
+	}
+}
+
+func TestTutorialStepThreeCompletesAfterCursorMovesThreshold(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	fireControlMapper := ecs.NewMap1[DroneFireControl](world)
+	fireControlEntity := fireControlMapper.NewEntity(&DroneFireControl{
+		cursor: rl.NewVector2(0, 0),
+	})
+
+	system := &TutorialSystem{}
+	game := &Game{world: world}
+	system.Initialize(game)
+	system.state.currentStep = tutorialStepMoveLaser
+
+	system.updateCurrentStep(game)
+
+	control := fireControlMapper.Get(fireControlEntity)
+	control.cursor = rl.NewVector2(tutorialLaserMoveThresholdNormalized, 0)
+	system.updateCurrentStep(game)
+
+	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
+		t.Fatalf("current step = %d, want %d", got, want)
 	}
 }
 

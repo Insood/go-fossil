@@ -86,7 +86,7 @@ func (system *UserInterfaceSystem) drawDroneReticle() {
 
 	for query.Next() {
 		control, _ := query.Get()
-		center := control.cursor
+		center := droneViewportCursorPixel(control.cursor, droneViewportRectangle())
 
 		rl.DrawLineEx(
 			rl.Vector2{X: center.X - droneViewReticleHalfSize, Y: center.Y},

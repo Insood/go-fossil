@@ -66,16 +66,18 @@ const (
 	totalScoreTextX              = 16
 	totalScoreTextY              = 16
 
-	tutorialPromptTopY              int32 = 0
-	tutorialPromptFontSize          int32 = 48
-	tutorialPromptImageGap          int32 = 8
-	tutorialArtifactMarkerRadius          = 0.25
-	tutorialArtifactMarkerHeight          = 0.75
-	tutorialArtifactMarkerSlices          = 6
-	tutorialArtifactMarkerLift            = 1.0
-	tutorialArtifactMarkerProximity       = 0.5
-	tutorialMoveDroneTextureName          = "tutorial_01"
-	tutorialArtifactMarkerModelName       = "tutorial_cone"
+	tutorialPromptTopY                   int32 = 0
+	tutorialPromptFontSize               int32 = 48
+	tutorialPromptImageGap               int32 = 8
+	tutorialArtifactMarkerRadius               = 0.25
+	tutorialArtifactMarkerHeight               = 0.75
+	tutorialArtifactMarkerSlices               = 6
+	tutorialArtifactMarkerLift                 = 1.0
+	tutorialArtifactMarkerProximity            = 0.5
+	tutorialLaserMoveThresholdNormalized       = 0.5
+	tutorialMoveDroneTextureName               = "tutorial_01"
+	tutorialMoveLaserTextureName               = "tutorial_03"
+	tutorialArtifactMarkerModelName            = "tutorial_cone"
 
 	generatedArtifactEdgeMarginPixels   = 96
 	generatedArtifactMinCenterGapPixels = 160

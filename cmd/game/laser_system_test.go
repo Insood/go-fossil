@@ -15,17 +15,17 @@ func TestLaserBurnCursorsUsesCurrentCursorWhenPreviousFrameWasNotFiring(t *testi
 	t.Parallel()
 
 	cursors := laserBurnCursors(DroneFireControl{
-		cursor:     rl.NewVector2(20, 30),
+		cursor:     rl.NewVector2(0.2, 0.3),
 		firing:     true,
-		lastCursor: rl.NewVector2(10, 30),
+		lastCursor: rl.NewVector2(0.1, 0.3),
 		lastFiring: false,
 	})
 
 	if len(cursors) != 1 {
 		t.Fatalf("len(cursors) = %d, want 1", len(cursors))
 	}
-	if cursors[0].X != 20 || cursors[0].Y != 30 {
-		t.Fatalf("cursor = (%.2f, %.2f), want (20.00, 30.00)", cursors[0].X, cursors[0].Y)
+	if cursors[0].X != 0.2 || cursors[0].Y != 0.3 {
+		t.Fatalf("cursor = (%.2f, %.2f), want (0.20, 0.30)", cursors[0].X, cursors[0].Y)
 	}
 }
 
@@ -33,7 +33,7 @@ func TestLaserBurnCursorsInterpolatesWithConfiguredMaximumStep(t *testing.T) {
 	t.Parallel()
 
 	cursors := laserBurnCursors(DroneFireControl{
-		cursor:     rl.NewVector2(12, 0),
+		cursor:     rl.NewVector2(12.0/float32(droneViewPixels)*2, 0),
 		firing:     true,
 		lastCursor: rl.NewVector2(0, 0),
 		lastFiring: true,
@@ -43,10 +43,14 @@ func TestLaserBurnCursorsInterpolatesWithConfiguredMaximumStep(t *testing.T) {
 		t.Fatalf("len(cursors) = %d, want 3", len(cursors))
 	}
 
-	wantX := []float32{4, 8, 12}
+	wantX := []float32{
+		4.0 / float32(droneViewPixels) * 2,
+		8.0 / float32(droneViewPixels) * 2,
+		12.0 / float32(droneViewPixels) * 2,
+	}
 	for i, cursor := range cursors {
 		if cursor.X != wantX[i] || cursor.Y != 0 {
-			t.Fatalf("cursor %d = (%.2f, %.2f), want (%.2f, 0.00)", i, cursor.X, cursor.Y, wantX[i])
+			t.Fatalf("cursor %d = (%.4f, %.4f), want (%.4f, 0.0000)", i, cursor.X, cursor.Y, wantX[i])
 		}
 	}
 }
@@ -55,7 +59,7 @@ func TestLaserBurnCursorsKeepsSmallMotionToSingleCurrentCursor(t *testing.T) {
 	t.Parallel()
 
 	cursors := laserBurnCursors(DroneFireControl{
-		cursor:     rl.NewVector2(4, 0),
+		cursor:     rl.NewVector2(4.0/float32(droneViewPixels)*2, 0),
 		firing:     true,
 		lastCursor: rl.NewVector2(0, 0),
 		lastFiring: true,
@@ -64,8 +68,9 @@ func TestLaserBurnCursorsKeepsSmallMotionToSingleCurrentCursor(t *testing.T) {
 	if len(cursors) != 1 {
 		t.Fatalf("len(cursors) = %d, want 1", len(cursors))
 	}
-	if cursors[0].X != 4 || cursors[0].Y != 0 {
-		t.Fatalf("cursor = (%.2f, %.2f), want (4.00, 0.00)", cursors[0].X, cursors[0].Y)
+	wantX := 4.0 / float32(droneViewPixels) * 2
+	if cursors[0].X != wantX || cursors[0].Y != 0 {
+		t.Fatalf("cursor = (%.4f, %.4f), want (%.4f, 0.0000)", cursors[0].X, cursors[0].Y, wantX)
 	}
 }
 

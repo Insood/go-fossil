@@ -29,17 +29,33 @@ func droneCameraForPosition(dronePosition rl.Vector3) rl.Camera3D {
 }
 
 func droneViewportCursorFromMouse(mouse rl.Vector2, viewport rl.Rectangle) rl.Vector2 {
-	return clampVector2ToRectangle(mouse, viewport)
+	return droneViewportCursorFromPixel(clampVector2ToRectangle(mouse, viewport), viewport)
 }
 
 func droneViewportCursorFromGamepad(viewport rl.Rectangle, axisX, axisZ float32) rl.Vector2 {
-	normalizedX := clampFloat32(axisX, -1, 1)
-	normalizedZ := clampFloat32(axisZ, -1, 1)
-
 	return rl.NewVector2(
-		viewport.X+(normalizedX+1)*0.5*viewport.Width,
-		viewport.Y+(normalizedZ+1)*0.5*viewport.Height,
+		clampFloat32(axisX, -1, 1),
+		clampFloat32(axisZ, -1, 1),
 	)
+}
+
+func droneViewportCursorFromPixel(pixel rl.Vector2, viewport rl.Rectangle) rl.Vector2 {
+	return rl.NewVector2(
+		((pixel.X-viewport.X)/viewport.Width)*2-1,
+		((pixel.Y-viewport.Y)/viewport.Height)*2-1,
+	)
+}
+
+func droneViewportCursorPixel(cursor rl.Vector2, viewport rl.Rectangle) rl.Vector2 {
+	return rl.NewVector2(
+		viewport.X+(clampFloat32(cursor.X, -1, 1)+1)*0.5*viewport.Width,
+		viewport.Y+(clampFloat32(cursor.Y, -1, 1)+1)*0.5*viewport.Height,
+	)
+}
+
+func droneViewportCursorLocalPixel(cursor rl.Vector2, viewport rl.Rectangle) rl.Vector2 {
+	pixel := droneViewportCursorPixel(cursor, viewport)
+	return rl.NewVector2(pixel.X-viewport.X, pixel.Y-viewport.Y)
 }
 
 func droneViewportWorldTarget(
@@ -49,11 +65,11 @@ func droneViewportWorldTarget(
 	hasChunk func(worldX, worldZ float32) bool,
 ) (rl.Vector3, bool) {
 	viewport := droneViewportRectangle()
-	if !rl.CheckCollisionPointRec(cursor, viewport) {
+	if cursor.X < -1 || cursor.X > 1 || cursor.Y < -1 || cursor.Y > 1 {
 		return rl.Vector3{}, false
 	}
 
-	localCursor := rl.NewVector2(cursor.X-viewport.X, cursor.Y-viewport.Y)
+	localCursor := droneViewportCursorLocalPixel(cursor, viewport)
 	camera := droneCameraForPosition(dronePosition)
 	ray := rl.GetScreenToWorldRayEx(localCursor, camera, int32(viewport.Width), int32(viewport.Height))
 	target, ok := terrainRayTarget(ray, sampleHeight, hasChunk)

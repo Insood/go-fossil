@@ -75,12 +75,12 @@ func laserBurnCursors(control DroneFireControl) []rl.Vector2 {
 		return []rl.Vector2{control.cursor}
 	}
 
-	distance := rl.Vector2Distance(control.lastCursor, control.cursor)
-	if distance == 0 {
+	pixelDistance := normalizedDroneViewportDistancePixels(control.lastCursor, control.cursor)
+	if pixelDistance == 0 {
 		return []rl.Vector2{control.cursor}
 	}
 
-	steps := int(math.Ceil(float64(distance / laserCursorBurnStepPixels)))
+	steps := int(math.Ceil(float64(pixelDistance / laserCursorBurnStepPixels)))
 	if steps < 1 {
 		steps = 1
 	}
@@ -92,6 +92,10 @@ func laserBurnCursors(control DroneFireControl) []rl.Vector2 {
 	}
 
 	return cursors
+}
+
+func normalizedDroneViewportDistancePixels(left, right rl.Vector2) float32 {
+	return rl.Vector2Distance(left, right) * float32(droneViewPixels) * 0.5
 }
 
 func drainLaserBattery(battery *Battery) {

@@ -33,7 +33,8 @@ func (system *DroneFireControlSystem) Update(game *Game) {
 		cursor, _ = droneFireControlCursor(mouse, axisX, axisZ, viewport)
 	}
 
-	rl.SetMousePosition(int(cursor.X), int(cursor.Y))
+	cursorPixel := droneViewportCursorPixel(cursor, viewport)
+	rl.SetMousePosition(int(cursorPixel.X), int(cursorPixel.Y))
 
 	firing := rl.IsMouseButtonDown(rl.MouseLeftButton)
 	if rl.IsGamepadButtonDown(droneGamepadIndex, rl.GamepadButtonRightTrigger2) {

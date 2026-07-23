@@ -43,3 +43,19 @@ func TestTerrainRayTargetRejectsUnloadedTerrain(t *testing.T) {
 		t.Fatal("terrainRayTarget returned true for unloaded terrain")
 	}
 }
+
+func TestDroneViewportCursorConversionsUseNormalizedCoordinates(t *testing.T) {
+	t.Parallel()
+
+	viewport := rl.NewRectangle(100, 200, 256, 256)
+
+	cursor := droneViewportCursorFromMouse(rl.NewVector2(228, 328), viewport)
+	if cursor.X != 0 || cursor.Y != 0 {
+		t.Fatalf("cursor = (%.2f, %.2f), want normalized center", cursor.X, cursor.Y)
+	}
+
+	pixel := droneViewportCursorPixel(rl.NewVector2(1, -1), viewport)
+	if pixel.X != viewport.X+viewport.Width || pixel.Y != viewport.Y {
+		t.Fatalf("pixel = (%.2f, %.2f), want top-right viewport corner", pixel.X, pixel.Y)
+	}
+}

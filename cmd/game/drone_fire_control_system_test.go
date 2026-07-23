@@ -17,8 +17,8 @@ func TestDroneFireControlCursorUsesMouseWhenGamepadIsIdle(t *testing.T) {
 		t.Fatal("expected mouse control when gamepad is idle")
 	}
 
-	if cursor.X != viewport.X || cursor.Y != viewport.Y+viewport.Height {
-		t.Fatalf("cursor = (%.2f, %.2f), want viewport-clamped corner", cursor.X, cursor.Y)
+	if cursor.X != -1 || cursor.Y != 1 {
+		t.Fatalf("cursor = (%.2f, %.2f), want normalized clamped corner", cursor.X, cursor.Y)
 	}
 }
 
@@ -32,8 +32,8 @@ func TestDroneFireControlCursorUsesGamepadWhenAxesMove(t *testing.T) {
 		t.Fatal("expected gamepad control when axes move")
 	}
 
-	if cursor.X != viewport.X+viewport.Width || cursor.Y != viewport.Y {
-		t.Fatalf("cursor = (%.2f, %.2f), want viewport edge", cursor.X, cursor.Y)
+	if cursor.X != 1 || cursor.Y != -1 {
+		t.Fatalf("cursor = (%.2f, %.2f), want normalized viewport edge", cursor.X, cursor.Y)
 	}
 }
 
@@ -47,8 +47,8 @@ func TestDroneFireControlCursorUsesSmallGamepadAxesWithoutDeadzone(t *testing.T)
 		t.Fatal("expected gamepad control for small non-zero axes")
 	}
 
-	wantX := viewport.X + (0.05+1)*0.5*viewport.Width
-	wantY := viewport.Y + (-0.05+1)*0.5*viewport.Height
+	wantX := float32(0.05)
+	wantY := float32(-0.05)
 	if cursor.X != wantX || cursor.Y != wantY {
 		t.Fatalf("cursor = (%.2f, %.2f), want (%.2f, %.2f)", cursor.X, cursor.Y, wantX, wantY)
 	}

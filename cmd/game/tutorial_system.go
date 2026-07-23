@@ -12,6 +12,7 @@ const (
 	tutorialStepMoveDrone
 	tutorialStepFindArtifact
 	tutorialStepMoveLaser
+	tutorialStepFireLaser
 )
 
 type TutorialState struct {
@@ -25,6 +26,7 @@ func NewTutorialState() *TutorialState {
 type TutorialSystem struct {
 	droneFilter             *ecs.Filter2[Position3, Drone]
 	fireControlFilter       *ecs.Filter1[DroneFireControl]
+	laserFilter             *ecs.Filter1[Laser]
 	markerMapper            *ecs.Map3[Position3, Renderable, TutorialMarker]
 	markerFilter            *ecs.Filter2[Position3, TutorialMarker]
 	state                   TutorialState
@@ -38,6 +40,7 @@ type TutorialSystem struct {
 func (system *TutorialSystem) Initialize(game *Game) {
 	system.droneFilter = ecs.NewFilter2[Position3, Drone](game.world)
 	system.fireControlFilter = ecs.NewFilter1[DroneFireControl](game.world)
+	system.laserFilter = ecs.NewFilter1[Laser](game.world)
 	system.markerMapper = ecs.NewMap3[Position3, Renderable, TutorialMarker](game.world)
 	system.markerFilter = ecs.NewFilter2[Position3, TutorialMarker](game.world)
 	system.state = *NewTutorialState()
@@ -57,6 +60,8 @@ func (system *TutorialSystem) updateCurrentStep(game *Game) {
 		system.updateFindArtifactStep(game)
 	case tutorialStepMoveLaser:
 		system.updateMoveLaserStep()
+	case tutorialStepFireLaser:
+		system.updateFireLaserStep()
 	}
 }
 
@@ -104,6 +109,14 @@ func (system *TutorialSystem) updateMoveLaserStep() {
 		return
 	}
 
+	system.state.currentStep = tutorialStepFireLaser
+}
+
+func (system *TutorialSystem) updateFireLaserStep() {
+	if !system.anyLaserActive() {
+		return
+	}
+
 	system.state.currentStep = tutorialStepComplete
 }
 
@@ -115,6 +128,8 @@ func (system *TutorialSystem) drawCurrentStep(game *Game) {
 		system.drawFindArtifactPrompt()
 	case tutorialStepMoveLaser:
 		system.drawMoveLaserPrompt(game)
+	case tutorialStepFireLaser:
+		system.drawFireLaserPrompt(game)
 	}
 }
 
@@ -147,6 +162,20 @@ func (system *TutorialSystem) drawMoveLaserPrompt(game *Game) {
 	}
 
 	system.drawCenteredPromptText("Move the laser")
+	system.drawCenteredTextureBelowPrompt(texture)
+}
+
+func (system *TutorialSystem) drawFireLaserPrompt(game *Game) {
+	if game.assets == nil {
+		return
+	}
+
+	texture, ok := game.assets.LookupTexture(tutorialFireLaserTextureName)
+	if !ok || texture.ID == 0 {
+		return
+	}
+
+	system.drawCenteredPromptText("Fire the laser")
 	system.drawCenteredTextureBelowPrompt(texture)
 }
 
@@ -272,4 +301,18 @@ func (system *TutorialSystem) fireControl() (DroneFireControl, bool) {
 	}
 
 	return *query.Get(), true
+}
+
+func (system *TutorialSystem) anyLaserActive() bool {
+	query := system.laserFilter.Query()
+	defer query.Close()
+
+	for query.Next() {
+		laser := query.Get()
+		if laser.active {
+			return true
+		}
+	}
+
+	return false
 }

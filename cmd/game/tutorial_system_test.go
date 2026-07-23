@@ -178,7 +178,7 @@ func TestTutorialStepThreeWaitsForCursorMovement(t *testing.T) {
 	}
 }
 
-func TestTutorialStepThreeCompletesAfterCursorMovesThreshold(t *testing.T) {
+func TestTutorialStepThreeStartsFireLaserStepAfterCursorMovesThreshold(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
@@ -198,8 +198,32 @@ func TestTutorialStepThreeCompletesAfterCursorMovesThreshold(t *testing.T) {
 	control.cursor = rl.NewVector2(tutorialLaserMoveThresholdNormalized, 0)
 	system.updateCurrentStep(game)
 
-	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
+	if got, want := system.state.currentStep, tutorialStepFireLaser; got != want {
 		t.Fatalf("current step = %d, want %d", got, want)
+	}
+}
+
+func TestTutorialStepFourWaitsForActiveLaser(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	laserMapper := ecs.NewMap1[Laser](world)
+	laserEntity := laserMapper.NewEntity(&Laser{})
+
+	system := &TutorialSystem{}
+	game := &Game{world: world}
+	system.Initialize(game)
+	system.state.currentStep = tutorialStepFireLaser
+
+	system.updateCurrentStep(game)
+	if got, want := system.state.currentStep, tutorialStepFireLaser; got != want {
+		t.Fatalf("current step = %d, want %d before laser is active", got, want)
+	}
+
+	laserMapper.Get(laserEntity).active = true
+	system.updateCurrentStep(game)
+	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
+		t.Fatalf("current step = %d, want %d after laser is active", got, want)
 	}
 }
 

@@ -77,6 +77,7 @@ const (
 	tutorialLaserMoveThresholdNormalized       = 0.5
 	tutorialMoveDroneTextureName               = "tutorial_01"
 	tutorialMoveLaserTextureName               = "tutorial_03"
+	tutorialFireLaserTextureName               = "tutorial_04"
 	tutorialArtifactMarkerModelName            = "tutorial_cone"
 
 	generatedArtifactEdgeMarginPixels   = 96

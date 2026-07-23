@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
+	"image/gif"
 	_ "image/jpeg"
 	"image/png"
 	"io/fs"
@@ -19,6 +21,7 @@ import (
 )
 
 type AssetManager struct {
+	animations          map[string]*Animation
 	artifactDefinitions map[string]*ArtifactDefinition
 	images              map[string]image.Image
 	models              map[string]*rl.Model
@@ -29,9 +32,26 @@ type AssetManager struct {
 	assetFS             fs.FS
 }
 
+type Animation struct {
+	Frames []AnimationFrame
+	Width  int
+	Height int
+}
+
+type AnimationFrame struct {
+	Texture  rl.Texture2D
+	Duration float32
+}
+
+type decodedAnimationFrame struct {
+	image    *image.RGBA
+	duration float32
+}
+
 func NewAssetManager() *AssetManager {
 	assetRoot := runtimeAssetRoot()
 	return &AssetManager{
+		animations:          make(map[string]*Animation),
 		artifactDefinitions: make(map[string]*ArtifactDefinition),
 		images:              make(map[string]image.Image),
 		models:              make(map[string]*rl.Model),
@@ -47,9 +67,15 @@ func (assets *AssetManager) Load() {
 	assets.loadImages()
 	assets.loadArtifactDefinitions()
 	assets.loadTextures()
+	assets.loadAnimations()
 	assets.loadShaders()
 	assets.loadModels()
 	assets.loadSounds()
+}
+
+func (assets *AssetManager) LookupAnimation(name string) (*Animation, bool) {
+	animation, ok := assets.animations[name]
+	return animation, ok
 }
 
 func (assets *AssetManager) LookupArtifactDefinition(name string) (*ArtifactDefinition, bool) {
@@ -126,6 +152,12 @@ func (assets *AssetManager) Unload() {
 	}
 	for _, texture := range assets.textures {
 		rl.UnloadTexture(texture)
+	}
+	for _, animation := range assets.animations {
+		for i := range animation.Frames {
+			rl.UnloadTexture(animation.Frames[i].Texture)
+			animation.Frames[i].Texture = rl.Texture2D{}
+		}
 	}
 	for _, shader := range assets.shaders {
 		rl.UnloadShader(shader)
@@ -261,6 +293,34 @@ func (assets *AssetManager) loadTextures() {
 			panic(fmt.Errorf("texture %q declared more than once", textureName))
 		}
 		assets.textures[textureName] = texture
+	}
+}
+
+func (assets *AssetManager) loadAnimations() {
+	const animationDir = "animations"
+
+	fileNames := assetFileNames(assets.assetFS, animationDir, ".gif")
+	for _, fileName := range fileNames {
+		animationPath := path.Join(animationDir, fileName)
+		animationName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+		if _, exists := assets.animations[animationName]; exists {
+			panic(fmt.Errorf("animation %q declared more than once", animationName))
+		}
+
+		decodedFrames, width, height := decodeGIFAnimationAsset(assets.assetFS, animationPath)
+		animation := &Animation{
+			Frames: make([]AnimationFrame, 0, len(decodedFrames)),
+			Width:  width,
+			Height: height,
+		}
+		for _, frame := range decodedFrames {
+			animation.Frames = append(animation.Frames, AnimationFrame{
+				Texture:  loadTextureFromImageAsset(frame.image),
+				Duration: frame.duration,
+			})
+		}
+
+		assets.animations[animationName] = animation
 	}
 }
 
@@ -455,6 +515,65 @@ func loadTextureImageAsset(assetFS fs.FS, assetPath string) image.Image {
 	}
 
 	return img
+}
+
+func decodeGIFAnimationAsset(assetFS fs.FS, assetPath string) ([]decodedAnimationFrame, int, int) {
+	data, err := fs.ReadFile(assetFS, assetPath)
+	if err != nil {
+		panic(fmt.Errorf("read animation asset %q: %w", assetPath, err))
+	}
+
+	decoded, err := gif.DecodeAll(bytes.NewReader(data))
+	if err != nil {
+		panic(fmt.Errorf("decode animation asset %q: %w", assetPath, err))
+	}
+	if len(decoded.Image) == 0 {
+		panic(fmt.Errorf("animation asset %q has no frames", assetPath))
+	}
+
+	width := decoded.Config.Width
+	height := decoded.Config.Height
+	canvasBounds := image.Rect(0, 0, width, height)
+	canvas := image.NewRGBA(canvasBounds)
+	frames := make([]decodedAnimationFrame, 0, len(decoded.Image))
+
+	for i, gifFrame := range decoded.Image {
+		previousCanvas := cloneRGBA(canvas)
+		draw.Draw(canvas, gifFrame.Bounds(), gifFrame, gifFrame.Bounds().Min, draw.Over)
+
+		frames = append(frames, decodedAnimationFrame{
+			image:    cloneRGBA(canvas),
+			duration: gifDelaySeconds(decoded.Delay, i),
+		})
+
+		if i >= len(decoded.Disposal) {
+			continue
+		}
+		switch decoded.Disposal[i] {
+		case gif.DisposalBackground:
+			draw.Draw(canvas, gifFrame.Bounds(), image.Transparent, image.Point{}, draw.Src)
+		case gif.DisposalPrevious:
+			canvas = previousCanvas
+		}
+	}
+
+	return frames, width, height
+}
+
+func cloneRGBA(src *image.RGBA) *image.RGBA {
+	dst := image.NewRGBA(src.Bounds())
+	draw.Draw(dst, dst.Bounds(), src, src.Bounds().Min, draw.Src)
+	return dst
+}
+
+func gifDelaySeconds(delays []int, frameIndex int) float32 {
+	const defaultGIFFrameDuration = 0.1
+
+	if frameIndex >= len(delays) || delays[frameIndex] <= 0 {
+		return defaultGIFFrameDuration
+	}
+
+	return float32(delays[frameIndex]) / 100
 }
 
 func loadSolidTexture(fill rl.Color) rl.Texture2D {

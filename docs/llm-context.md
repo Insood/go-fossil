@@ -60,7 +60,7 @@ Systems are registered in this order in `cmd/game/game.go`:
 
 Important ownership notes:
 
-- `AssetManager` loads runtime images, textures, shaders, models, streamed sounds, and artifact definitions from disk beside the built executable.
+- `AssetManager` loads runtime images, textures, GIF animations, shaders, models, streamed sounds, and artifact definitions from disk beside the built executable.
 - `ChunkManager` loads authored chunk JSON, generates runtime chunks, builds terrain meshes/textures, caches chunks, samples terrain height, registers terrain chunk ECS entities, and applies burn marks.
 - `ArtifactManager` owns runtime artifact records, unique artifact IDs, scored fragment records, and fragment textures.
 - `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps mouse/gamepad aiming into normalized drone viewport coordinates from -1 to 1 on each axis, and stores current and previous cursor/firing state on `DroneFireControl`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.

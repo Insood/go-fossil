@@ -56,7 +56,7 @@ Laser cutting is currently represented by texture and mask state. Burn marks pai
 
 ## Artifact And Salvage Model
 
-Artifact definitions live in `cmd/game/assets/artifacts/*.json` and reference texture images. Streamed sounds live in `cmd/game/assets/sounds` and are loaded through raylib music streams. `AssetManager` loads definitions and verifies referenced images. Artifact placement rotation uses `gift.Rotate` with nearest-neighbor interpolation, and each runtime `Artifact.Size` is counted from the rotated placement image.
+Artifact definitions live in `cmd/game/assets/artifacts/*.json` and reference texture images. GIF animations live in `cmd/game/assets/animations` and are loaded as texture frames with frame durations. Streamed sounds live in `cmd/game/assets/sounds` and are loaded through raylib music streams. `AssetManager` loads definitions and verifies referenced images. Artifact placement rotation uses `gift.Rotate` with nearest-neighbor interpolation, and each runtime `Artifact.Size` is counted from the rotated placement image.
 
 Chunk artifact placements are baked into two layers:
 

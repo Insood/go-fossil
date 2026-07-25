@@ -144,3 +144,22 @@ func TestCreateFragmentFromRegionUsesExactPixels(t *testing.T) {
 		t.Fatalf("pixel (0,1) = %#v, want transparent", got)
 	}
 }
+
+func TestCreateFragmentFromRegionStoresGrade(t *testing.T) {
+	t.Parallel()
+
+	manager := NewArtifactManager()
+	bounds := image.Rect(0, 0, 5, 4)
+
+	fragment := manager.CreateFragmentFromRegionWithScore(nil, nil, bounds, nil, 12.6, 0.75)
+
+	if fragment == nil {
+		t.Fatal("fragment = nil, want fragment at minimum pixel size")
+	}
+	if got, want := fragment.Score, 13; got != want {
+		t.Fatalf("fragment score = %d, want %d", got, want)
+	}
+	if got, want := fragment.Grade, 0.75; got != want {
+		t.Fatalf("fragment grade = %f, want %f", got, want)
+	}
+}

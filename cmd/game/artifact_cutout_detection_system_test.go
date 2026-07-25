@@ -171,3 +171,54 @@ func TestDetectArtifactRegionsUsesUniqueNegativeTags(t *testing.T) {
 		t.Fatalf("original data was mutated, top cell = %d", got)
 	}
 }
+
+func TestScoreArtifactRegionReturnsScoreAndGrade(t *testing.T) {
+	t.Parallel()
+
+	manager := NewArtifactManager()
+	chunk := &TerrainChunk{
+		ArtifactData:  NewArtifactData(image.Rect(0, 0, 4, 1)),
+		ArtifactImage: image.NewRGBA(image.Rect(0, 0, 4, 1)),
+	}
+	artifact := manager.RegisterChunkArtifact(chunk, "test artifact", 100, 4, 0, 0, image.Rect(0, 0, 4, 1))
+	for x := 0; x < 3; x++ {
+		chunk.ArtifactData.SetID(x, 0, artifact.ID)
+		chunk.ArtifactImage.SetRGBA(x, 0, color.RGBA{A: 255})
+	}
+
+	score, grade := scoreArtifactRegion(manager, chunk, artifactRegion{
+		points: []image.Point{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: 2, Y: 0}},
+	})
+
+	if got, want := score, 75.0; got != want {
+		t.Fatalf("score = %f, want %f", got, want)
+	}
+	if got, want := grade, 0.75; got != want {
+		t.Fatalf("grade = %f, want %f", got, want)
+	}
+}
+
+func TestScoreArtifactRegionCapsGradeAtOne(t *testing.T) {
+	t.Parallel()
+
+	manager := NewArtifactManager()
+	chunk := &TerrainChunk{
+		ArtifactData:  NewArtifactData(image.Rect(0, 0, 3, 1)),
+		ArtifactImage: image.NewRGBA(image.Rect(0, 0, 3, 1)),
+	}
+	artifact := manager.RegisterChunkArtifact(chunk, "test artifact", 10, 2, 0, 0, image.Rect(0, 0, 3, 1))
+	points := []image.Point{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: 2, Y: 0}}
+	for _, point := range points {
+		chunk.ArtifactData.SetID(point.X, point.Y, artifact.ID)
+		chunk.ArtifactImage.SetRGBA(point.X, point.Y, color.RGBA{A: 255})
+	}
+
+	score, grade := scoreArtifactRegion(manager, chunk, artifactRegion{points: points})
+
+	if got, want := score, 15.0; got != want {
+		t.Fatalf("score = %f, want %f", got, want)
+	}
+	if got, want := grade, 1.0; got != want {
+		t.Fatalf("grade = %f, want %f", got, want)
+	}
+}

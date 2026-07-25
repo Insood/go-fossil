@@ -139,8 +139,8 @@ func applyArtifactRegion(
 	chunk *TerrainChunk,
 	region artifactRegion,
 ) {
-	score := scoreArtifactRegion(manager, chunk, region)
-	fragment := manager.CreateFragmentFromRegionWithScore(chunk.SurfaceTexture.BaseImage, chunk.ArtifactImage, region.bounds, region.points, score)
+	score, grade := scoreArtifactRegion(manager, chunk, region)
+	fragment := manager.CreateFragmentFromRegionWithScore(chunk.SurfaceTexture.BaseImage, chunk.ArtifactImage, region.bounds, region.points, score, grade)
 	if fragment != nil {
 		fragmentSpawner.Spawn(fragment, artifactFragmentPickupPosition(chunk, region.bounds))
 	}
@@ -162,9 +162,9 @@ func artifactFragmentPickupPosition(chunk *TerrainChunk, bounds image.Rectangle)
 	return rl.NewVector3(worldX, worldY, worldZ)
 }
 
-func scoreArtifactRegion(manager *ArtifactManager, chunk *TerrainChunk, region artifactRegion) float64 {
+func scoreArtifactRegion(manager *ArtifactManager, chunk *TerrainChunk, region artifactRegion) (float64, float64) {
 	if manager == nil || chunk == nil || chunk.ArtifactData == nil || chunk.ArtifactImage == nil || len(region.points) == 0 {
-		return 0
+		return 0, 0
 	}
 
 	cutPixelsByArtifactID := make(map[int32]int)
@@ -182,6 +182,8 @@ func scoreArtifactRegion(manager *ArtifactManager, chunk *TerrainChunk, region a
 	}
 
 	score := 0.0
+	recoveredPixels := 0
+	artifactPixels := 0
 	for artifactID, cutPixels := range cutPixelsByArtifactID {
 		artifact, ok := manager.Lookup(artifactID)
 		if !ok {
@@ -192,7 +194,13 @@ func scoreArtifactRegion(manager *ArtifactManager, chunk *TerrainChunk, region a
 		}
 
 		score += float64(cutPixels) / float64(artifact.Size) * float64(artifact.Value)
+		recoveredPixels += min(cutPixels, artifact.Size)
+		artifactPixels += artifact.Size
 	}
 
-	return score
+	if artifactPixels == 0 {
+		return score, 0
+	}
+
+	return score, float64(recoveredPixels) / float64(artifactPixels)
 }

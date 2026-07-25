@@ -10,6 +10,7 @@ type ArtifactFragment struct {
 	ID         int32
 	Weight     int
 	Score      int
+	Grade      float64
 	Image      *image.RGBA
 	Texture    rl.Texture2D
 	Collected  bool

@@ -125,26 +125,26 @@ func (manager *ArtifactManager) RegisterChunkArtifact(
 }
 
 func (manager *ArtifactManager) CreateFragment(src image.Image) *ArtifactFragment {
-	return manager.createFragmentFromRegion(nil, src, src.Bounds(), nil, 0)
+	return manager.createFragmentFromRegion(nil, src, src.Bounds(), nil, 0, 0)
 }
 
 func (manager *ArtifactManager) CreateFragmentFromRect(src image.Image, bounds image.Rectangle) *ArtifactFragment {
-	return manager.createFragmentFromRegion(nil, src, bounds, nil, 0)
+	return manager.createFragmentFromRegion(nil, src, bounds, nil, 0, 0)
 }
 
 func (manager *ArtifactManager) CreateFragmentFromLayers(background image.Image, foreground image.Image, bounds image.Rectangle) *ArtifactFragment {
-	return manager.createFragmentFromRegion(background, foreground, bounds, nil, 0)
+	return manager.createFragmentFromRegion(background, foreground, bounds, nil, 0, 0)
 }
 
 func (manager *ArtifactManager) CreateFragmentFromRegion(background image.Image, foreground image.Image, bounds image.Rectangle, points []image.Point) *ArtifactFragment {
-	return manager.createFragmentFromRegion(background, foreground, bounds, points, 0)
+	return manager.createFragmentFromRegion(background, foreground, bounds, points, 0, 0)
 }
 
-func (manager *ArtifactManager) CreateFragmentFromRegionWithScore(background image.Image, foreground image.Image, bounds image.Rectangle, points []image.Point, score float64) *ArtifactFragment {
-	return manager.createFragmentFromRegion(background, foreground, bounds, points, score)
+func (manager *ArtifactManager) CreateFragmentFromRegionWithScore(background image.Image, foreground image.Image, bounds image.Rectangle, points []image.Point, score float64, grade float64) *ArtifactFragment {
+	return manager.createFragmentFromRegion(background, foreground, bounds, points, score, grade)
 }
 
-func (manager *ArtifactManager) createFragmentFromRegion(background image.Image, foreground image.Image, bounds image.Rectangle, points []image.Point, score float64) *ArtifactFragment {
+func (manager *ArtifactManager) createFragmentFromRegion(background image.Image, foreground image.Image, bounds image.Rectangle, points []image.Point, score float64, grade float64) *ArtifactFragment {
 	weight := artifactFragmentPixelSize(bounds, points)
 	if weight < artifactFragmentMinPixels {
 		return nil
@@ -189,12 +189,13 @@ func (manager *ArtifactManager) createFragmentFromRegion(background image.Image,
 		ID:      fragmentID,
 		Weight:  weight,
 		Score:   int(math.Round(score)),
+		Grade:   grade,
 		Image:   fragmentImage,
 		Texture: fragmentTexture,
 	}
 
 	manager.fragments[fragmentID] = fragment
-	fmt.Printf("Created artifact fragment %d: weight=%d score=%d raw=%.3f\n", fragment.ID, fragment.Weight, fragment.Score, score)
+	fmt.Printf("Created artifact fragment %d: weight=%d score=%d raw=%.3f grade=%.3f\n", fragment.ID, fragment.Weight, fragment.Score, score, fragment.Grade)
 	return fragment
 }
 

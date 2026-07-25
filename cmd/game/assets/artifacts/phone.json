@@ -3,5 +3,6 @@
   "image_path": "textures/phone.png",
   "width": 64,
   "height": 64,
-  "value": 1000
+  "value": 1000,
+  "relative_scarcity": 1
 }

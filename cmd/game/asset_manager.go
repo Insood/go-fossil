@@ -21,15 +21,16 @@ import (
 )
 
 type AssetManager struct {
-	animations          map[string]*Animation
-	artifactDefinitions map[string]*ArtifactDefinition
-	images              map[string]image.Image
-	models              map[string]*rl.Model
-	shaders             map[string]rl.Shader
-	sounds              map[string]rl.Music
-	textures            map[string]rl.Texture2D
-	assetRoot           string
-	assetFS             fs.FS
+	animations                    map[string]*Animation
+	artifactDefinitions           map[string]*ArtifactDefinition
+	totalArtifactRelativeScarcity int
+	images                        map[string]image.Image
+	models                        map[string]*rl.Model
+	shaders                       map[string]rl.Shader
+	sounds                        map[string]rl.Music
+	textures                      map[string]rl.Texture2D
+	assetRoot                     string
+	assetFS                       fs.FS
 }
 
 type Animation struct {
@@ -94,6 +95,10 @@ func (assets *AssetManager) ArtifactDefinitions() []*ArtifactDefinition {
 	}
 
 	return definitions
+}
+
+func (assets *AssetManager) TotalArtifactRelativeScarcity() int {
+	return assets.totalArtifactRelativeScarcity
 }
 
 func (assets *AssetManager) LookupImage(assetPath string) (image.Image, bool) {
@@ -253,6 +258,11 @@ func (assets *AssetManager) loadArtifactDefinitions() {
 		}
 		definitionCopy := definition
 		assets.artifactDefinitions[definitionCopy.Name] = &definitionCopy
+	}
+
+	assets.totalArtifactRelativeScarcity = 0
+	for _, definition := range assets.artifactDefinitions {
+		assets.totalArtifactRelativeScarcity += definition.RelativeScarcity
 	}
 }
 

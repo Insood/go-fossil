@@ -31,7 +31,7 @@ Read these files first:
 - Terrain chunks are 8x8 tile render meshes derived from chunk metadata and interpolated from 9x9 inline height samples.
 - Startup loads the authored default chunk at `(0,0)`.
 - Generated terrain chunks are added as the running score increases, placed on exposed edges of the loaded chunk set.
-- Generated chunks use random height samples that match loaded neighbor borders and random artifact placements from loaded artifact definitions.
+- Generated chunks use random height samples that match loaded neighbor borders and independent random artifact placements weighted by each loaded definition's positive `relative_scarcity`; artifact types may repeat within a chunk.
 - Artifacts are embedded as baked texture overlays plus a per-pixel artifact ID mask.
 - The salvage loop is movement, downward drone-camera aiming, laser burning, cutout detection, fragment rising and proximity pickup within drone cargo capacity, charging-pad drop-off and scoring, and chunk expansion.
 - Successful laser terrain strikes spawn short-lived tinted cube particles that travel upward in a narrow cone and fade out.
@@ -66,7 +66,7 @@ All systems implement `Initialize`, `Update`, and `Unload`. The main loop snapsh
 
 Important ownership notes:
 
-- `AssetManager` loads runtime images, textures, GIF animations, shaders, models, streamed sounds, and artifact definitions from disk beside the built executable.
+- `AssetManager` loads runtime images, textures, GIF animations, shaders, models, streamed sounds, and artifact definitions from disk beside the built executable, and totals artifact `relative_scarcity` values for generated-placement weighting.
 - `ChunkManager` loads authored chunk JSON, generates runtime chunks, builds terrain meshes/textures, caches chunks, samples terrain height, registers terrain chunk ECS entities, resolves typed entity placements through game-owned factories, tracks those entities for chunk teardown, and applies burn marks.
 - Authored artifact and entity placement coordinates are stored in baked texture pixels and converted to world units with `terrainTexturePixelsPerTile`. Entity placement types are gameplay archetypes; their factories own model selection, render settings, and ECS component composition.
 - `ArtifactManager` owns runtime artifact records, unique artifact IDs, fragment collection state, fragment textures, and carried-fragment weight calculation.

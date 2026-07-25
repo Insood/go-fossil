@@ -8,11 +8,12 @@ import (
 )
 
 type ArtifactDefinition struct {
-	Name      string `json:"name"`
-	ImagePath string `json:"image_path"`
-	Width     int    `json:"width"`
-	Height    int    `json:"height"`
-	Value     int    `json:"value"`
+	Name             string `json:"name"`
+	ImagePath        string `json:"image_path"`
+	Width            int    `json:"width"`
+	Height           int    `json:"height"`
+	Value            int    `json:"value"`
+	RelativeScarcity int    `json:"relative_scarcity"`
 }
 
 func loadArtifactDefinitionAsset(assetFS fs.FS, definitionPath string) (ArtifactDefinition, error) {
@@ -36,6 +37,9 @@ func loadArtifactDefinitionAsset(assetFS fs.FS, definitionPath string) (Artifact
 	}
 	if definition.Value <= 0 {
 		return ArtifactDefinition{}, fmt.Errorf("%s: artifact value must be positive", definitionPath)
+	}
+	if definition.RelativeScarcity <= 0 {
+		return ArtifactDefinition{}, fmt.Errorf("%s: artifact relative_scarcity must be positive", definitionPath)
 	}
 
 	return definition, nil

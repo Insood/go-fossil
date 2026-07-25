@@ -41,7 +41,7 @@ Generated chunks:
 - start with the ground grid tile definition
 - receive random height samples in `ChunkManager`
 - copy loaded neighbor border heights to keep seams continuous
-- receive random artifact placements from loaded artifact definitions
+- receive random artifact placements selected independently from loaded artifact definitions, weighted by each definition's positive `relative_scarcity`; repeated artifact types are allowed within a chunk
 
 Built terrain chunks contain:
 
@@ -60,7 +60,7 @@ Laser cutting is currently represented by texture and mask state. Burn marks pai
 
 ## Artifact And Salvage Model
 
-Artifact definitions live in `cmd/game/assets/artifacts/*.json` and reference texture images. GIF animations live in `cmd/game/assets/animations` and are loaded as texture frames with frame durations. Streamed sounds live in `cmd/game/assets/sounds` and are loaded through raylib music streams. `AssetManager` loads definitions and verifies referenced images. Artifact placement rotation uses `gift.Rotate` with nearest-neighbor interpolation, and each runtime `Artifact.Size` is counted from the rotated placement image.
+Artifact definitions live in `cmd/game/assets/artifacts/*.json`, reference texture images, and declare a positive `relative_scarcity` used as their generated-placement weight. `AssetManager` loads definitions, verifies referenced images, and totals their relative scarcity for weighted selection. GIF animations live in `cmd/game/assets/animations` and are loaded as texture frames with frame durations. Streamed sounds live in `cmd/game/assets/sounds` and are loaded through raylib music streams. Artifact placement rotation uses `gift.Rotate` with nearest-neighbor interpolation, and each runtime `Artifact.Size` is counted from the rotated placement image.
 
 Chunk artifact placements are baked into two layers:
 

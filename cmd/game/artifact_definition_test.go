@@ -16,7 +16,8 @@ func TestLoadArtifactDefinitionAsset(t *testing.T) {
   "image_path": "textures/fossil.png",
   "width": 64,
   "height": 64,
-  "value": 5
+  "value": 5,
+  "relative_scarcity": 3
 }`),
 		},
 	}
@@ -41,6 +42,9 @@ func TestLoadArtifactDefinitionAsset(t *testing.T) {
 	if definition.Value != 5 {
 		t.Fatalf("definition.Value = %d, want 5", definition.Value)
 	}
+	if definition.RelativeScarcity != 3 {
+		t.Fatalf("definition.RelativeScarcity = %d, want 3", definition.RelativeScarcity)
+	}
 }
 
 func TestLoadArtifactDefinitionAssetValidation(t *testing.T) {
@@ -63,13 +67,28 @@ func TestLoadArtifactDefinitionAssetValidation(t *testing.T) {
 		},
 		{
 			name:    "missing width and height",
-			json:    `{"name":"fossil","image_path":"textures/fossil.png","value":5}`,
+			json:    `{"name":"fossil","image_path":"textures/fossil.png","value":5,"relative_scarcity":1}`,
 			wantErr: "",
 		},
 		{
 			name:    "missing value",
-			json:    `{"name":"fossil","image_path":"textures/fossil.png","width":64,"height":64}`,
+			json:    `{"name":"fossil","image_path":"textures/fossil.png","width":64,"height":64,"relative_scarcity":1}`,
 			wantErr: "artifact value must be positive",
+		},
+		{
+			name:    "missing relative scarcity",
+			json:    `{"name":"fossil","image_path":"textures/fossil.png","width":64,"height":64,"value":5}`,
+			wantErr: "artifact relative_scarcity must be positive",
+		},
+		{
+			name:    "zero relative scarcity",
+			json:    `{"name":"fossil","image_path":"textures/fossil.png","width":64,"height":64,"value":5,"relative_scarcity":0}`,
+			wantErr: "artifact relative_scarcity must be positive",
+		},
+		{
+			name:    "negative relative scarcity",
+			json:    `{"name":"fossil","image_path":"textures/fossil.png","width":64,"height":64,"value":5,"relative_scarcity":-1}`,
+			wantErr: "artifact relative_scarcity must be positive",
 		},
 		{
 			name:    "unknown field",

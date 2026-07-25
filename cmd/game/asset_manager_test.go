@@ -120,13 +120,23 @@ func TestLoadImagesAndArtifactDefinitions(t *testing.T) {
 	img.SetRGBA(0, 1, color.RGBA{B: 255, A: 255})
 
 	assetFS := fstest.MapFS{
-		"textures/phone.png": &fstest.MapFile{Data: mustEncodePNGImage(t, img)},
+		"textures/phone.png":  &fstest.MapFile{Data: mustEncodePNGImage(t, img)},
+		"textures/fossil.png": &fstest.MapFile{Data: mustEncodePNGImage(t, img)},
 		"artifacts/phone.json": &fstest.MapFile{Data: []byte(`{
   "name": "phone",
   "image_path": "textures/phone.png",
   "width": 64,
   "height": 64,
-  "value": 10
+  "value": 10,
+  "relative_scarcity": 5
+}`)},
+		"artifacts/fossil.json": &fstest.MapFile{Data: []byte(`{
+  "name": "fossil",
+  "image_path": "textures/fossil.png",
+  "width": 64,
+  "height": 64,
+  "value": 10,
+  "relative_scarcity": 2
 }`)},
 	}
 
@@ -154,6 +164,9 @@ func TestLoadImagesAndArtifactDefinitions(t *testing.T) {
 	if definition.ImagePath != "textures/phone.png" {
 		t.Fatalf("definition.ImagePath = %q, want textures/phone.png", definition.ImagePath)
 	}
+	if got, want := assets.TotalArtifactRelativeScarcity(), 7; got != want {
+		t.Fatalf("TotalArtifactRelativeScarcity() = %d, want %d", got, want)
+	}
 }
 
 func TestLoadArtifactDefinitionsValidatesReferencedImages(t *testing.T) {
@@ -165,7 +178,8 @@ func TestLoadArtifactDefinitionsValidatesReferencedImages(t *testing.T) {
   "image_path": "textures/phone.png",
   "width": 64,
   "height": 64,
-  "value": 10
+  "value": 10,
+  "relative_scarcity": 1
 }`)},
 	}
 

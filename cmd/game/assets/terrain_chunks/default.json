@@ -26,7 +26,8 @@
   ],
   "artifacts": [
     { "name": "fossil", "x": 416, "z": 96, "orientation": 135 },
-    { "name": "fossil", "x": 416, "z": 416, "orientation": 270 }
+    { "name": "fossil", "x": 416, "z": 416, "orientation": 270 },
+    { "name": "fossil", "x": 96, "z": 96, "orientation": 45 }
   ],
   "entities": [
     { "type": "charging_pad", "x": 96, "z": 416, "y": 64}

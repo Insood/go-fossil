@@ -3,5 +3,6 @@
   "image_path": "textures/skull.png",
   "width": 64,
   "height": 64,
-  "value": 500
+  "value": 500,
+  "relative_scarcity": 3
 }

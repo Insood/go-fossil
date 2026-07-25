@@ -227,7 +227,13 @@ func (manager *ChunkManager) addGeneratedChunkArtifacts(coords ChunkCoords, chun
 		return
 	}
 
-	placements := randomGeneratedArtifactPlacements(chunkData.Width, chunkData.Height, definitions, manager.rng)
+	placements := randomGeneratedArtifactPlacements(
+		chunkData.Width,
+		chunkData.Height,
+		definitions,
+		manager.assets.TotalArtifactRelativeScarcity(),
+		manager.rng,
+	)
 	chunkData.Artifacts = append(chunkData.Artifacts, placements...)
 }
 
@@ -498,9 +504,10 @@ func randomGeneratedArtifactPlacements(
 	width int,
 	height int,
 	definitions []*ArtifactDefinition,
+	totalRelativeScarcity int,
 	rng *rand.Rand,
 ) []terrain.ArtifactPlacement {
-	if len(definitions) == 0 {
+	if len(definitions) == 0 || totalRelativeScarcity <= 0 {
 		return nil
 	}
 	if rng == nil {
@@ -508,15 +515,11 @@ func randomGeneratedArtifactPlacements(
 	}
 
 	maxCount := generatedArtifactMaxCount
-	if len(definitions) < maxCount {
-		maxCount = len(definitions)
-	}
 	if maxCount <= 0 {
 		return nil
 	}
 
 	count := 1 + rng.Intn(maxCount)
-	order := rng.Perm(len(definitions))
 
 	bounds := image.Rect(0, 0, width*terrainTexturePixelsPerTile, height*terrainTexturePixelsPerTile)
 	minX := float32(bounds.Min.X + generatedArtifactEdgeMarginPixels)
@@ -529,19 +532,15 @@ func randomGeneratedArtifactPlacements(
 
 	placements := make([]terrain.ArtifactPlacement, 0, count)
 	centers := make([][2]float32, 0, count)
-	for _, index := range order {
-		if len(placements) >= count {
-			break
-		}
-
-		definition := definitions[index]
+	for len(placements) < count {
+		definition := randomArtifactDefinition(definitions, totalRelativeScarcity, rng)
 		if definition == nil {
-			continue
+			break
 		}
 
 		placement, ok := randomArtifactPlacement(definition.Name, minX, maxX, minZ, maxZ, centers, rng)
 		if !ok {
-			continue
+			break
 		}
 
 		placements = append(placements, placement)
@@ -549,6 +548,31 @@ func randomGeneratedArtifactPlacements(
 	}
 
 	return placements
+}
+
+func randomArtifactDefinition(
+	definitions []*ArtifactDefinition,
+	totalRelativeScarcity int,
+	rng *rand.Rand,
+) *ArtifactDefinition {
+	if totalRelativeScarcity <= 0 || rng == nil {
+		return nil
+	}
+
+	selectedWeight := rng.Intn(totalRelativeScarcity)
+	cumulativeWeight := 0
+	for _, definition := range definitions {
+		if definition == nil || definition.RelativeScarcity <= 0 {
+			continue
+		}
+
+		cumulativeWeight += definition.RelativeScarcity
+		if selectedWeight < cumulativeWeight {
+			return definition
+		}
+	}
+
+	return nil
 }
 
 func randomArtifactPlacement(

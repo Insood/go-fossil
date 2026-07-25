@@ -289,11 +289,12 @@ func TestRandomGeneratedArtifactPlacementsRespectSpacingRules(t *testing.T) {
 		terrain.ChunkWidthTiles,
 		terrain.ChunkHeightTiles,
 		[]*ArtifactDefinition{
-			{Name: "alpha"},
-			{Name: "beta"},
-			{Name: "gamma"},
-			{Name: "delta"},
+			{Name: "alpha", RelativeScarcity: 1},
+			{Name: "beta", RelativeScarcity: 1},
+			{Name: "gamma", RelativeScarcity: 1},
+			{Name: "delta", RelativeScarcity: 1},
 		},
+		4,
 		rand.New(rand.NewSource(1)),
 	)
 
@@ -304,7 +305,7 @@ func TestRandomGeneratedArtifactPlacementsRespectSpacingRules(t *testing.T) {
 		t.Fatalf("placement count = %d, want at most %d", len(placements), generatedArtifactMaxCount)
 	}
 
-	seenNames := make(map[string]struct{}, len(placements))
+	validNames := map[string]bool{"alpha": true, "beta": true, "gamma": true, "delta": true}
 	minX := float32(generatedArtifactEdgeMarginPixels)
 	minZ := float32(generatedArtifactEdgeMarginPixels)
 	maxX := float32(terrain.ChunkWidthTiles*terrainTexturePixelsPerTile - generatedArtifactEdgeMarginPixels)
@@ -318,10 +319,9 @@ func TestRandomGeneratedArtifactPlacementsRespectSpacingRules(t *testing.T) {
 		if placement.Z < minZ || placement.Z > maxZ {
 			t.Fatalf("placement %d z = %v, want within [%v, %v]", i, placement.Z, minZ, maxZ)
 		}
-		if _, exists := seenNames[placement.Name]; exists {
-			t.Fatalf("placement %d name = %q, want unique names", i, placement.Name)
+		if !validNames[placement.Name] {
+			t.Fatalf("placement %d name = %q, want a loaded artifact name", i, placement.Name)
 		}
-		seenNames[placement.Name] = struct{}{}
 
 		for j := 0; j < i; j++ {
 			dx := placement.X - placements[j].X
@@ -330,6 +330,62 @@ func TestRandomGeneratedArtifactPlacementsRespectSpacingRules(t *testing.T) {
 				t.Fatalf("placements %d and %d are too close: %#v %#v", j, i, placements[j], placement)
 			}
 		}
+	}
+}
+
+func TestRandomArtifactDefinitionUsesRelativeScarcity(t *testing.T) {
+	t.Parallel()
+
+	definitions := []*ArtifactDefinition{
+		{Name: "a", RelativeScarcity: 1},
+		{Name: "b", RelativeScarcity: 5},
+	}
+	rng := rand.New(rand.NewSource(1))
+
+	const selections = 6000
+	counts := make(map[string]int)
+	for range selections {
+		definition := randomArtifactDefinition(definitions, 6, rng)
+		if definition == nil {
+			t.Fatal("randomArtifactDefinition() = nil, want a definition")
+		}
+		counts[definition.Name]++
+	}
+
+	if got := counts["a"]; got < 850 || got > 1150 {
+		t.Fatalf("artifact a selected %d/%d times, want approximately 1/6", got, selections)
+	}
+	if got := counts["b"]; got != selections-counts["a"] {
+		t.Fatalf("artifact b selected %d/%d times, want remaining selections", got, selections)
+	}
+}
+
+func TestRandomGeneratedArtifactPlacementsAllowRepeatedDefinitions(t *testing.T) {
+	t.Parallel()
+
+	definitions := []*ArtifactDefinition{{Name: "only", RelativeScarcity: 1}}
+	foundThreePlacements := false
+	for seed := int64(0); seed < 100; seed++ {
+		placements := randomGeneratedArtifactPlacements(
+			terrain.ChunkWidthTiles,
+			terrain.ChunkHeightTiles,
+			definitions,
+			1,
+			rand.New(rand.NewSource(seed)),
+		)
+		if len(placements) == generatedArtifactMaxCount {
+			foundThreePlacements = true
+			for i, placement := range placements {
+				if placement.Name != "only" {
+					t.Fatalf("placement %d name = %q, want only", i, placement.Name)
+				}
+			}
+			break
+		}
+	}
+
+	if !foundThreePlacements {
+		t.Fatalf("never generated %d placements from one definition", generatedArtifactMaxCount)
 	}
 }
 

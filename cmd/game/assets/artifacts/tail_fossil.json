@@ -3,5 +3,6 @@
   "image_path": "textures/tail_fossil.png",
   "width": 128,
   "height": 64,
-  "value": 500
+  "value": 750,
+  "relative_scarcity": 2
 }

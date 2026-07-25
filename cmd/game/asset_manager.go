@@ -326,7 +326,7 @@ func (assets *AssetManager) loadAnimations() {
 
 func (assets *AssetManager) loadModels() {
 	assets.models["drone"] = assets.loadDroneModel()
-	assets.models["charging_pad"] = assets.loadShadowReceiverModel("charging_pad")
+	assets.models[chargingPadModelName] = assets.loadShadowReceiverModel(chargingPadModelName)
 	assets.models["particle_cube"] = assets.loadUnitParticleCubeModel()
 	assets.models["prop_cube"] = assets.loadUnitCubeModel()
 	assets.models["prop_sphere"] = assets.loadUnitSphereModel()

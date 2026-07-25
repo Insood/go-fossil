@@ -6,6 +6,8 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
+
+	"go-fossil/internal/terrain"
 )
 
 func TestTutorialSystemStartsAtMoveDroneStep(t *testing.T) {
@@ -227,7 +229,7 @@ func TestTutorialStepFourStartsCutOutFossilStepWhenLaserIsActive(t *testing.T) {
 	}
 }
 
-func TestTutorialStepFiveWaitsForArtifactFragment(t *testing.T) {
+func TestTutorialStepFiveWaitsForArtifactFragmentThenStartsReturnHome(t *testing.T) {
 	t.Parallel()
 
 	system := &TutorialSystem{}
@@ -245,8 +247,75 @@ func TestTutorialStepFiveWaitsForArtifactFragment(t *testing.T) {
 
 	game.artifactManager.fragments[1] = &ArtifactFragment{ID: 1}
 	system.updateCurrentStep(game)
-	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
+	if got, want := system.state.currentStep, tutorialStepReturnHome; got != want {
 		t.Fatalf("current step = %d, want %d after fragment exists", got, want)
+	}
+}
+
+func TestTutorialStepSixMarksChargingPadAndCompletesAtProximity(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	droneMapper := ecs.NewMap2[Position3, Drone](world)
+	droneEntity := droneMapper.NewEntity(
+		&Position3{X: 1, Y: 2, Z: 3},
+		&Drone{},
+	)
+
+	markerModel := &rl.Model{}
+	chunkManager := &ChunkManager{
+		chunks: map[ChunkCoords]*TerrainChunk{
+			{X: 1, Z: -1}: {
+				Coords:  ChunkCoords{X: 1, Z: -1},
+				OriginX: 8,
+				OriginZ: -8,
+				Data: terrain.ChunkData{
+					Models: []terrain.ModelPlacement{
+						{Name: chargingPadModelName, X: 96, Y: 64, Z: 416},
+					},
+				},
+			},
+		},
+	}
+	game := &Game{
+		world:        world,
+		chunkManager: chunkManager,
+		assets: &AssetManager{
+			models: map[string]*rl.Model{
+				tutorialArtifactMarkerModelName: markerModel,
+			},
+		},
+	}
+	system := &TutorialSystem{}
+	system.Initialize(game)
+	system.state.currentStep = tutorialStepReturnHome
+
+	system.updateCurrentStep(game)
+
+	markers := tutorialMarkers(system)
+	if got, want := len(markers), 1; got != want {
+		t.Fatalf("marker count = %d, want %d", got, want)
+	}
+	assertVector3(t, markers[0].position, 9.5, 1+tutorialArtifactMarkerLift, -1.5)
+	if markers[0].renderable.model != markerModel {
+		t.Fatal("marker renderable does not use tutorial cone model")
+	}
+
+	dronePosition, _ := droneMapper.Get(droneEntity)
+	dronePosition.X = markers[0].position.X + tutorialArtifactMarkerProximity + 0.01
+	dronePosition.Z = markers[0].position.Z
+	system.updateCurrentStep(game)
+	if got, want := system.state.currentStep, tutorialStepReturnHome; got != want {
+		t.Fatalf("current step = %d, want %d outside charging pad proximity", got, want)
+	}
+
+	dronePosition.X = markers[0].position.X + tutorialArtifactMarkerProximity
+	system.updateCurrentStep(game)
+	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
+		t.Fatalf("current step = %d, want %d at charging pad proximity", got, want)
+	}
+	if got := len(tutorialMarkers(system)); got != 0 {
+		t.Fatalf("marker count after tutorial completion = %d, want 0", got)
 	}
 }
 

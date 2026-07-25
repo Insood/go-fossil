@@ -14,6 +14,7 @@ const (
 	tutorialStepMoveLaser
 	tutorialStepFireLaser
 	tutorialStepCutOutFossil
+	tutorialStepReturnHome
 )
 
 type TutorialState struct {
@@ -76,6 +77,8 @@ func (system *TutorialSystem) updateCurrentStep(game *Game) {
 		system.updateFireLaserStep(game)
 	case tutorialStepCutOutFossil:
 		system.updateCutOutFossilStep(game)
+	case tutorialStepReturnHome:
+		system.updateReturnHomeStep(game)
 	}
 }
 
@@ -104,7 +107,7 @@ func (system *TutorialSystem) updateFindArtifactStep(game *Game) {
 		return
 	}
 
-	system.removeArtifactMarkers(game)
+	system.removeTutorialMarkers(game)
 	system.state.currentStep = tutorialStepMoveLaser
 	system.hasInitialLaserCursor = false
 }
@@ -139,6 +142,20 @@ func (system *TutorialSystem) updateCutOutFossilStep(game *Game) {
 		return
 	}
 
+	system.state.currentStep = tutorialStepReturnHome
+	system.markersSpawned = false
+	system.spawnChargingPadMarker(game)
+}
+
+func (system *TutorialSystem) updateReturnHomeStep(game *Game) {
+	if !system.markersSpawned {
+		system.spawnChargingPadMarker(game)
+	}
+	if !system.droneIsNearMarker() {
+		return
+	}
+
+	system.removeTutorialMarkers(game)
 	system.state.currentStep = tutorialStepComplete
 }
 
@@ -154,6 +171,8 @@ func (system *TutorialSystem) drawCurrentStep(game *Game) {
 		system.drawFireLaserPrompt(game)
 	case tutorialStepCutOutFossil:
 		system.drawCutOutFossilPrompt(game)
+	case tutorialStepReturnHome:
+		system.drawReturnHomePrompt()
 	}
 }
 
@@ -223,6 +242,10 @@ func (system *TutorialSystem) drawCutOutFossilPrompt(game *Game) {
 	system.drawCenteredTextureBelowPrompt(frame.Texture)
 }
 
+func (system *TutorialSystem) drawReturnHomePrompt() {
+	system.drawCenteredPromptText("Return home")
+}
+
 func (system *TutorialSystem) drawCenteredPromptText(text string) {
 	textWidth := rl.MeasureText(text, tutorialPromptFontSize)
 	textX := (screenWidth - textWidth) / 2
@@ -287,18 +310,41 @@ func (system *TutorialSystem) spawnArtifactMarkers(game *Game) {
 			continue
 		}
 
-		system.markerMapper.NewEntity(
-			&Position3{X: position.X, Y: position.Y, Z: position.Z},
-			&Renderable{
-				model:          model,
-				scale:          1,
-				tint:           rl.Red,
-				castsShadow:    true,
-				receivesShadow: false,
-			},
-			&TutorialMarker{},
-		)
+		system.spawnTutorialMarker(model, position)
 	}
+}
+
+func (system *TutorialSystem) spawnChargingPadMarker(game *Game) {
+	system.markersSpawned = true
+	if game.assets == nil {
+		return
+	}
+
+	model, ok := game.assets.LookupModel(tutorialArtifactMarkerModelName)
+	if !ok || model == nil {
+		return
+	}
+
+	position, ok := chargingPadTutorialMarkerPosition(game)
+	if !ok {
+		return
+	}
+
+	system.spawnTutorialMarker(model, position)
+}
+
+func (system *TutorialSystem) spawnTutorialMarker(model *rl.Model, position rl.Vector3) {
+	system.markerMapper.NewEntity(
+		&Position3{X: position.X, Y: position.Y, Z: position.Z},
+		&Renderable{
+			model:          model,
+			scale:          1,
+			tint:           rl.Red,
+			castsShadow:    true,
+			receivesShadow: false,
+		},
+		&TutorialMarker{},
+	)
 }
 
 func tutorialMarkerPosition(artifact *Artifact) (rl.Vector3, bool) {
@@ -310,6 +356,26 @@ func tutorialMarkerPosition(artifact *Artifact) (rl.Vector3, bool) {
 	worldZ := artifact.Chunk.OriginZ + artifact.CenterZ/float32(terrainTexturePixelsPerTile)
 	worldY := artifact.Chunk.HeightAtWorldPosition(worldX, worldZ) + tutorialArtifactMarkerLift
 	return rl.NewVector3(worldX, worldY, worldZ), true
+}
+
+func chargingPadTutorialMarkerPosition(game *Game) (rl.Vector3, bool) {
+	if game == nil || game.chunkManager == nil {
+		return rl.Vector3{}, false
+	}
+
+	for _, chunk := range game.chunkManager.Chunks() {
+		for _, placement := range chunk.Data.Models {
+			if placement.Name != chargingPadModelName {
+				continue
+			}
+
+			position := chunkModelPlacementPosition(chunk, placement)
+			position.Y += tutorialArtifactMarkerLift
+			return position, true
+		}
+	}
+
+	return rl.Vector3{}, false
 }
 
 func (system *TutorialSystem) droneIsNearMarker() bool {
@@ -335,7 +401,7 @@ func xzVector(position rl.Vector3) rl.Vector2 {
 	return rl.NewVector2(position.X, position.Z)
 }
 
-func (system *TutorialSystem) removeArtifactMarkers(game *Game) {
+func (system *TutorialSystem) removeTutorialMarkers(game *Game) {
 	query := system.markerFilter.Query()
 	defer query.Close()
 
@@ -347,6 +413,7 @@ func (system *TutorialSystem) removeArtifactMarkers(game *Game) {
 	for _, entity := range entities {
 		game.world.RemoveEntity(entity)
 	}
+	system.markersSpawned = false
 }
 
 func (system *TutorialSystem) captureInitialDronePosition() {

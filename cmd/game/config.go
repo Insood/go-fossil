@@ -80,6 +80,7 @@ const (
 	tutorialFireLaserTextureName               = "tutorial_04"
 	tutorialCutOutFossilAnimationName          = "tutorial_laser01"
 	tutorialArtifactMarkerModelName            = "tutorial_cone"
+	chargingPadModelName                       = "charging_pad"
 
 	generatedArtifactEdgeMarginPixels   = 96
 	generatedArtifactMinCenterGapPixels = 160

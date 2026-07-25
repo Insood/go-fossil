@@ -10,10 +10,11 @@ import (
 )
 
 type RenderSystem3D struct {
-	filter      *ecs.Filter2[Position3, Renderable]
-	lightFilter *ecs.Filter1[Light]
-	droneFilter *ecs.Filter2[Position3, Drone]
-	laserFilter *ecs.Filter3[Position3, Drone, Laser]
+	filter            *ecs.Filter2[Position3, Renderable]
+	lightFilter       *ecs.Filter1[Light]
+	droneFilter       *ecs.Filter2[Position3, Drone]
+	laserFilter       *ecs.Filter3[Position3, Drone, Laser]
+	skipDroneViewport bool
 }
 
 func (system *RenderSystem3D) Initialize(game *Game) {
@@ -31,7 +32,9 @@ func (system *RenderSystem3D) Update(game *Game) {
 	}
 
 	system.renderScenePass(game)
-	system.renderDroneViewportPass(game)
+	if !system.skipDroneViewport {
+		system.renderDroneViewportPass(game)
+	}
 }
 
 func (system *RenderSystem3D) Unload() {}

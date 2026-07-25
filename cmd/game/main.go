@@ -13,21 +13,27 @@ func main() {
 
 	rl.SetTargetFPS(targetFPS)
 
-	splash := InitializeSplashScreen()
+	assets := NewAssetManager()
+	assets.Load()
+	defer assets.Unload()
+
+	splash := InitializeSplashScreen(assets)
 	for !rl.WindowShouldClose() && !splash.StartRequested {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.SkyBlue)
 		splash.UpdateSystems()
 		rl.EndDrawing()
 	}
-	splash.Unload()
 
 	if rl.WindowShouldClose() {
+		splash.Unload()
 		return
 	}
 
-	game := InitializeGame()
-	defer game.UnloadAssets()
+	splash.Unload()
+
+	game := InitializeGame(assets)
+	defer game.Unload()
 
 	for !rl.WindowShouldClose() && game.Running {
 		rl.BeginDrawing()

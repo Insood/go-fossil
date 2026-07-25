@@ -20,10 +20,8 @@ type Game struct {
 	Running           bool
 }
 
-func InitializeGame() *Game {
+func InitializeGame(assets *AssetManager) *Game {
 	world := ecs.NewWorld()
-	assets := NewAssetManager()
-	assets.Load()
 	artifactManager := NewArtifactManager()
 	chunkManager := NewChunkManager(world, assets, artifactManager)
 	defaultChunkCoords := ChunkCoords{X: 0, Z: 0}
@@ -197,11 +195,18 @@ func (game *Game) UnloadSystems() {
 	}
 }
 
-func (game *Game) UnloadAssets() {
+func (game *Game) Unload() {
 	game.UnloadSystems()
-	game.chunkManager.Unload()
-	game.artifactManager.Unload()
-	game.droneFramebuffer.Unload()
-	game.shadowFramebuffer.Unload()
-	game.assets.Unload()
+	if game.chunkManager != nil {
+		game.chunkManager.Unload()
+	}
+	if game.artifactManager != nil {
+		game.artifactManager.Unload()
+	}
+	if game.droneFramebuffer != nil {
+		game.droneFramebuffer.Unload()
+	}
+	if game.shadowFramebuffer != nil {
+		game.shadowFramebuffer.Unload()
+	}
 }

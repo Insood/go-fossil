@@ -12,17 +12,17 @@ Read these files first:
 ## Code Shape
 
 - `cmd/game` is the executable game and owns most gameplay code.
-- `cmd/game/splash_*.go` defines the separate ECS-backed splash screen shown before gameplay initialization.
+- `cmd/game/splash_*.go` defines the ECS-backed generated terrain scene shown before gameplay initialization.
 - `cmd/game/components.go` defines ECS components.
 - `cmd/game/*_system.go` contains one system per file.
 - `cmd/game/config.go` stores gameplay constants and tuning values.
-- `cmd/game/game.go` owns initialization, system order, and asset lifecycle.
+- `cmd/game/main.go` owns the shared `AssetManager` lifecycle; `cmd/game/game.go` owns gameplay initialization, system order, and scene-local teardown.
 - `internal/terrain` owns terrain chunk parsing, validation, mesh data, baked texture generation, and terrain sampling helpers.
 
 ## Current Game
 
 - The game uses an ECS architecture with `mlange-42/ark`.
-- Application startup first runs an asset-free splash screen with its own Ark world and system lifecycle. Pressing Space or gamepad A unloads the splash and initializes the gameplay world.
+- Application startup first runs a splash scene with its own Ark world, nine randomly generated chunks centered on `(0,0)`, a hovering non-player-controlled drone, fixed gameplay camera framing, and splash text. Pressing Space or gamepad A unloads the splash runtime scene and initializes the gameplay world.
 - The world is 3D and rendered with an orthographic main camera for an isometric-style presentation.
 - The player controls one drone with keyboard or gamepad movement.
 - The drone has a battery charge that constantly drains, gates laser firing, and is shown above the drone viewport. Flight drain increases with carried cargo weight and while moving.
@@ -66,7 +66,7 @@ Systems are registered in this order in `cmd/game/game.go`:
 
 All systems implement `Initialize`, `Update`, and `Unload`. The main loop snapshots raylib's frame time into `Game.FrameTime` before each system update pass, so systems use one consistent delta per frame. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while the fragment pickup system releases all generated fragment models still in the world and the drop-off system releases generated models that remain in flight.
 
-Before these gameplay systems are created, the splash screen runs its own input and render systems against a separate Ark world. Splash systems initialize in registration order and unload in reverse order before `InitializeGame` loads gameplay assets.
+Before these gameplay systems are created, the splash runs `DroneHeightSystem`, `LightSystem`, and `RenderSystem3D` against its temporary world, followed by its own input and text-render systems. The 3D renderer omits the drone viewport pass. Splash systems initialize in registration order and unload in reverse order; generated chunks, their GPU resources, the shadow framebuffer, managers, entities, and the world are destroyed before gameplay loads the authored default chunk. `main` owns the disk-loaded `AssetManager`, lends it to each scene, and unloads it once after the active scene is torn down.
 
 Important ownership notes:
 

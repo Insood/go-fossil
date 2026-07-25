@@ -48,6 +48,23 @@ func TestGameUnloadsSystemsInReverseOrder(t *testing.T) {
 	}
 }
 
+func TestGameUnloadToleratesMissingOptionalResources(t *testing.T) {
+	t.Parallel()
+
+	unloaded := make([]int, 0, 1)
+	game := &Game{
+		systems: []System{
+			&stubSystem{id: 1, unloadOrder: &unloaded},
+		},
+	}
+
+	game.Unload()
+
+	if len(unloaded) != 1 || unloaded[0] != 1 {
+		t.Fatalf("unloaded systems = %v, want [1]", unloaded)
+	}
+}
+
 type stubSystem struct {
 	id          int
 	unloadOrder *[]int

@@ -126,6 +126,7 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
+	drone := ecs.NewMap2[Position3, Drone](world).NewEntity(&Position3{}, &Drone{})
 	mapper := ecs.NewMap4[Position3, Renderable, ArtifactFragmentDropOffComponent, MovementAnimationComponent](world)
 	first := mapper.NewEntity(
 		&Position3{},
@@ -176,15 +177,37 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 	if got, want := game.TotalScore, 22; got != want {
 		t.Fatalf("total score after first arrival = %d, want %d", got, want)
 	}
+	recharge := ecs.NewMap[BatteryRecharge](world).Get(drone)
+	if recharge == nil {
+		t.Fatal("battery recharge was not added to the drone")
+	}
+	if got, want := recharge.Charge, float32(17)*batteryScoreModifier; got != want {
+		t.Fatalf("battery recharge after first arrival = %v, want %v", got, want)
+	}
+
+	ecs.NewMap3[Position3, Renderable, ArtifactFragmentDropOffComponent](world).NewEntity(
+		&Position3{},
+		&Renderable{model: &rl.Model{}, scale: 1},
+		&ArtifactFragmentDropOffComponent{
+			fragment: &ArtifactFragment{ID: 3, Score: 100, DroppedOff: true},
+		},
+	)
+	system.completeFlights(game)
+	if got, want := recharge.Charge, float32(117)*batteryScoreModifier; got != want {
+		t.Fatalf("accumulated battery recharge = %v, want %v", got, want)
+	}
+	if got, want := game.TotalScore, 122; got != want {
+		t.Fatalf("total score after second arrival = %d, want %d", got, want)
+	}
 
 	system.Unload()
 	if world.Alive(second) {
 		t.Fatal("in-flight drop-off entity is still alive after unload")
 	}
-	if got, want := unloadCount, 2; got != want {
+	if got, want := unloadCount, 3; got != want {
 		t.Fatalf("model unload count after system unload = %d, want %d", got, want)
 	}
-	if got, want := game.TotalScore, 22; got != want {
+	if got, want := game.TotalScore, 122; got != want {
 		t.Fatalf("total score after unloading in-flight fragment = %d, want %d", got, want)
 	}
 }

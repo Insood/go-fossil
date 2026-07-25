@@ -6,15 +6,16 @@ import (
 )
 
 type ArtifactFragmentDropOffSystem struct {
-	filter            *ecs.Filter3[Position3, Renderable, ArtifactFragmentDropOffComponent]
-	droneFilter       *ecs.Filter2[Position3, Drone]
-	chargingPadFilter *ecs.Filter2[Position3, ChargingPad]
-	mapper            *ecs.Map4[Position3, Renderable, ArtifactFragmentDropOffComponent, MovementAnimationComponent]
-	movementMap       *ecs.Map[MovementAnimationComponent]
-	world             *ecs.World
-	timeSinceEject    float32
-	newModel          func(*ArtifactFragment) *rl.Model
-	unloadModel       func(rl.Model)
+	filter             *ecs.Filter3[Position3, Renderable, ArtifactFragmentDropOffComponent]
+	droneFilter        *ecs.Filter2[Position3, Drone]
+	chargingPadFilter  *ecs.Filter2[Position3, ChargingPad]
+	mapper             *ecs.Map4[Position3, Renderable, ArtifactFragmentDropOffComponent, MovementAnimationComponent]
+	movementMap        *ecs.Map[MovementAnimationComponent]
+	batteryRechargeMap *ecs.Map[BatteryRecharge]
+	world              *ecs.World
+	timeSinceEject     float32
+	newModel           func(*ArtifactFragment) *rl.Model
+	unloadModel        func(rl.Model)
 }
 
 func (system *ArtifactFragmentDropOffSystem) Initialize(game *Game) {
@@ -23,6 +24,7 @@ func (system *ArtifactFragmentDropOffSystem) Initialize(game *Game) {
 	system.chargingPadFilter = ecs.NewFilter2[Position3, ChargingPad](game.world)
 	system.mapper = ecs.NewMap4[Position3, Renderable, ArtifactFragmentDropOffComponent, MovementAnimationComponent](game.world)
 	system.movementMap = ecs.NewMap[MovementAnimationComponent](game.world)
+	system.batteryRechargeMap = ecs.NewMap[BatteryRecharge](game.world)
 	system.world = game.world
 	system.timeSinceEject = artifactFragmentDropOffDelay
 	if system.newModel == nil {
@@ -67,6 +69,7 @@ func (system *ArtifactFragmentDropOffSystem) Update(game *Game) {
 func (system *ArtifactFragmentDropOffSystem) completeFlights(game *Game) {
 	query := system.filter.Query()
 	completed := make([]ecs.Entity, 0)
+	completedScore := 0
 	for query.Next() {
 		_, renderable, dropOff := query.Get()
 		if system.movementMap.Get(query.Entity()) != nil {
@@ -74,15 +77,40 @@ func (system *ArtifactFragmentDropOffSystem) completeFlights(game *Game) {
 		}
 
 		game.TotalScore += dropOff.fragment.Score
+		completedScore += dropOff.fragment.Score
 		system.unloadModel(*renderable.model)
 		renderable.model = nil
 		completed = append(completed, query.Entity())
 	}
 	query.Close()
 
+	system.addBatteryRecharge(completedScore)
+
 	for _, entity := range completed {
 		game.world.RemoveEntity(entity)
 	}
+}
+
+func (system *ArtifactFragmentDropOffSystem) addBatteryRecharge(score int) {
+	if score <= 0 {
+		return
+	}
+
+	query := system.droneFilter.Query()
+	if !query.Next() {
+		query.Close()
+		return
+	}
+	droneEntity := query.Entity()
+	query.Close()
+
+	additionalCharge := float32(score) * batteryScoreModifier
+	if recharge := system.batteryRechargeMap.Get(droneEntity); recharge != nil {
+		recharge.Charge += additionalCharge
+		return
+	}
+
+	system.batteryRechargeMap.Add(droneEntity, &BatteryRecharge{Charge: additionalCharge})
 }
 
 func (system *ArtifactFragmentDropOffSystem) ejectNext(

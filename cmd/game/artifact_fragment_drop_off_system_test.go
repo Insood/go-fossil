@@ -177,6 +177,9 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 	if got, want := game.TotalScore, 22; got != want {
 		t.Fatalf("total score after first arrival = %d, want %d", got, want)
 	}
+	if got, want := soundPlaybackRequestCount(world), 1; got != want {
+		t.Fatalf("score sound request count after first arrival = %d, want %d", got, want)
+	}
 	recharge := ecs.NewMap[BatteryRecharge](world).Get(drone)
 	if recharge == nil {
 		t.Fatal("battery recharge was not added to the drone")
@@ -198,6 +201,9 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 	}
 	if got, want := game.TotalScore, 122; got != want {
 		t.Fatalf("total score after second arrival = %d, want %d", got, want)
+	}
+	if got, want := soundPlaybackRequestCount(world), 2; got != want {
+		t.Fatalf("score sound request count after second arrival = %d, want %d", got, want)
 	}
 
 	system.Unload()

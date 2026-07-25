@@ -87,6 +87,10 @@ type PlayerControlled struct{}
 
 type GameOver struct{}
 
+type SoundPlaybackRequest struct {
+	Name string
+}
+
 type Battery struct {
 	charge float32
 }

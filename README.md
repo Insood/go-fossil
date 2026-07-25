@@ -79,6 +79,7 @@ make test
   [this Reddit post](https://www.reddit.com/r/SteamDeck/comments/trztvf/my_pixel_art_submission_for_rplace_feel_free_to/).
 - The burning sound is from
   [Freesound Community](https://pixabay.com/sound-effects/film-special-effects-burning-fire-steam-87118/) and has the [Pixabay Content License](https://pixabay.com/service/license-summary/)
+- Score sound by GameAudio (CC0) from https://freesound.org/people/GameAudio/sounds/220173/
 - Grixel Acme 9 Font is by Nikos Giannakopoulos and is licensed under
   [Creative Commons Attribution-NoDerivs 2.5](http://creativecommons.org/licenses/by-nd/2.5/).
 - Cellphone by ?

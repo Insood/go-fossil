@@ -26,6 +26,12 @@ func TestSoundSystemRegistersLoadedSounds(t *testing.T) {
 			t.Fatalf("sound %q playing = true, want false", name)
 		}
 	}
+	if !system.sounds[laserBurningSoundName].stream.Looping {
+		t.Fatal("burning sound looping = false, want true")
+	}
+	if system.sounds["pickup"].stream.Looping {
+		t.Fatal("non-burning sound looping = true, want false")
+	}
 }
 
 func TestSoundSystemStartsAndUpdatesBurningWhileLaserIsActive(t *testing.T) {
@@ -135,14 +141,56 @@ func TestSoundSystemLeavesNonDrivenSoundsStopped(t *testing.T) {
 	}
 }
 
+func TestSoundSystemPlaysQueuedRequestsInOrder(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	requestMapper := ecs.NewMap1[SoundPlaybackRequest](world)
+	requestMapper.NewEntity(&SoundPlaybackRequest{Name: scoreSoundName})
+	requestMapper.NewEntity(&SoundPlaybackRequest{Name: scoreSoundName})
+
+	player := &recordingSoundPlayer{}
+	system := &SoundSystem{player: player}
+	game := &Game{
+		world:  world,
+		assets: testAssetManagerWithSounds(scoreSoundName),
+	}
+	system.Initialize(game)
+
+	system.Update(game)
+
+	scoreID := testSoundID(scoreSoundName)
+	assertSoundCalls(t, "plays after first update", player.plays, []uint32{scoreID})
+	if got, want := system.sounds[scoreSoundName].queued, 1; got != want {
+		t.Fatalf("queued score sounds = %d, want %d", got, want)
+	}
+	if got := soundPlaybackRequestCount(world); got != 0 {
+		t.Fatalf("sound playback request count = %d, want 0", got)
+	}
+
+	player.playing[scoreID] = false
+	system.Update(game)
+
+	assertSoundCalls(t, "plays after second update", player.plays, []uint32{scoreID, scoreID})
+	if got, want := system.sounds[scoreSoundName].queued, 0; got != want {
+		t.Fatalf("queued score sounds = %d, want %d", got, want)
+	}
+}
+
 type recordingSoundPlayer struct {
 	plays   []uint32
 	updates []uint32
 	stops   []uint32
+	playing map[uint32]bool
 }
 
 func (player *recordingSoundPlayer) Play(sound rl.Music) {
-	player.plays = append(player.plays, sound.Stream.SampleRate)
+	id := sound.Stream.SampleRate
+	player.plays = append(player.plays, id)
+	if player.playing == nil {
+		player.playing = make(map[uint32]bool)
+	}
+	player.playing[id] = true
 }
 
 func (player *recordingSoundPlayer) Update(sound rl.Music) {
@@ -150,7 +198,15 @@ func (player *recordingSoundPlayer) Update(sound rl.Music) {
 }
 
 func (player *recordingSoundPlayer) Stop(sound rl.Music) {
-	player.stops = append(player.stops, sound.Stream.SampleRate)
+	id := sound.Stream.SampleRate
+	player.stops = append(player.stops, id)
+	if player.playing != nil {
+		player.playing[id] = false
+	}
+}
+
+func (player *recordingSoundPlayer) IsPlaying(sound rl.Music) bool {
+	return player.playing[sound.Stream.SampleRate]
 }
 
 func testAssetManagerWithSounds(names ...string) *AssetManager {
@@ -183,4 +239,16 @@ func assertSoundCalls(t *testing.T, label string, got, want []uint32) {
 			t.Fatalf("%s = %v, want %v", label, got, want)
 		}
 	}
+}
+
+func soundPlaybackRequestCount(world *ecs.World) int {
+	filter := ecs.NewFilter1[SoundPlaybackRequest](world)
+	query := filter.Query()
+	defer query.Close()
+
+	count := 0
+	for query.Next() {
+		count++
+	}
+	return count
 }

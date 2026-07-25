@@ -12,6 +12,7 @@ type ArtifactFragmentDropOffSystem struct {
 	mapper             *ecs.Map4[Position3, Renderable, ArtifactFragmentDropOffComponent, MovementAnimationComponent]
 	movementMap        *ecs.Map[MovementAnimationComponent]
 	batteryRechargeMap *ecs.Map[BatteryRecharge]
+	soundRequestMap    *ecs.Map[SoundPlaybackRequest]
 	world              *ecs.World
 	timeSinceEject     float32
 	newModel           func(*ArtifactFragment) *rl.Model
@@ -25,6 +26,7 @@ func (system *ArtifactFragmentDropOffSystem) Initialize(game *Game) {
 	system.mapper = ecs.NewMap4[Position3, Renderable, ArtifactFragmentDropOffComponent, MovementAnimationComponent](game.world)
 	system.movementMap = ecs.NewMap[MovementAnimationComponent](game.world)
 	system.batteryRechargeMap = ecs.NewMap[BatteryRecharge](game.world)
+	system.soundRequestMap = ecs.NewMap[SoundPlaybackRequest](game.world)
 	system.world = game.world
 	system.timeSinceEject = artifactFragmentDropOffDelay
 	if system.newModel == nil {
@@ -87,6 +89,7 @@ func (system *ArtifactFragmentDropOffSystem) completeFlights(game *Game) {
 	system.addBatteryRecharge(completedScore)
 
 	for _, entity := range completed {
+		system.soundRequestMap.NewEntity(&SoundPlaybackRequest{Name: scoreSoundName})
 		game.world.RemoveEntity(entity)
 	}
 }

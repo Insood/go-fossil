@@ -27,9 +27,38 @@ func TestGameTickAdvancesOncePerUpdate(t *testing.T) {
 	}
 }
 
-type stubSystem struct{}
+func TestGameUnloadsSystemsInReverseOrder(t *testing.T) {
+	t.Parallel()
+
+	unloadOrder := make([]int, 0, 3)
+	game := &Game{}
+	game.systems = []System{
+		&stubSystem{id: 1, unloadOrder: &unloadOrder},
+		&stubSystem{id: 2, unloadOrder: &unloadOrder},
+		&stubSystem{id: 3, unloadOrder: &unloadOrder},
+	}
+
+	game.UnloadSystems()
+
+	want := []int{3, 2, 1}
+	for i := range want {
+		if got := unloadOrder[i]; got != want[i] {
+			t.Fatalf("unload order[%d] = %d, want %d", i, got, want[i])
+		}
+	}
+}
+
+type stubSystem struct {
+	id          int
+	unloadOrder *[]int
+}
 
 func (system *stubSystem) Initialize(*Game) {}
 
 func (system *stubSystem) Update(*Game) {}
 
+func (system *stubSystem) Unload() {
+	if system.unloadOrder != nil {
+		*system.unloadOrder = append(*system.unloadOrder, system.id)
+	}
+}

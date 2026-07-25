@@ -187,7 +187,14 @@ func (game *Game) UpdateSystems() {
 	game.Tick++
 }
 
+func (game *Game) UnloadSystems() {
+	for i := len(game.systems) - 1; i >= 0; i-- {
+		game.systems[i].Unload()
+	}
+}
+
 func (game *Game) UnloadAssets() {
+	game.UnloadSystems()
 	game.chunkManager.Unload()
 	game.artifactManager.Unload()
 	game.droneFramebuffer.Unload()

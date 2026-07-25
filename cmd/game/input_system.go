@@ -15,3 +15,5 @@ func (system *InputSystem) Update(game *Game) {
 		game.Running = false
 	}
 }
+
+func (system *InputSystem) Unload() {}

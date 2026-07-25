@@ -27,6 +27,8 @@ func (system *UserInterfaceSystem) Update(game *Game) {
 	system.drawArtifactFragments()
 }
 
+func (system *UserInterfaceSystem) Unload() {}
+
 func (system *UserInterfaceSystem) drawTotalScore(game *Game) {
 	rl.DrawText(fmt.Sprintf("Total Score: %d", game.TotalScore), totalScoreTextX, totalScoreTextY, 24, rl.White)
 }

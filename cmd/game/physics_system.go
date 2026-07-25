@@ -25,3 +25,5 @@ func (system *PhysicsSystem) Update(game *Game) {
 		position.Z += velocity.Z * dt
 	}
 }
+
+func (system *PhysicsSystem) Unload() {}

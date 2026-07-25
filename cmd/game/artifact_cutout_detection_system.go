@@ -47,6 +47,8 @@ func (system *ArtifactCutoutDetectionSystem) Update(game *Game) {
 	system.damageMap.RemoveBatch(system.filter.Batch(), nil)
 }
 
+func (system *ArtifactCutoutDetectionSystem) Unload() {}
+
 func detectArtifactRegions(data *ArtifactData) []artifactRegion {
 	clone := data.Clone()
 	bounds := clone.Bounds()

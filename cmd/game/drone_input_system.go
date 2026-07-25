@@ -61,6 +61,8 @@ func (system *DroneInputSystem) Update(game *Game) {
 	}
 }
 
+func (system *DroneInputSystem) Unload() {}
+
 func clampDroneVelocityToTerrainBounds(position Position3, velocity Velocity3, dt float32, chunkManager *ChunkManager) Velocity3 {
 	if dt <= 0 {
 		return velocity

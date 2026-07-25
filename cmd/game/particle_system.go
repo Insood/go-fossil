@@ -33,6 +33,8 @@ func (system *ParticleSystem) Update(game *Game) {
 	}
 }
 
+func (system *ParticleSystem) Unload() {}
+
 func updateParticle(particle *Particle, renderable *Renderable, dt float32) bool {
 	particle.age += dt
 	progress := particle.age / particle.lifespan

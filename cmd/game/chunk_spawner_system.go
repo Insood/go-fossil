@@ -43,6 +43,8 @@ func (system *ChunkSpawnerSystem) Update(game *Game) {
 	system.lastScore = game.TotalScore
 }
 
+func (system *ChunkSpawnerSystem) Unload() {}
+
 func nextChunkSpawnCoords(chunks []*TerrainChunk, rng *rand.Rand) (ChunkCoords, bool) {
 	if len(chunks) == 0 {
 		return ChunkCoords{}, false

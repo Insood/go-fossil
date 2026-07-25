@@ -63,3 +63,5 @@ func (system *CameraSystem) Update(game *Game) {
 	game.camera.Target = rl.NewVector3(system.focus.X, system.focus.Y, system.focus.Z)
 	game.camera.Position = rl.Vector3Add(game.camera.Target, system.offset)
 }
+
+func (system *CameraSystem) Unload() {}

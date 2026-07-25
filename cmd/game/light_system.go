@@ -40,3 +40,5 @@ func (system *LightSystem) Update(game *Game) {
 		light.camera.Projection = rl.CameraOrthographic
 	}
 }
+
+func (system *LightSystem) Unload() {}

@@ -70,6 +70,8 @@ func (system *LaserSystem) Update(game *Game) {
 	system.applyBurnTargets(game, burnTargets)
 }
 
+func (system *LaserSystem) Unload() {}
+
 func laserBurnCursors(control DroneFireControl) []rl.Vector2 {
 	if !control.lastFiring {
 		return []rl.Vector2{control.cursor}

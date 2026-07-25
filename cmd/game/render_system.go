@@ -34,6 +34,8 @@ func (system *RenderSystem3D) Update(game *Game) {
 	system.renderDroneViewportPass(game)
 }
 
+func (system *RenderSystem3D) Unload() {}
+
 func (system *RenderSystem3D) renderShadowPass(game *Game) {
 	lightCamera, ok := system.lightCamera()
 	if !ok {

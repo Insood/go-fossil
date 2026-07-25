@@ -30,6 +30,8 @@ func (system *DebugRenderSystem2D) Update(game *Game) {
 	system.drawShadowControls()
 }
 
+func (system *DebugRenderSystem2D) Unload() {}
+
 func (system *DebugRenderSystem2D) drawShadowControls() {
 	const (
 		panelWidth   = 356

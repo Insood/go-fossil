@@ -56,6 +56,8 @@ func (system *TutorialSystem) Update(game *Game) {
 	system.updatePromptAnimationTime()
 }
 
+func (system *TutorialSystem) Unload() {}
+
 func (system *TutorialSystem) updatePromptAnimationTime() {
 	if system.state.currentStep != tutorialStepCutOutFossil {
 		system.promptAnimationTime = 0

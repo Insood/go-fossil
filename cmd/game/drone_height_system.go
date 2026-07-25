@@ -25,3 +25,5 @@ func (system *DroneHeightSystem) Update(game *Game) {
 		position.Y = game.chunkManager.SampleHeight(position.X, position.Z) + droneCenterY + hoverOffset
 	}
 }
+
+func (system *DroneHeightSystem) Unload() {}

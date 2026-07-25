@@ -60,6 +60,8 @@ func (system *SoundSystem) Update(game *Game) {
 	system.setPlaying(laserBurningSoundName, system.anyLaserActive())
 }
 
+func (system *SoundSystem) Unload() {}
+
 func (system *SoundSystem) anyLaserActive() bool {
 	query := system.laserFilter.Query()
 	defer query.Close()

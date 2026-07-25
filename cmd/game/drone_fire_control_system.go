@@ -53,6 +53,8 @@ func (system *DroneFireControlSystem) Update(game *Game) {
 	}
 }
 
+func (system *DroneFireControlSystem) Unload() {}
+
 func (system *DroneFireControlSystem) clearFireControlState() {
 	query := system.filter.Query()
 	defer query.Close()

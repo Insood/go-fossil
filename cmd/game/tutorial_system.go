@@ -140,7 +140,7 @@ func (system *TutorialSystem) updateFireLaserStep(game *Game) {
 }
 
 func (system *TutorialSystem) updateCutOutFossilStep(game *Game) {
-	if game.artifactManager == nil || game.artifactManager.FragmentCount() == 0 {
+	if game.artifactManager == nil || game.artifactManager.CollectedFragmentCount() == 0 {
 		return
 	}
 

@@ -229,7 +229,7 @@ func TestTutorialStepFourStartsCutOutFossilStepWhenLaserIsActive(t *testing.T) {
 	}
 }
 
-func TestTutorialStepFiveWaitsForArtifactFragmentThenStartsReturnHome(t *testing.T) {
+func TestTutorialStepFiveWaitsForCollectedArtifactFragmentThenStartsReturnHome(t *testing.T) {
 	t.Parallel()
 
 	system := &TutorialSystem{}
@@ -247,8 +247,14 @@ func TestTutorialStepFiveWaitsForArtifactFragmentThenStartsReturnHome(t *testing
 
 	game.artifactManager.fragments[1] = &ArtifactFragment{ID: 1}
 	system.updateCurrentStep(game)
+	if got, want := system.state.currentStep, tutorialStepCutOutFossil; got != want {
+		t.Fatalf("current step = %d, want %d while fragment pickup is in flight", got, want)
+	}
+
+	game.artifactManager.fragments[1].Collected = true
+	system.updateCurrentStep(game)
 	if got, want := system.state.currentStep, tutorialStepReturnHome; got != want {
-		t.Fatalf("current step = %d, want %d after fragment exists", got, want)
+		t.Fatalf("current step = %d, want %d after fragment is collected", got, want)
 	}
 }
 

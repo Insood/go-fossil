@@ -6,12 +6,14 @@ import (
 	"image/color"
 	"os"
 
+	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
 )
 
 type ArtifactCutoutDetectionSystem struct {
-	filter    *ecs.Filter2[TerrainChunkComponent, TerrainChunkDamaged]
-	damageMap *ecs.Map[TerrainChunkDamaged]
+	filter        *ecs.Filter2[TerrainChunkComponent, TerrainChunkDamaged]
+	damageMap     *ecs.Map[TerrainChunkDamaged]
+	pickupSpawner *ArtifactFragmentPickupSpawnerFactory
 }
 
 type artifactRegion struct {
@@ -21,9 +23,15 @@ type artifactRegion struct {
 	bounds image.Rectangle
 }
 
+type artifactRegionCutout struct {
+	chunk  *TerrainChunk
+	region artifactRegion
+}
+
 func (system *ArtifactCutoutDetectionSystem) Initialize(game *Game) {
 	system.filter = ecs.NewFilter2[TerrainChunkComponent, TerrainChunkDamaged](game.world)
 	system.damageMap = ecs.NewMap[TerrainChunkDamaged](game.world)
+	system.pickupSpawner = NewArtifactFragmentPickupSpawnerFactory(game.world)
 }
 
 func (system *ArtifactCutoutDetectionSystem) Update(game *Game) {
@@ -32,16 +40,24 @@ func (system *ArtifactCutoutDetectionSystem) Update(game *Game) {
 	}
 
 	query := system.filter.Query()
-	defer query.Close()
+	cutouts := make([]artifactRegionCutout, 0)
 	for query.Next() {
 		chunkComponent, _ := query.Get()
 		fmt.Fprintf(os.Stdout, "terrain chunk damaged: %s\n", chunkComponent.Chunk.Coords.String())
 		for _, region := range detectArtifactRegions(chunkComponent.Chunk.ArtifactData) {
 			fmt.Fprintf(os.Stdout, "artifact region %d size: %d\n", region.tag, region.size)
 			if region.size < MaximumRegionSize {
-				applyArtifactRegion(game, game.artifactManager, chunkComponent.Chunk, region)
+				cutouts = append(cutouts, artifactRegionCutout{
+					chunk:  chunkComponent.Chunk,
+					region: region,
+				})
 			}
 		}
+	}
+	query.Close()
+
+	for _, cutout := range cutouts {
+		applyArtifactRegion(game.artifactManager, system.pickupSpawner, cutout.chunk, cutout.region)
 	}
 
 	system.damageMap.RemoveBatch(system.filter.Batch(), nil)
@@ -117,11 +133,16 @@ func floodFillArtifactRegionWithPoints(data *ArtifactData, startX, startY int, t
 	return region
 }
 
-func applyArtifactRegion(game *Game, manager *ArtifactManager, chunk *TerrainChunk, region artifactRegion) {
+func applyArtifactRegion(
+	manager *ArtifactManager,
+	pickupSpawner *ArtifactFragmentPickupSpawnerFactory,
+	chunk *TerrainChunk,
+	region artifactRegion,
+) {
 	score := scoreArtifactRegion(manager, chunk, region)
 	fragment := manager.CreateFragmentFromRegionWithScore(chunk.SurfaceTexture.BaseImage, chunk.ArtifactImage, region.bounds, region.points, score)
 	if fragment != nil {
-		game.TotalScore += fragment.Score
+		pickupSpawner.Spawn(fragment, artifactFragmentPickupPosition(chunk, region.bounds))
 	}
 
 	for _, point := range region.points {
@@ -132,6 +153,13 @@ func applyArtifactRegion(game *Game, manager *ArtifactManager, chunk *TerrainChu
 
 	chunk.uploadArtifactImageRect(region.bounds)
 	chunk.uploadBurnOverlayRect(region.bounds)
+}
+
+func artifactFragmentPickupPosition(chunk *TerrainChunk, bounds image.Rectangle) rl.Vector3 {
+	worldX := chunk.OriginX + float32(bounds.Min.X+bounds.Max.X)/(2*float32(terrainTexturePixelsPerTile))
+	worldZ := chunk.OriginZ + float32(bounds.Min.Y+bounds.Max.Y)/(2*float32(terrainTexturePixelsPerTile))
+	worldY := chunk.HeightAtWorldPosition(worldX, worldZ) + artifactFragmentPickupGroundLift
+	return rl.NewVector3(worldX, worldY, worldZ)
 }
 
 func scoreArtifactRegion(manager *ArtifactManager, chunk *TerrainChunk, region artifactRegion) float64 {

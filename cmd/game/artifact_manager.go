@@ -43,6 +43,21 @@ func (manager *ArtifactManager) FragmentCount() int {
 	return len(manager.fragments)
 }
 
+func (manager *ArtifactManager) CollectedFragmentCount() int {
+	if manager == nil {
+		return 0
+	}
+
+	count := 0
+	for _, fragment := range manager.fragments {
+		if fragment.Collected {
+			count++
+		}
+	}
+
+	return count
+}
+
 func (manager *ArtifactManager) Artifacts() []*Artifact {
 	if manager == nil || len(manager.artifacts) == 0 {
 		return nil

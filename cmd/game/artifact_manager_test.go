@@ -62,6 +62,14 @@ func TestArtifactManagerFragmentCount(t *testing.T) {
 	if got, want := manager.FragmentCount(), 1; got != want {
 		t.Fatalf("fragment count = %d, want %d", got, want)
 	}
+	if got, want := manager.CollectedFragmentCount(), 0; got != want {
+		t.Fatalf("collected fragment count = %d, want %d", got, want)
+	}
+
+	manager.fragments[1].Collected = true
+	if got, want := manager.CollectedFragmentCount(), 1; got != want {
+		t.Fatalf("collected fragment count = %d, want %d", got, want)
+	}
 }
 
 func TestCreateFragmentFromRegionUsesExactPixels(t *testing.T) {

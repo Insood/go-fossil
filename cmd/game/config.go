@@ -56,15 +56,19 @@ const (
 	droneBatteryBarGap     = 6
 	droneBatteryBarPadding = 1
 
-	artifactFragmentThumbSize    = 64
-	artifactFragmentRowStep      = 70
-	artifactFragmentStartX       = 16
-	artifactFragmentStartY       = 16
-	artifactFragmentTextGap      = 12
-	artifactFragmentDisplayCount = 8
-	artifactFragmentMinPixels    = 20
-	totalScoreTextX              = 16
-	totalScoreTextY              = 16
+	artifactFragmentThumbSize            = 64
+	artifactFragmentRowStep              = 70
+	artifactFragmentStartX               = 16
+	artifactFragmentStartY               = 16
+	artifactFragmentTextGap              = 12
+	artifactFragmentDisplayCount         = 8
+	artifactFragmentMinPixels            = 20
+	artifactFragmentPickupGroundLift     = 0.03
+	artifactFragmentPickupRiseHeight     = 0.75
+	artifactFragmentPickupRiseDuration   = 0.35
+	artifactFragmentPickupHomingDuration = 0.65
+	totalScoreTextX                      = 16
+	totalScoreTextY                      = 16
 
 	tutorialPromptTopY                   int32 = 0
 	tutorialPromptFontSize               int32 = 48

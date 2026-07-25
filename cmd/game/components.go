@@ -43,6 +43,13 @@ type Particle struct {
 	endTint   color.RGBA
 }
 
+type ArtifactFragmentComponent struct {
+	fragment       *ArtifactFragment
+	elapsed        float32
+	startPosition  rl.Vector3
+	raisedPosition rl.Vector3
+}
+
 type TerrainChunkComponent struct {
 	Chunk *TerrainChunk
 }

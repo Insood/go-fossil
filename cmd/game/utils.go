@@ -22,3 +22,14 @@ func minFloat32(a, b float32) float32 {
 
 	return b
 }
+
+func clampFloat32(value, min, max float32) float32 {
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+
+	return value
+}

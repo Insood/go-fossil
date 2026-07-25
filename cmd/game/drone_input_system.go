@@ -16,7 +16,6 @@ func (system *DroneInputSystem) Initialize(game *Game) {
 }
 
 func (system *DroneInputSystem) Update(game *Game) {
-	dt := rl.GetFrameTime()
 	query := system.filter.Query()
 	defer query.Close()
 
@@ -53,7 +52,7 @@ func (system *DroneInputSystem) Update(game *Game) {
 		}
 
 		desiredVelocity := Velocity3{X: input.X, Y: input.Y, Z: input.Z}
-		desiredVelocity = clampDroneVelocityToTerrainBounds(*position, desiredVelocity, dt, game.chunkManager)
+		desiredVelocity = clampDroneVelocityToTerrainBounds(*position, desiredVelocity, game.FrameTime, game.chunkManager)
 
 		velocity.X = desiredVelocity.X
 		velocity.Y = desiredVelocity.Y

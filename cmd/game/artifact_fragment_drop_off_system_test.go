@@ -66,7 +66,7 @@ func TestArtifactFragmentDropOffSystemEjectsCollectedFragmentsInOrder(t *testing
 	}
 	system.Initialize(game)
 
-	system.update(game, 0)
+	system.Update(game)
 	if !manager.fragments[1].DroppedOff {
 		t.Fatal("oldest collected fragment was not ejected immediately")
 	}
@@ -76,18 +76,21 @@ func TestArtifactFragmentDropOffSystemEjectsCollectedFragmentsInOrder(t *testing
 
 	dronePosition, _ := droneMapper.Get(droneEntity)
 	dronePosition.X = 7
-	system.update(game, artifactFragmentDropOffDelay-0.01)
+	game.FrameTime = artifactFragmentDropOffDelay - 0.01
+	system.Update(game)
 	if manager.fragments[2].DroppedOff {
 		t.Fatal("second fragment was ejected before the configured delay")
 	}
 
-	system.update(game, 0.01)
+	game.FrameTime = 0.01
+	system.Update(game)
 	if manager.fragments[2].DroppedOff {
 		t.Fatal("second fragment ejected while the drone was away from the charging pad")
 	}
 
 	dronePosition.X = 1.5
-	system.update(game, 0)
+	game.FrameTime = 0
+	system.Update(game)
 	if !manager.fragments[2].DroppedOff {
 		t.Fatal("oldest available fragment did not eject after the drone returned")
 	}
@@ -154,11 +157,11 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 			unloadCount++
 		},
 	}
-	game := &Game{world: world, TotalScore: 5}
+	game := &Game{world: world, TotalScore: 5, FrameTime: 0.25}
 	system.Initialize(game)
 	movementSystem := &MovementAnimationSystem{}
 	movementSystem.Initialize(game)
-	movementSystem.update(0.25)
+	movementSystem.Update(game)
 	system.completeFlights(game)
 
 	if world.Alive(first) {

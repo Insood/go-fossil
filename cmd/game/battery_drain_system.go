@@ -1,7 +1,6 @@
 package main
 
 import (
-	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
 )
 
@@ -15,12 +14,8 @@ func (system *BatteryDrainSystem) Initialize(game *Game) {
 	system.artifactManager = game.artifactManager
 }
 
-func (system *BatteryDrainSystem) Update(_ *Game) {
-	system.update(rl.GetFrameTime())
-}
-
-func (system *BatteryDrainSystem) update(dt float32) {
-	if dt <= 0 {
+func (system *BatteryDrainSystem) Update(game *Game) {
+	if game.FrameTime <= 0 {
 		return
 	}
 
@@ -31,7 +26,7 @@ func (system *BatteryDrainSystem) update(dt float32) {
 	for query.Next() {
 		velocity, _, battery := query.Get()
 		moving := velocity.X != 0 || velocity.Z != 0
-		battery.charge -= droneBatteryDrainPerSecond(cargoWeight, moving) * dt
+		battery.charge -= droneBatteryDrainPerSecond(cargoWeight, moving) * game.FrameTime
 		if battery.charge < 0 {
 			battery.charge = 0
 		}

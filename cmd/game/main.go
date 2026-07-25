@@ -17,6 +17,7 @@ func main() {
 	for !rl.WindowShouldClose() && game.Running {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.SkyBlue)
+		game.FrameTime = rl.GetFrameTime()
 		game.UpdateSystems()
 		rl.EndDrawing()
 	}

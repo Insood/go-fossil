@@ -19,17 +19,13 @@ func (system *MovementAnimationSystem) Initialize(game *Game) {
 	system.world = game.world
 }
 
-func (system *MovementAnimationSystem) Update(*Game) {
-	system.update(rl.GetFrameTime())
-}
-
-func (system *MovementAnimationSystem) update(dt float32) {
+func (system *MovementAnimationSystem) Update(game *Game) {
 	query := system.filter.Query()
 	completed := make([]ecs.Entity, 0)
 	for query.Next() {
 		position, movement := query.Get()
 		target := system.targetPosition(movement)
-		if updateMovementAnimation(movement, position, target, dt) {
+		if updateMovementAnimation(movement, position, target, game.FrameTime) {
 			completed = append(completed, query.Entity())
 		}
 	}

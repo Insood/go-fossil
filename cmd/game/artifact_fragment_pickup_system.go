@@ -30,10 +30,6 @@ func (system *ArtifactFragmentPickupSystem) Initialize(game *Game) {
 }
 
 func (system *ArtifactFragmentPickupSystem) Update(game *Game) {
-	system.update(game)
-}
-
-func (system *ArtifactFragmentPickupSystem) update(game *Game) {
 	droneEntity, dronePosition, ok := system.drone()
 	if !ok {
 		return

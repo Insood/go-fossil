@@ -55,18 +55,18 @@ func (system *TutorialSystem) Initialize(game *Game) {
 func (system *TutorialSystem) Update(game *Game) {
 	system.updateCurrentStep(game)
 	system.drawCurrentStep(game)
-	system.updatePromptAnimationTime()
+	system.updatePromptAnimationTime(game.FrameTime)
 }
 
 func (system *TutorialSystem) Unload() {}
 
-func (system *TutorialSystem) updatePromptAnimationTime() {
+func (system *TutorialSystem) updatePromptAnimationTime(dt float32) {
 	if system.state.currentStep != tutorialStepCutOutFossil {
 		system.promptAnimationTime = 0
 		return
 	}
 
-	system.promptAnimationTime += rl.GetFrameTime()
+	system.promptAnimationTime += dt
 }
 
 func (system *TutorialSystem) updateCurrentStep(game *Game) {

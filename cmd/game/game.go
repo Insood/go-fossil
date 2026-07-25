@@ -14,6 +14,7 @@ type Game struct {
 	shadowFramebuffer *Framebuffer
 	world             *ecs.World
 	systems           []System
+	FrameTime         float32
 	Tick              int
 	TotalScore        int
 	Running           bool

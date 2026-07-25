@@ -1,7 +1,6 @@
 package main
 
 import (
-	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
 )
 
@@ -14,15 +13,14 @@ func (system *PhysicsSystem) Initialize(game *Game) {
 }
 
 func (system *PhysicsSystem) Update(game *Game) {
-	dt := rl.GetFrameTime()
 	query := system.filter.Query()
 	defer query.Close()
 
 	for query.Next() {
 		position, velocity := query.Get()
-		position.X += velocity.X * dt
-		position.Y += velocity.Y * dt
-		position.Z += velocity.Z * dt
+		position.X += velocity.X * game.FrameTime
+		position.Y += velocity.Y * game.FrameTime
+		position.Z += velocity.Z * game.FrameTime
 	}
 }
 

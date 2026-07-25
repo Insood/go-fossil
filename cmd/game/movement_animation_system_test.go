@@ -53,9 +53,10 @@ func TestMovementAnimationSystemCompletesAndRemovesComponent(t *testing.T) {
 		},
 	)
 	system := &MovementAnimationSystem{}
-	system.Initialize(&Game{world: world})
+	game := &Game{world: world}
+	system.Initialize(game)
 
-	system.update(0)
+	system.Update(game)
 
 	position := ecs.NewMap[Position3](world).Get(entity)
 	assertVector3Close(t, rl.Vector3(*position), rl.NewVector3(2, 3, 4))
@@ -82,14 +83,15 @@ func TestMovementAnimationSystemTracksLiveTargetThenUsesFallback(t *testing.T) {
 		},
 	)
 	system := &MovementAnimationSystem{}
-	system.Initialize(&Game{world: world})
+	game := &Game{world: world, FrameTime: 0.5}
+	system.Initialize(game)
 
-	system.update(0.5)
+	system.Update(game)
 	position := positionMap.Get(mover)
 	assertVector3Close(t, rl.Vector3(*position), rl.NewVector3(10, 0, 0))
 
 	world.RemoveEntity(target)
-	system.update(0.5)
+	system.Update(game)
 	position = positionMap.Get(mover)
 	assertVector3Close(t, rl.Vector3(*position), rl.NewVector3(10, 0, 0))
 	if system.movementMap.Has(mover) {
@@ -108,9 +110,10 @@ func TestArtifactFragmentRiseMovementLeavesFragmentReadyAtRaisedPosition(t *test
 		artifactFragmentRiseMovement(start),
 	)
 	system := &MovementAnimationSystem{}
-	system.Initialize(&Game{world: world})
+	game := &Game{world: world, FrameTime: artifactFragmentPickupRiseDuration}
+	system.Initialize(game)
 
-	system.update(artifactFragmentPickupRiseDuration)
+	system.Update(game)
 
 	position := ecs.NewMap[Position3](world).Get(entity)
 	assertVector3Close(t, rl.Vector3(*position), rl.NewVector3(1, 2+artifactFragmentPickupRiseHeight, 3))

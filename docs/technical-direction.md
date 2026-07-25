@@ -109,7 +109,7 @@ Current ECS components:
 
 ## System Ownership
 
-Every `System` implements `Initialize`, `Update`, and `Unload`. `Game` initializes and updates systems in registration order, then unloads them in reverse registration order before manager and asset teardown. Systems with no runtime resources use a no-op `Unload`; the fragment pickup system releases every generated world-fragment plane still active and the drop-off system releases generated plane models that remain in flight.
+Every `System` implements `Initialize`, `Update`, and `Unload`. The main loop snapshots raylib's frame time into `Game.FrameTime` before each system update pass, so every system observes the same delta. `Game` initializes and updates systems in registration order, then unloads them in reverse registration order before manager and asset teardown. Systems with no runtime resources use a no-op `Unload`; the fragment pickup system releases every generated world-fragment plane still active and the drop-off system releases generated plane models that remain in flight.
 
 - Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; aim/firing state in `DroneFireControlSystem`. Drone fire-control cursors are stored as normalized drone viewport coordinates from -1 to 1 on each axis. Debug overlays release drone fire control so the OS cursor can interact with raygui controls.
 - Battery: `BatteryDrainSystem` applies time-based flight drain after movement input updates velocity. The base stationary drain is 0.25 charge per second. Carried weight linearly increases that rate to twice the base at the 12,000-unit cargo limit, then movement doubles the resulting rate. Battery charge is clamped at zero.

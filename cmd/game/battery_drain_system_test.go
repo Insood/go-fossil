@@ -66,18 +66,19 @@ func TestBatteryDrainSystemUsesElapsedTimeAndClampsAtZero(t *testing.T) {
 		&Drone{},
 		&Battery{charge: 0.5},
 	)
-	game := &Game{world: world, artifactManager: manager}
+	game := &Game{world: world, artifactManager: manager, FrameTime: 0.25}
 	system := &BatteryDrainSystem{}
 	system.Initialize(game)
 
-	system.update(0.25)
+	system.Update(game)
 
 	battery := ecs.NewMap[Battery](world).Get(entity)
 	if got, want := battery.charge, float32(0.25); got != want {
 		t.Fatalf("battery charge = %v, want %v", got, want)
 	}
 
-	system.update(1)
+	game.FrameTime = 1
+	system.Update(game)
 	if battery.charge != 0 {
 		t.Fatalf("battery charge = %v, want 0", battery.charge)
 	}

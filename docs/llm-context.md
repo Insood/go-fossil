@@ -62,7 +62,7 @@ Systems are registered in this order in `cmd/game/game.go`:
 20. `DebugRender3DSystem`
 21. `DebugRenderSystem2D`
 
-All systems implement `Initialize`, `Update`, and `Unload`. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while the fragment pickup system releases all generated fragment models still in the world and the drop-off system releases generated models that remain in flight.
+All systems implement `Initialize`, `Update`, and `Unload`. The main loop snapshots raylib's frame time into `Game.FrameTime` before each system update pass, so systems use one consistent delta per frame. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while the fragment pickup system releases all generated fragment models still in the world and the drop-off system releases generated models that remain in flight.
 
 Important ownership notes:
 

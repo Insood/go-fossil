@@ -69,7 +69,7 @@ func TestArtifactFragmentPickupSystemStartsOneNearestReadyFragment(t *testing.T)
 	tieHigherID := addTestWorldFragment(world, &ArtifactFragment{ID: 3, Weight: 10}, rl.NewVector3(0.2, 1, 0))
 	tieLowerID := addTestWorldFragment(world, &ArtifactFragment{ID: 2, Weight: 10}, rl.NewVector3(-0.2, 1, 0))
 
-	system.update(game)
+	system.Update(game)
 
 	if system.pickupMap.Has(farther) {
 		t.Fatal("farther fragment started homing")
@@ -93,19 +93,21 @@ func TestArtifactFragmentPickupSystemTracksMovingDrone(t *testing.T) {
 		t.Fatal("test drone was not found")
 	}
 
-	pickupSystem.update(game)
+	pickupSystem.Update(game)
 	movementSystem := &MovementAnimationSystem{}
 	movementSystem.Initialize(game)
 	dronePosition := ecs.NewMap[Position3](world).Get(droneEntity)
 	*dronePosition = Position3{X: 0.4}
-	movementSystem.update(artifactFragmentPickupHomingDuration / 2)
+	game.FrameTime = artifactFragmentPickupHomingDuration / 2
+	movementSystem.Update(game)
 
 	fragmentPosition := ecs.NewMap[Position3](world).Get(fragmentEntity)
 	want := rl.Vector3Lerp(start, rl.NewVector3(0.4, 0, 0), movementAnimationEasedProgress(0.5, MovementAnimationEaseInCubic))
 	assertVector3Close(t, rl.Vector3(*fragmentPosition), want)
 
 	*dronePosition = Position3{X: 0.5}
-	movementSystem.update(0)
+	game.FrameTime = 0
+	movementSystem.Update(game)
 	fragmentPosition = ecs.NewMap[Position3](world).Get(fragmentEntity)
 	want = rl.Vector3Lerp(start, rl.NewVector3(0.5, 0, 0), movementAnimationEasedProgress(0.5, MovementAnimationEaseInCubic))
 	assertVector3Close(t, rl.Vector3(*fragmentPosition), want)
@@ -126,7 +128,7 @@ func TestArtifactFragmentPickupSystemWaitsForRiseRangeAndCapacity(t *testing.T) 
 	rising := addTestWorldFragment(world, &ArtifactFragment{ID: 4, Weight: 1}, rl.NewVector3(0.05, 1, 0))
 	ecs.NewMap[MovementAnimationComponent](world).Add(rising, &MovementAnimationComponent{duration: 1})
 
-	system.update(game)
+	system.Update(game)
 
 	if !system.pickupMap.Has(exactFit) {
 		t.Fatal("exact-fit fragment did not start homing")
@@ -157,7 +159,7 @@ func TestArtifactFragmentPickupSystemReservesHomingWeight(t *testing.T) {
 	)
 	waiting := addTestWorldFragment(world, &ArtifactFragment{ID: 2, Weight: 1}, rl.NewVector3(0.2, 1, 0))
 
-	system.update(game)
+	system.Update(game)
 
 	if system.pickupMap.Has(waiting) {
 		t.Fatal("waiting fragment ignored weight reserved by homing fragment")
@@ -172,13 +174,13 @@ func TestArtifactFragmentPickupSystemRetriesAfterDropOffFreesCapacity(t *testing
 	game.artifactManager.fragments[carried.ID] = carried
 	waiting := addTestWorldFragment(world, &ArtifactFragment{ID: 2, Weight: 1}, rl.NewVector3(0.2, 1, 0))
 
-	system.update(game)
+	system.Update(game)
 	if system.pickupMap.Has(waiting) {
 		t.Fatal("fragment started while drone was full")
 	}
 
 	carried.DroppedOff = true
-	system.update(game)
+	system.Update(game)
 	if !system.pickupMap.Has(waiting) {
 		t.Fatal("fragment did not start after drop-off freed capacity")
 	}
@@ -196,11 +198,12 @@ func TestArtifactFragmentPickupSystemCollectsWithoutScoringAndRemovesEntity(t *t
 	system.unloadModel = func(rl.Model) {
 		unloadCount++
 	}
-	system.update(game)
+	system.Update(game)
 	movementSystem := &MovementAnimationSystem{}
 	movementSystem.Initialize(game)
-	movementSystem.update(artifactFragmentPickupHomingDuration)
-	system.update(game)
+	game.FrameTime = artifactFragmentPickupHomingDuration
+	movementSystem.Update(game)
+	system.Update(game)
 
 	if world.Alive(entity) {
 		t.Fatal("pickup entity is still alive after completion")

@@ -34,12 +34,8 @@ func (system *ArtifactFragmentDropOffSystem) Initialize(game *Game) {
 }
 
 func (system *ArtifactFragmentDropOffSystem) Update(game *Game) {
-	system.update(game, rl.GetFrameTime())
-}
-
-func (system *ArtifactFragmentDropOffSystem) update(game *Game, dt float32) {
 	system.completeFlights(game)
-	system.timeSinceEject += dt
+	system.timeSinceEject += game.FrameTime
 	if system.timeSinceEject < artifactFragmentDropOffDelay {
 		return
 	}

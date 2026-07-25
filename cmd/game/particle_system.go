@@ -3,7 +3,6 @@ package main
 import (
 	"image/color"
 
-	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
 )
 
@@ -16,13 +15,12 @@ func (system *ParticleSystem) Initialize(game *Game) {
 }
 
 func (system *ParticleSystem) Update(game *Game) {
-	dt := rl.GetFrameTime()
 	query := system.filter.Query()
 	expired := make([]ecs.Entity, 0)
 
 	for query.Next() {
 		particle, renderable := query.Get()
-		if updateParticle(particle, renderable, dt) {
+		if updateParticle(particle, renderable, game.FrameTime) {
 			expired = append(expired, query.Entity())
 		}
 	}

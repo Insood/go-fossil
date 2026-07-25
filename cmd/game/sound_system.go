@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	laserBurningSoundName = "burning"
-	scoreSoundName        = "score"
+	artifactFragmentCreatedSoundName = "pop"
+	laserBurningSoundName            = "burning"
+	scoreSoundName                   = "score"
 )
 
 type SoundSystem struct {

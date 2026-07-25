@@ -6,19 +6,23 @@ import (
 )
 
 type ArtifactFragmentSpawnerFactory struct {
-	mapper *ecs.Map4[Position3, Renderable, ArtifactFragmentComponent, MovementAnimationComponent]
+	mapper          *ecs.Map4[Position3, Renderable, ArtifactFragmentComponent, MovementAnimationComponent]
+	soundRequestMap *ecs.Map[SoundPlaybackRequest]
+	newModel        func(*ArtifactFragment) *rl.Model
 }
 
 func NewArtifactFragmentSpawnerFactory(world *ecs.World) *ArtifactFragmentSpawnerFactory {
 	return &ArtifactFragmentSpawnerFactory{
-		mapper: ecs.NewMap4[Position3, Renderable, ArtifactFragmentComponent, MovementAnimationComponent](world),
+		mapper:          ecs.NewMap4[Position3, Renderable, ArtifactFragmentComponent, MovementAnimationComponent](world),
+		soundRequestMap: ecs.NewMap[SoundPlaybackRequest](world),
+		newModel:        newArtifactFragmentPlaneModel,
 	}
 }
 
 func (factory *ArtifactFragmentSpawnerFactory) Spawn(fragment *ArtifactFragment, position rl.Vector3) ecs.Entity {
-	model := newArtifactFragmentPlaneModel(fragment)
+	model := factory.newModel(fragment)
 
-	return factory.mapper.NewEntity(
+	entity := factory.mapper.NewEntity(
 		&Position3{X: position.X, Y: position.Y, Z: position.Z},
 		&Renderable{
 			model:          model,
@@ -32,6 +36,8 @@ func (factory *ArtifactFragmentSpawnerFactory) Spawn(fragment *ArtifactFragment,
 		},
 		artifactFragmentRiseMovement(position),
 	)
+	factory.soundRequestMap.NewEntity(&SoundPlaybackRequest{Name: artifactFragmentCreatedSoundName})
+	return entity
 }
 
 func artifactFragmentRiseMovement(position rl.Vector3) *MovementAnimationComponent {

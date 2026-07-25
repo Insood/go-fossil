@@ -80,6 +80,7 @@ make test
 - The burning sound is from
   [Freesound Community](https://pixabay.com/sound-effects/film-special-effects-burning-fire-steam-87118/) and has the [Pixabay Content License](https://pixabay.com/service/license-summary/)
 - Score sound by GameAudio (CC0) from https://freesound.org/people/GameAudio/sounds/220173/
+- Pick up sound by quatricise (CC0) from https://freesound.org/people/quatricise/sounds/789793/
 - Grixel Acme 9 Font is by Nikos Giannakopoulos and is licensed under
   [Creative Commons Attribution-NoDerivs 2.5](http://creativecommons.org/licenses/by-nd/2.5/).
 - Cellphone by ?

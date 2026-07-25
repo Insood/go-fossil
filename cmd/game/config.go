@@ -12,14 +12,20 @@ const (
 	windowTitle  = "go-fossil"
 	targetFPS    = 60
 
-	splashTitleText                        = "Fossil hunter"
-	splashTitleFontSize            int32   = 64
-	splashTitleY                   int32   = 280
-	splashStartPromptText                  = "Press Space bar (or A) to start"
-	splashStartPromptFontSize      int32   = 24
-	splashStartPromptY             int32   = 380
-	splashDroneDirectionDuration           = 1.0
-	splashDroneMaximumMoveDistance float32 = 6
+	splashTitleText                         = "Drone Fossil Hunter"
+	splashTitleFontSize             int32   = 64
+	splashTitleY                    int32   = 280
+	splashStartPromptText                   = "Press Space bar (or A) to start"
+	splashStartPromptFontSize       int32   = 24
+	splashStartPromptY              int32   = 380
+	splashDroneDirectionDuration            = 1.0
+	splashDroneMaximumMoveDistance  float32 = 6
+	splashDroneBatteryCharge        float32 = 1_000_000
+	splashDroneFireOffsetLimit      float32 = 0.5
+	splashDroneFireWalkStep         float32 = 0.05
+	splashDroneFireStateDurationMin float32 = 0.2
+	splashDroneFireStateDurationMax float32 = 0.6
+	splashDroneTopSpeed             float32 = 2.0
 
 	terrainTexturePixelsPerTile      = 64
 	terrainRenderSubdivisionsPerTile = 8

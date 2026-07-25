@@ -91,7 +91,7 @@ func (screen *SplashScreen) spawnDrone(centerChunk *TerrainChunk) {
 }
 
 func spawnSplashDrone(world *ecs.World, model *rl.Model, position Position3) ecs.Entity {
-	mapper := ecs.NewMap5[Position3, Velocity3, Renderable, Drone, HoverMotion](world)
+	mapper := ecs.NewMap8[Position3, Velocity3, Renderable, Drone, HoverMotion, Laser, DroneFireTargets, Battery](world)
 	return mapper.NewEntity(
 		&position,
 		&Velocity3{},
@@ -107,6 +107,9 @@ func spawnSplashDrone(world *ecs.World, model *rl.Model, position Position3) ecs
 			amplitude:    droneHoverAmplitude,
 			angularSpeed: droneHoverAngularSpeed,
 		},
+		&Laser{},
+		&DroneFireTargets{},
+		&Battery{charge: splashDroneBatteryCharge},
 	)
 }
 
@@ -115,6 +118,9 @@ func (screen *SplashScreen) registerSceneSystems() {
 	screen.scene.AddSystem(&PhysicsSystem{})
 	screen.scene.AddSystem(&DroneHeightSystem{})
 	screen.scene.AddSystem(&LightSystem{})
+	screen.scene.AddSystem(&SplashScreenDroneFireTargetSystem{})
+	screen.scene.AddSystem(&LaserSystem{})
+	screen.scene.AddSystem(&ParticleSystem{})
 	screen.scene.AddSystem(&RenderSystem3D{skipDroneViewport: true})
 }
 

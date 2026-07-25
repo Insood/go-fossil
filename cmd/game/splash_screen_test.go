@@ -135,10 +135,18 @@ func TestSplashDroneIsSimulatedAndRenderable(t *testing.T) {
 	if velocity == nil || *velocity != (Velocity3{}) {
 		t.Fatalf("initial splash drone velocity = %+v, want zero", velocity)
 	}
+	if ecs.NewMap[Laser](world).Get(entity) == nil {
+		t.Fatal("splash drone is missing Laser")
+	}
+	if ecs.NewMap[DroneFireTargets](world).Get(entity) == nil {
+		t.Fatal("splash drone is missing DroneFireTargets")
+	}
+	battery := ecs.NewMap[Battery](world).Get(entity)
+	if battery == nil || battery.charge != splashDroneBatteryCharge {
+		t.Fatalf("splash drone battery = %+v, want charge %v", battery, splashDroneBatteryCharge)
+	}
 
 	for name, missing := range map[string]bool{
-		"Battery":         ecs.NewMap[Battery](world).Get(entity) == nil,
-		"Laser":           ecs.NewMap[Laser](world).Get(entity) == nil,
 		"PlayerFireInput": ecs.NewMap[PlayerFireInput](world).Get(entity) == nil,
 	} {
 		if !missing {
@@ -154,7 +162,7 @@ func TestSplashRegistersOnlyScenePresentationSystems(t *testing.T) {
 	screen := &SplashScreen{scene: scene}
 	screen.registerSceneSystems()
 
-	if got, want := len(scene.systems), 5; got != want {
+	if got, want := len(scene.systems), 8; got != want {
 		t.Fatalf("splash scene system count = %d, want %d", got, want)
 	}
 	if _, ok := scene.systems[0].(*SplashScreenDroneControlSystem); !ok {
@@ -169,9 +177,18 @@ func TestSplashRegistersOnlyScenePresentationSystems(t *testing.T) {
 	if _, ok := scene.systems[3].(*LightSystem); !ok {
 		t.Fatalf("splash scene system 3 = %T, want *LightSystem", scene.systems[3])
 	}
-	renderSystem, ok := scene.systems[4].(*RenderSystem3D)
+	if _, ok := scene.systems[4].(*SplashScreenDroneFireTargetSystem); !ok {
+		t.Fatalf("splash scene system 4 = %T, want *SplashScreenDroneFireTargetSystem", scene.systems[4])
+	}
+	if _, ok := scene.systems[5].(*LaserSystem); !ok {
+		t.Fatalf("splash scene system 5 = %T, want *LaserSystem", scene.systems[5])
+	}
+	if _, ok := scene.systems[6].(*ParticleSystem); !ok {
+		t.Fatalf("splash scene system 6 = %T, want *ParticleSystem", scene.systems[6])
+	}
+	renderSystem, ok := scene.systems[7].(*RenderSystem3D)
 	if !ok {
-		t.Fatalf("splash scene system 4 = %T, want *RenderSystem3D", scene.systems[4])
+		t.Fatalf("splash scene system 7 = %T, want *RenderSystem3D", scene.systems[7])
 	}
 	if !renderSystem.skipDroneViewport {
 		t.Fatal("splash render system did not skip the drone viewport")

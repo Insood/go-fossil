@@ -94,6 +94,7 @@ const (
 	tutorialArtifactMarkerLift                 = 1.0
 	tutorialArtifactMarkerProximity            = 0.5
 	tutorialLaserMoveThresholdNormalized       = 0.5
+	tutorialCollectMoreDuration                = 5.0
 	tutorialMoveDroneTextureName               = "tutorial_01"
 	tutorialMoveLaserTextureName               = "tutorial_03"
 	tutorialFireLaserTextureName               = "tutorial_04"

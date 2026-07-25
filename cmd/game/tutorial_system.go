@@ -15,6 +15,7 @@ const (
 	tutorialStepFireLaser
 	tutorialStepCutOutFossil
 	tutorialStepReturnHome
+	tutorialStepCollectMore
 )
 
 type TutorialState struct {
@@ -36,6 +37,7 @@ type TutorialSystem struct {
 	initialDronePosition    rl.Vector3
 	initialLaserCursor      rl.Vector2
 	promptAnimationTime     float32
+	stepElapsed             float32
 	hasInitialDronePosition bool
 	hasInitialLaserCursor   bool
 	markersSpawned          bool
@@ -54,6 +56,7 @@ func (system *TutorialSystem) Initialize(game *Game) {
 
 func (system *TutorialSystem) Update(game *Game) {
 	system.updateCurrentStep(game)
+	system.updateTimedStep(game.FrameTime)
 	system.drawCurrentStep(game)
 	system.updatePromptAnimationTime(game.FrameTime)
 }
@@ -83,6 +86,17 @@ func (system *TutorialSystem) updateCurrentStep(game *Game) {
 		system.updateCutOutFossilStep(game)
 	case tutorialStepReturnHome:
 		system.updateReturnHomeStep(game)
+	}
+}
+
+func (system *TutorialSystem) updateTimedStep(dt float32) {
+	if system.state.currentStep != tutorialStepCollectMore {
+		return
+	}
+
+	system.stepElapsed += max(dt, 0)
+	if system.stepElapsed >= tutorialCollectMoreDuration {
+		system.state.currentStep = tutorialStepComplete
 	}
 }
 
@@ -160,7 +174,8 @@ func (system *TutorialSystem) updateReturnHomeStep(game *Game) {
 	}
 
 	system.removeTutorialMarkers(game)
-	system.state.currentStep = tutorialStepComplete
+	system.state.currentStep = tutorialStepCollectMore
+	system.stepElapsed = 0
 }
 
 func (system *TutorialSystem) drawCurrentStep(game *Game) {
@@ -177,6 +192,8 @@ func (system *TutorialSystem) drawCurrentStep(game *Game) {
 		system.drawCutOutFossilPrompt(game)
 	case tutorialStepReturnHome:
 		system.drawReturnHomePrompt()
+	case tutorialStepCollectMore:
+		system.drawCollectMorePrompt()
 	}
 }
 
@@ -248,6 +265,10 @@ func (system *TutorialSystem) drawCutOutFossilPrompt(game *Game) {
 
 func (system *TutorialSystem) drawReturnHomePrompt() {
 	system.drawCenteredPromptText("Return home")
+}
+
+func (system *TutorialSystem) drawCollectMorePrompt() {
+	system.drawCenteredPromptText("Collect more!")
 }
 
 func (system *TutorialSystem) drawCenteredPromptText(text string) {

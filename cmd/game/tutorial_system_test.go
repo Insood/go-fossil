@@ -256,7 +256,7 @@ func TestTutorialStepFiveWaitsForCollectedArtifactFragmentThenStartsReturnHome(t
 	}
 }
 
-func TestTutorialStepSixMarksChargingPadAndCompletesAtProximity(t *testing.T) {
+func TestTutorialStepSixMarksChargingPadAndAdvancesAtProximity(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
@@ -283,6 +283,7 @@ func TestTutorialStepSixMarksChargingPadAndCompletesAtProximity(t *testing.T) {
 	system := &TutorialSystem{}
 	system.Initialize(game)
 	system.state.currentStep = tutorialStepReturnHome
+	system.stepElapsed = 3
 
 	system.updateCurrentStep(game)
 
@@ -305,11 +306,32 @@ func TestTutorialStepSixMarksChargingPadAndCompletesAtProximity(t *testing.T) {
 
 	dronePosition.X = markers[0].position.X + tutorialArtifactMarkerProximity
 	system.updateCurrentStep(game)
-	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
+	if got, want := system.state.currentStep, tutorialStepCollectMore; got != want {
 		t.Fatalf("current step = %d, want %d at charging pad proximity", got, want)
 	}
+	if system.stepElapsed != 0 {
+		t.Fatalf("step elapsed = %v, want 0 after entering collect-more step", system.stepElapsed)
+	}
 	if got := len(tutorialMarkers(system)); got != 0 {
-		t.Fatalf("marker count after tutorial completion = %d, want 0", got)
+		t.Fatalf("marker count after return-home completion = %d, want 0", got)
+	}
+}
+
+func TestTutorialStepSevenCompletesAfterFiveSeconds(t *testing.T) {
+	t.Parallel()
+
+	system := &TutorialSystem{
+		state: TutorialState{currentStep: tutorialStepCollectMore},
+	}
+
+	system.updateTimedStep(tutorialCollectMoreDuration - 0.01)
+	if got, want := system.state.currentStep, tutorialStepCollectMore; got != want {
+		t.Fatalf("current step = %d, want %d before five seconds", got, want)
+	}
+
+	system.updateTimedStep(0.01)
+	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
+		t.Fatalf("current step = %d, want %d after five seconds", got, want)
 	}
 }
 

@@ -68,6 +68,7 @@ const (
 	artifactFragmentStartX               = 16
 	artifactFragmentStartY               = 16
 	artifactFragmentTextGap              = 12
+	artifactFragmentGradeGap             = 8
 	artifactFragmentDisplayCount         = 8
 	artifactFragmentMinPixels            = 20
 	artifactFragmentPickupGroundLift     = 0.03

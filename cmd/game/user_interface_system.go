@@ -143,7 +143,28 @@ func (system *UserInterfaceSystem) drawArtifactFragments() {
 		drawArtifactFragmentThumbnail(fragment, float32(artifactFragmentStartX), rowY, artifactFragmentThumbSize)
 
 		textX := float32(artifactFragmentStartX + artifactFragmentThumbSize + artifactFragmentTextGap)
-		rl.DrawText(fmt.Sprintf("%d", fragment.Score), int32(textX), int32(rowY+22), 20, rl.White)
+		scoreText := fmt.Sprintf("%d", fragment.Score)
+		textY := int32(rowY + 22)
+		rl.DrawText(scoreText, int32(textX), textY, 20, rl.White)
+
+		gradeText, gradeColor := artifactFragmentGradeDisplay(fragment.Grade)
+		gradeX := int32(textX) + rl.MeasureText(scoreText, 20) + artifactFragmentGradeGap
+		rl.DrawText(gradeText, gradeX, textY, 20, gradeColor)
+	}
+}
+
+func artifactFragmentGradeDisplay(grade float64) (string, rl.Color) {
+	switch {
+	case grade >= 1:
+		return "[SUPER]", rl.Gold
+	case grade >= 0.9:
+		return "[A]", rl.Green
+	case grade >= 0.8:
+		return "[B]", rl.Yellow
+	case grade >= 0.7:
+		return "[C]", rl.Orange
+	default:
+		return "[F]", rl.Red
 	}
 }
 

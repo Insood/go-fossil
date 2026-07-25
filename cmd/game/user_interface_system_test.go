@@ -54,6 +54,41 @@ func TestDroneCargoPercentUsesCollectedUndroppedWeight(t *testing.T) {
 	}
 }
 
+func TestArtifactFragmentGradeDisplay(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		grade     float64
+		wantText  string
+		wantColor rl.Color
+	}{
+		{name: "perfect", grade: 1, wantText: "[SUPER]", wantColor: rl.Gold},
+		{name: "a upper bound", grade: 0.999, wantText: "[A]", wantColor: rl.Green},
+		{name: "a lower bound", grade: 0.9, wantText: "[A]", wantColor: rl.Green},
+		{name: "b upper bound", grade: 0.899, wantText: "[B]", wantColor: rl.Yellow},
+		{name: "b lower bound", grade: 0.8, wantText: "[B]", wantColor: rl.Yellow},
+		{name: "c upper bound", grade: 0.799, wantText: "[C]", wantColor: rl.Orange},
+		{name: "c lower bound", grade: 0.7, wantText: "[C]", wantColor: rl.Orange},
+		{name: "f upper bound", grade: 0.699, wantText: "[F]", wantColor: rl.Red},
+		{name: "zero", grade: 0, wantText: "[F]", wantColor: rl.Red},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotText, gotColor := artifactFragmentGradeDisplay(test.grade)
+			if gotText != test.wantText {
+				t.Fatalf("grade text = %q, want %q", gotText, test.wantText)
+			}
+			if gotColor != test.wantColor {
+				t.Fatalf("grade color = %#v, want %#v", gotColor, test.wantColor)
+			}
+		})
+	}
+}
+
 func TestSortedArtifactFragmentsOrdersByID(t *testing.T) {
 	t.Parallel()
 

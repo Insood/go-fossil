@@ -21,7 +21,7 @@ func (system *UserInterfaceSystem) Initialize(game *Game) {
 
 func (system *UserInterfaceSystem) Update(game *Game) {
 	system.drawTotalScore(game)
-	system.drawDroneBattery()
+	system.drawDroneStatusBars()
 	system.drawDroneViewport(game)
 	system.drawDroneReticle()
 	system.drawArtifactFragments()
@@ -54,41 +54,57 @@ func (system *UserInterfaceSystem) drawDroneViewport(game *Game) {
 	)
 }
 
-func (system *UserInterfaceSystem) drawDroneBattery() {
+func (system *UserInterfaceSystem) drawDroneStatusBars() {
 	query := system.filter.Query()
 	defer query.Close()
 
-	barX, barY, barWidth, labelX, labelY := droneBatteryLayout(droneViewportRectangle())
-	fillWidth := int32(0)
-
+	batteryPercent := float32(0)
 	for query.Next() {
 		_, battery := query.Get()
-		chargePercent := clampFloat32(battery.charge/droneBatteryCharge, 0, 1)
-		innerWidth := barWidth - droneBatteryBarPadding*2
-		fillWidth = int32(float32(innerWidth) * chargePercent)
+		batteryPercent = battery.charge / droneBatteryCharge
 		break
 	}
 
-	rl.DrawText("BATTERY", labelX, labelY, droneBatteryLabelFontSize, rl.White)
+	viewport := droneViewportRectangle()
+	drawDroneStatusBar("CARGO", droneCargoPercent(system.artifactManager), rl.Gold, viewport, 1)
+	drawDroneStatusBar("BATTERY", batteryPercent, rl.Lime, viewport, 0)
+}
+
+func drawDroneStatusBar(label string, fillPercent float32, fillColor rl.Color, viewport rl.Rectangle, row int32) {
+	barX, barY, barWidth, labelX, labelY := droneStatusBarLayout(viewport, row)
+	innerWidth := barWidth - droneBatteryBarPadding*2
+	fillWidth := int32(float32(innerWidth) * clampFloat32(fillPercent, 0, 1))
+
+	rl.DrawText(label, labelX, labelY, droneBatteryLabelFontSize, rl.White)
 	rl.DrawRectangle(barX, barY, barWidth, droneBatteryBarHeight, rl.Fade(rl.Black, 0.8))
 	rl.DrawRectangle(
 		barX+droneBatteryBarPadding,
 		barY+droneBatteryBarPadding,
 		fillWidth,
 		droneBatteryBarHeight-droneBatteryBarPadding*2,
-		rl.Lime,
+		fillColor,
 	)
 }
 
-func droneBatteryLayout(viewport rl.Rectangle) (barX, barY, barWidth, labelX, labelY int32) {
-	labelText := "BATTERY"
-	labelWidth := rl.MeasureText(labelText, droneBatteryLabelFontSize)
+func droneStatusBarLayout(viewport rl.Rectangle, row int32) (barX, barY, barWidth, labelX, labelY int32) {
+	labelWidth := rl.MeasureText("BATTERY", droneBatteryLabelFontSize)
 	labelX = int32(viewport.X)
-	barY = int32(viewport.Y) - droneBatteryBarGap - droneBatteryBarHeight
+	barY = int32(viewport.Y) -
+		droneBatteryBarGap -
+		droneBatteryBarHeight -
+		row*(droneBatteryBarHeight+droneBatteryBarGap)
 	labelY = barY + (droneBatteryBarHeight-droneBatteryLabelFontSize)/2
 	barX = labelX + labelWidth + droneBatteryLabelGap
 	barWidth = int32(viewport.Width) - labelWidth - droneBatteryLabelGap + droneBatteryBarExtraWidth
 	return barX, barY, barWidth, labelX, labelY
+}
+
+func droneCargoPercent(manager *ArtifactManager) float32 {
+	return clampFloat32(
+		float32(manager.CarriedFragmentWeight())/float32(droneMaximumCarryWeight),
+		0,
+		1,
+	)
 }
 
 func (system *UserInterfaceSystem) drawDroneReticle() {

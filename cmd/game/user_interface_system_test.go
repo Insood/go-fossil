@@ -1,6 +1,58 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
+)
+
+func TestDroneStatusBarLayoutAlignsCargoAboveBattery(t *testing.T) {
+	t.Parallel()
+
+	viewport := rl.NewRectangle(100, 200, 256, 256)
+	batteryBarX, batteryBarY, batteryBarWidth, batteryLabelX, _ := droneStatusBarLayout(viewport, 0)
+	cargoBarX, cargoBarY, cargoBarWidth, cargoLabelX, _ := droneStatusBarLayout(viewport, 1)
+
+	if cargoBarX != batteryBarX || cargoBarWidth != batteryBarWidth {
+		t.Fatalf(
+			"cargo bar x/width = %d/%d, want battery x/width %d/%d",
+			cargoBarX,
+			cargoBarWidth,
+			batteryBarX,
+			batteryBarWidth,
+		)
+	}
+	if cargoLabelX != batteryLabelX {
+		t.Fatalf("cargo label x = %d, want battery label x %d", cargoLabelX, batteryLabelX)
+	}
+	if got, want := batteryBarY-cargoBarY, int32(droneBatteryBarHeight+droneBatteryBarGap); got != want {
+		t.Fatalf("status bar row distance = %d, want %d", got, want)
+	}
+	if got, want := batteryBarY, int32(viewport.Y)-droneBatteryBarGap-droneBatteryBarHeight; got != want {
+		t.Fatalf("battery bar y = %d, want %d", got, want)
+	}
+}
+
+func TestDroneCargoPercentUsesCollectedUndroppedWeight(t *testing.T) {
+	t.Parallel()
+
+	manager := NewArtifactManager()
+	if got := droneCargoPercent(manager); got != 0 {
+		t.Fatalf("empty cargo percent = %v, want 0", got)
+	}
+
+	manager.fragments[1] = &ArtifactFragment{ID: 1, Weight: droneMaximumCarryWeight / 4, Collected: true}
+	manager.fragments[2] = &ArtifactFragment{ID: 2, Weight: droneMaximumCarryWeight, Collected: false}
+	manager.fragments[3] = &ArtifactFragment{ID: 3, Weight: droneMaximumCarryWeight, Collected: true, DroppedOff: true}
+	if got, want := droneCargoPercent(manager), float32(0.25); got != want {
+		t.Fatalf("partial cargo percent = %v, want %v", got, want)
+	}
+
+	manager.fragments[4] = &ArtifactFragment{ID: 4, Weight: droneMaximumCarryWeight, Collected: true}
+	if got := droneCargoPercent(manager); got != 1 {
+		t.Fatalf("over-capacity cargo percent = %v, want 1", got)
+	}
+}
 
 func TestSortedArtifactFragmentsOrdersByID(t *testing.T) {
 	t.Parallel()

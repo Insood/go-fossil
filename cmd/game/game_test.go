@@ -1,6 +1,48 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
+	ecs "github.com/mlange-42/ark/ecs"
+)
+
+func TestSpawnDroneAddsPlayerControlled(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	chunk := newTestTerrainChunk(ChunkCoords{X: 0, Z: 0}, 0, 0, 0)
+	assets := NewAssetManager()
+	assets.models["drone"] = &rl.Model{}
+	game := &Game{
+		assets:       assets,
+		chunkManager: &ChunkManager{chunks: map[ChunkCoords]*TerrainChunk{chunk.Coords: chunk}},
+		world:        world,
+	}
+
+	game.spawnDrone()
+
+	filter := ecs.NewFilter2[Drone, PlayerControlled](world)
+	query := filter.Query()
+	defer query.Close()
+	if !query.Next() {
+		t.Fatal("spawned gameplay drone is missing PlayerControlled")
+	}
+}
+
+func TestGameplaySystemOrderIncludesGameOverAndTerrainCollision(t *testing.T) {
+	t.Parallel()
+
+	game := &Game{}
+	game.registerSystems()
+
+	if _, ok := game.systems[3].(*GameOverDetectionSystem); !ok {
+		t.Fatalf("system 4 = %T, want *GameOverDetectionSystem", game.systems[3])
+	}
+	if _, ok := game.systems[7].(*TerrainCollisionDetectionSystem); !ok {
+		t.Fatalf("system 8 = %T, want *TerrainCollisionDetectionSystem", game.systems[7])
+	}
+}
 
 func TestGameTickAdvancesOncePerUpdate(t *testing.T) {
 	t.Parallel()

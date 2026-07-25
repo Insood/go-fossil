@@ -33,6 +33,7 @@ type TutorialSystem struct {
 	chargingPadFilter       *ecs.Filter2[Position3, ChargingPad]
 	markerMapper            *ecs.Map3[Position3, Renderable, TutorialMarker]
 	markerFilter            *ecs.Filter2[Position3, TutorialMarker]
+	gameOverFilter          *ecs.Filter1[GameOver]
 	state                   TutorialState
 	initialDronePosition    rl.Vector3
 	initialLaserCursor      rl.Vector2
@@ -50,11 +51,16 @@ func (system *TutorialSystem) Initialize(game *Game) {
 	system.chargingPadFilter = ecs.NewFilter2[Position3, ChargingPad](game.world)
 	system.markerMapper = ecs.NewMap3[Position3, Renderable, TutorialMarker](game.world)
 	system.markerFilter = ecs.NewFilter2[Position3, TutorialMarker](game.world)
+	system.gameOverFilter = ecs.NewFilter1[GameOver](game.world)
 	system.state = *NewTutorialState()
 	system.captureInitialDronePosition()
 }
 
 func (system *TutorialSystem) Update(game *Game) {
+	if gameOverActive(system.gameOverFilter) {
+		return
+	}
+
 	system.updateCurrentStep(game)
 	system.updateTimedStep(game.FrameTime)
 	system.drawCurrentStep(game)

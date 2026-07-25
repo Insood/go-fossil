@@ -17,30 +17,33 @@ func main() {
 	assets.Load()
 	defer assets.Unload()
 
-	splash := InitializeSplashScreen(assets)
-	for !rl.WindowShouldClose() && !splash.StartRequested {
-		rl.BeginDrawing()
-		rl.ClearBackground(rl.SkyBlue)
-		splash.FrameTime = rl.GetFrameTime()
-		splash.UpdateSystems()
-		rl.EndDrawing()
-	}
-
-	if rl.WindowShouldClose() {
+	for !rl.WindowShouldClose() {
+		splash := InitializeSplashScreen(assets)
+		for !rl.WindowShouldClose() && !splash.StartRequested {
+			rl.BeginDrawing()
+			rl.ClearBackground(rl.SkyBlue)
+			splash.FrameTime = rl.GetFrameTime()
+			splash.UpdateSystems()
+			rl.EndDrawing()
+		}
 		splash.Unload()
-		return
-	}
+		if rl.WindowShouldClose() {
+			return
+		}
 
-	splash.Unload()
+		game := InitializeGame(assets)
+		for !rl.WindowShouldClose() && game.Running {
+			rl.BeginDrawing()
+			rl.ClearBackground(rl.SkyBlue)
+			game.FrameTime = rl.GetFrameTime()
+			game.UpdateSystems()
+			rl.EndDrawing()
+		}
 
-	game := InitializeGame(assets)
-	defer game.Unload()
-
-	for !rl.WindowShouldClose() && game.Running {
-		rl.BeginDrawing()
-		rl.ClearBackground(rl.SkyBlue)
-		game.FrameTime = rl.GetFrameTime()
-		game.UpdateSystems()
-		rl.EndDrawing()
+		returnToMenu := game.ReturnToMenuRequested
+		game.Unload()
+		if rl.WindowShouldClose() || !returnToMenu {
+			return
+		}
 	}
 }

@@ -11,15 +11,22 @@ import (
 
 type UserInterfaceSystem struct {
 	filter          *ecs.Filter2[PlayerFireInput, Battery]
+	gameOverFilter  *ecs.Filter1[GameOver]
 	artifactManager *ArtifactManager
 }
 
 func (system *UserInterfaceSystem) Initialize(game *Game) {
 	system.filter = ecs.NewFilter2[PlayerFireInput, Battery](game.world)
+	system.gameOverFilter = ecs.NewFilter1[GameOver](game.world)
 	system.artifactManager = game.artifactManager
 }
 
 func (system *UserInterfaceSystem) Update(game *Game) {
+	if gameOverActive(system.gameOverFilter) {
+		system.drawGameOver(game)
+		return
+	}
+
 	system.drawTotalScore(game)
 	system.drawDroneStatusBars()
 	system.drawDroneViewport(game)
@@ -31,6 +38,25 @@ func (system *UserInterfaceSystem) Unload() {}
 
 func (system *UserInterfaceSystem) drawTotalScore(game *Game) {
 	rl.DrawText(fmt.Sprintf("Score: %d", game.TotalScore), totalScoreTextX, totalScoreTextY, 24, rl.White)
+}
+
+func (system *UserInterfaceSystem) drawGameOver(game *Game) {
+	titleX, titleY, scoreText, scoreX, scoreY := gameOverScreenLayout(game.TotalScore)
+	rl.DrawText(gameOverTitleText, titleX, titleY, gameOverTitleFontSize, rl.White)
+	rl.DrawText(scoreText, scoreX, scoreY, gameOverScoreFontSize, rl.White)
+}
+
+func gameOverScreenLayout(score int) (titleX, titleY int32, scoreText string, scoreX, scoreY int32) {
+	scoreText = fmt.Sprintf("Score: %d", score)
+	titleWidth := rl.MeasureText(gameOverTitleText, gameOverTitleFontSize)
+	scoreWidth := rl.MeasureText(scoreText, gameOverScoreFontSize)
+	contentHeight := gameOverTitleFontSize + gameOverTextGap + gameOverScoreFontSize
+
+	titleX = (screenWidth - titleWidth) / 2
+	titleY = (screenHeight - contentHeight) / 2
+	scoreX = (screenWidth - scoreWidth) / 2
+	scoreY = titleY + gameOverTitleFontSize + gameOverTextGap
+	return
 }
 
 func (system *UserInterfaceSystem) drawDroneViewport(game *Game) {

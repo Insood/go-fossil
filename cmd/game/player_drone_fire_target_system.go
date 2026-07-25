@@ -8,11 +8,11 @@ import (
 )
 
 type PlayerDroneFireTargetSystem struct {
-	filter *ecs.Filter4[Position3, Drone, PlayerFireInput, DroneFireTargets]
+	filter *ecs.Filter5[Position3, Drone, PlayerFireInput, DroneFireTargets, PlayerControlled]
 }
 
 func (system *PlayerDroneFireTargetSystem) Initialize(game *Game) {
-	system.filter = ecs.NewFilter4[Position3, Drone, PlayerFireInput, DroneFireTargets](game.world)
+	system.filter = ecs.NewFilter5[Position3, Drone, PlayerFireInput, DroneFireTargets, PlayerControlled](game.world)
 }
 
 func (system *PlayerDroneFireTargetSystem) Update(game *Game) {
@@ -20,7 +20,7 @@ func (system *PlayerDroneFireTargetSystem) Update(game *Game) {
 	defer query.Close()
 
 	for query.Next() {
-		position, _, input, fireTargets := query.Get()
+		position, _, input, fireTargets, _ := query.Get()
 		fireTargets.targets = fireTargets.targets[:0]
 		if !input.firing {
 			continue

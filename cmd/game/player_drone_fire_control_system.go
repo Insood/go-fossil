@@ -6,11 +6,11 @@ import (
 )
 
 type PlayerDroneFireControlSystem struct {
-	filter *ecs.Filter1[PlayerFireInput]
+	filter *ecs.Filter2[PlayerFireInput, PlayerControlled]
 }
 
 func (system *PlayerDroneFireControlSystem) Initialize(game *Game) {
-	system.filter = ecs.NewFilter1[PlayerFireInput](game.world)
+	system.filter = ecs.NewFilter2[PlayerFireInput, PlayerControlled](game.world)
 	rl.HideCursor()
 }
 
@@ -45,7 +45,7 @@ func (system *PlayerDroneFireControlSystem) Update(game *Game) {
 	defer query.Close()
 
 	for query.Next() {
-		control := query.Get()
+		control, _ := query.Get()
 		control.lastCursor = control.cursor
 		control.lastFiring = control.firing
 		control.cursor = cursor
@@ -60,7 +60,7 @@ func (system *PlayerDroneFireControlSystem) clearFireControlState() {
 	defer query.Close()
 
 	for query.Next() {
-		control := query.Get()
+		control, _ := query.Get()
 		control.lastCursor = control.cursor
 		control.lastFiring = control.firing
 		control.firing = false

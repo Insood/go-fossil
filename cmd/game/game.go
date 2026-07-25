@@ -6,18 +6,19 @@ import (
 )
 
 type Game struct {
-	assets            *AssetManager
-	camera            rl.Camera3D
-	artifactManager   *ArtifactManager
-	chunkManager      *ChunkManager
-	droneFramebuffer  *Framebuffer
-	shadowFramebuffer *Framebuffer
-	world             *ecs.World
-	systems           []System
-	FrameTime         float32
-	Tick              int
-	TotalScore        int
-	Running           bool
+	assets                *AssetManager
+	camera                rl.Camera3D
+	artifactManager       *ArtifactManager
+	chunkManager          *ChunkManager
+	droneFramebuffer      *Framebuffer
+	shadowFramebuffer     *Framebuffer
+	world                 *ecs.World
+	systems               []System
+	FrameTime             float32
+	Tick                  int
+	TotalScore            int
+	Running               bool
+	ReturnToMenuRequested bool
 }
 
 func InitializeGame(assets *AssetManager) *Game {
@@ -67,9 +68,11 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&InputSystem{})
 	game.AddSystem(&DroneInputSystem{})
 	game.AddSystem(&BatteryDrainSystem{})
+	game.AddSystem(&GameOverDetectionSystem{})
 	game.AddSystem(&PlayerDroneFireControlSystem{})
 	game.AddSystem(&PhysicsSystem{})
 	game.AddSystem(&DroneHeightSystem{})
+	game.AddSystem(&TerrainCollisionDetectionSystem{})
 	game.AddSystem(&CameraSystem{})
 	game.AddSystem(&LightSystem{})
 	game.AddSystem(&PlayerDroneFireTargetSystem{})
@@ -90,7 +93,7 @@ func (game *Game) registerSystems() {
 
 func (game *Game) spawnDrone() {
 	baseY := game.chunkManager.SampleHeight(droneWorldSpawnX, droneWorldSpawnZ) + droneCenterY
-	droneMapper := ecs.NewMap9[Position3, Velocity3, Renderable, Drone, HoverMotion, Laser, PlayerFireInput, DroneFireTargets, Battery](game.world)
+	droneMapper := ecs.NewMap10[Position3, Velocity3, Renderable, Drone, PlayerControlled, HoverMotion, Laser, PlayerFireInput, DroneFireTargets, Battery](game.world)
 	droneMapper.NewEntity(
 		&Position3{X: droneWorldSpawnX, Y: baseY, Z: droneWorldSpawnZ},
 		&Velocity3{},
@@ -102,6 +105,7 @@ func (game *Game) spawnDrone() {
 			receivesShadow: false,
 		},
 		&Drone{},
+		&PlayerControlled{},
 		&HoverMotion{
 			amplitude:    droneHoverAmplitude,
 			angularSpeed: droneHoverAngularSpeed,

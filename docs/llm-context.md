@@ -27,6 +27,7 @@ Read these files first:
 - The player controls one drone with keyboard or gamepad movement.
 - The drone has a battery charge that constantly drains, gates laser firing, and is shown above the drone viewport. Flight drain increases with carried cargo weight and while moving.
 - The drone follows loaded terrain height with a constant hover offset and a small sine-wave hover motion.
+- Battery depletion removes player control and hover motion, then the drone sinks until generic terrain collision settles it at sampled terrain height.
 - Drone movement is clamped so its 1x1 footprint stays inside loaded terrain chunk extents in X/Z.
 - The main camera uses a sliding dead zone so it only follows the drone once the drone moves far enough from center.
 - A single shadow-casting light tracks the drone overhead so the shadow map stays centered on the active area.
@@ -45,29 +46,31 @@ Systems are registered in this order in `cmd/game/game.go`:
 1. `InputSystem`
 2. `DroneInputSystem`
 3. `BatteryDrainSystem`
-4. `PlayerDroneFireControlSystem`
-5. `PhysicsSystem`
-6. `DroneHeightSystem`
-7. `CameraSystem`
-8. `LightSystem`
-9. `PlayerDroneFireTargetSystem`
-10. `LaserSystem`
-11. `SoundSystem`
-12. `ParticleSystem`
-13. `ArtifactCutoutDetectionSystem`
-14. `MovementAnimationSystem`
-15. `ArtifactFragmentPickupSystem`
-16. `ArtifactFragmentDropOffSystem`
-17. `ChunkSpawnerSystem`
-18. `RenderSystem3D`
-19. `UserInterfaceSystem`
-20. `TutorialSystem`
-21. `DebugRender3DSystem`
-22. `DebugRenderSystem2D`
+4. `GameOverDetectionSystem`
+5. `PlayerDroneFireControlSystem`
+6. `PhysicsSystem`
+7. `DroneHeightSystem`
+8. `TerrainCollisionDetectionSystem`
+9. `CameraSystem`
+10. `LightSystem`
+11. `PlayerDroneFireTargetSystem`
+12. `LaserSystem`
+13. `SoundSystem`
+14. `ParticleSystem`
+15. `ArtifactCutoutDetectionSystem`
+16. `MovementAnimationSystem`
+17. `ArtifactFragmentPickupSystem`
+18. `ArtifactFragmentDropOffSystem`
+19. `ChunkSpawnerSystem`
+20. `RenderSystem3D`
+21. `UserInterfaceSystem`
+22. `TutorialSystem`
+23. `DebugRender3DSystem`
+24. `DebugRenderSystem2D`
 
 All systems implement `Initialize`, `Update`, and `Unload`. The main loop snapshots raylib's frame time into `Game.FrameTime` before each system update pass, so systems use one consistent delta per frame. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while the fragment pickup system releases all generated fragment models still in the world and the drop-off system releases generated models that remain in flight.
 
-Before these gameplay systems are created, the splash runs `SplashScreenDroneControlSystem`, `PhysicsSystem`, `DroneHeightSystem`, `LightSystem`, `SplashScreenDroneFireTargetSystem`, `LaserSystem`, `ParticleSystem`, and `RenderSystem3D` against its temporary world, followed by its own start-input and text-render systems. The movement controller changes the drone's random velocity once per second and clamps it both to loaded terrain and to a configured square with a 6-world-unit X/Z radius around the offset splash focus point. The fire-target system random-walks an X/Z offset within `[-0.5, 0.5]`, alternates random 0.2–0.6-second firing and cooldown states, and emits terrain-height world targets while firing. The splash drone has a 1,000,000-charge battery; its beam burns terrain and produces particles, while sound, cutout detection, and fragment gameplay remain disabled. The 3D renderer omits the drone viewport pass. Splash systems initialize in registration order and unload in reverse order; generated chunks, their GPU resources, the shadow framebuffer, managers, entities, and the world are destroyed before gameplay loads the authored default chunk. `main` owns the disk-loaded `AssetManager`, lends it to each scene, and unloads it once after the active scene is torn down.
+Before these gameplay systems are created, the splash runs `SplashScreenDroneControlSystem`, `PhysicsSystem`, `DroneHeightSystem`, `LightSystem`, `SplashScreenDroneFireTargetSystem`, `LaserSystem`, `ParticleSystem`, and `RenderSystem3D` against its temporary world, followed by its own start-input and text-render systems. The movement controller changes the drone's random velocity once per second and clamps it both to loaded terrain and to a configured square with a 6-world-unit X/Z radius around the offset splash focus point. The fire-target system random-walks an X/Z offset within `[-0.5, 0.5]`, alternates random 0.2–0.6-second firing and cooldown states, and emits terrain-height world targets while firing. The splash drone has a 1,000,000-charge battery; its beam burns terrain and produces particles, while sound, cutout detection, and fragment gameplay remain disabled. The 3D renderer omits the drone viewport pass. Splash systems initialize in registration order and unload in reverse order; generated chunks, their GPU resources, the shadow framebuffer, managers, entities, and world are destroyed before gameplay loads the authored default chunk. After game over, Space or gamepad A unloads gameplay and creates a fresh splash scene; starting again creates a new gameplay world and zeroed score. `main` owns the disk-loaded `AssetManager`, lends it to each scene, and unloads it only when the application exits.
 
 Important ownership notes:
 
@@ -76,8 +79,9 @@ Important ownership notes:
 - Authored artifact and entity placement coordinates are stored in baked texture pixels and converted to world units with `terrainTexturePixelsPerTile`. Entity placement types are gameplay archetypes; their factories own model selection, render settings, and ECS component composition.
 - `ArtifactManager` owns runtime artifact records, unique artifact IDs, fragment collection state, fragment textures, and carried-fragment weight calculation.
 - `BatteryDrainSystem` applies time-based drain after drone input. Its rate is 0.25 charge per second plus carried-weight percentage multiplied by the 1.0 cargo modifier, reaching 1.25 charge per second at the 12,000-unit limit; movement does not alter drain. Completed drop-offs accumulate `score * 0.05` in a drone `BatteryRecharge` component. The battery system transfers up to 1 charge from that reservoir per update, removes it when exhausted, clamps battery charge to 100, and discards pending recharge when a transfer would exceed 100. Drained charge is clamped at zero.
-- `PlayerDroneFireControlSystem` owns the player drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps mouse/gamepad aiming into normalized coordinates from -1 to 1 on each axis, and stores current and previous cursor/firing state on `PlayerFireInput`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.
-- `PlayerDroneFireTargetSystem` clears the player's per-frame `DroneFireTargets`, interpolates between consecutive firing cursors at the configured pixel step, and converts valid normalized cursors into terrain-sampled world coordinates after drone movement and height updates.
+- `GameOverDetectionSystem` finds the `PlayerControlled` drone at zero battery, zeros X/Z velocity, applies the configured negative Y velocity, removes `PlayerControlled` and `HoverMotion`, and creates one standalone `GameOver` marker. This is a terminal state even if pending drop-off activity later adds battery charge. `TerrainCollisionDetectionSystem` checks entities with non-zero Y velocity after physics and drone height updates, snapping any below-terrain Y position to sampled terrain and zeroing its Y velocity.
+- `PlayerControlled` gates `DroneInputSystem`, `PlayerDroneFireControlSystem`, and `PlayerDroneFireTargetSystem`; the automated splash drone does not carry it. The fire-control system owns the player drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps mouse/gamepad aiming into normalized coordinates from -1 to 1 on each axis, and stores current and previous cursor/firing state on `PlayerFireInput`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.
+- `PlayerDroneFireTargetSystem` clears the controlled player's per-frame `DroneFireTargets`, interpolates between consecutive firing cursors at the configured pixel step, and converts valid normalized cursors into terrain-sampled world coordinates after drone movement and height updates.
 - `LaserSystem` consumes world-space `DroneFireTargets` without depending on player input. With positive battery and at least one target, it presents the final target, drains charge once, stamps every target into the chunk burn overlay, and marks damaged chunks for cutout scanning. It clears target buffers whether it fires or the battery is empty.
 - `LaserSystem` also creates particle entities at successful terrain burn positions. These particles reuse the shared cube model, do not cast or receive shadows, and have no gameplay interaction.
 - `SoundSystem` tracks every loaded sound stream by name and plays the `burning` stream while any laser is active.
@@ -88,9 +92,9 @@ Important ownership notes:
 - `ArtifactFragmentPickupSystem` gives the drone a 12,000-unit carry limit. Each update it may start homing the nearest ready fragment within 0.5 X/Z units whose full pixel weight fits, using fragment ID to break distance ties. It starts at most one pickup per update, and homing fragments reserve capacity immediately. Pickup adds an ease-in movement targeting the live drone for 0.65 seconds while the pickup system applies camera-facing tilt and shrink presentation. When that movement ends, pickup marks the fragment collected, exposes it to the inventory UI and tutorial, unloads the generated plane model, and removes the world entity without changing total score.
 - `ArtifactFragmentDropOffSystem` tracks one ejection cooldown and, whenever it is ready, rechecks current cargo and whether the drone is within 0.5 X/Z units of the nearest pad. It launches the oldest available fragment, resets the 0.25-second cooldown, hides the fragment from inventory, and gives its plane a linear movement whose distance-derived duration preserves the configured constant speed. It retains no drop-off queue, so leaving the pad stops further ejections. When a plane reaches the pad, the system adds its fragment score to `Game.TotalScore`, adds `score * 0.05` to the drone's pending battery recharge, unloads the model, and removes the entity.
 - `ChunkSpawnerSystem` watches deposited score deltas and adds generated chunks after enough artifact value is delivered.
-- `TutorialSystem` owns the active tutorial step, starts each run at tutorial step 1, tracks the drone's starting X/Z position, advances to step 2 once the drone moves on X or Z, spawns red shader-styled tutorial cones over artifact centers for step 2, advances to step 3 once the drone moves within 0.5 X/Z units of a cone, removes tutorial marker entities, advances to step 4 once the drone viewport cursor moves at least 25% of the drone viewport, advances to step 5 once any laser is active, advances to step 6 once the artifact manager has at least one collected fragment, queries the nearest `ChargingPad` entity to place the return-home cone, advances to step 7 once the drone is within `tutorialArtifactMarkerProximity` on X/Z of the pad, displays "Collect more!" for five seconds, and then completes.
+- `TutorialSystem` owns the active tutorial step, starts each run at tutorial step 1, tracks the drone's starting X/Z position, advances to step 2 once the drone moves on X or Z, spawns red shader-styled tutorial cones over artifact centers for step 2, advances to step 3 once the drone moves within 0.5 X/Z units of a cone, removes tutorial marker entities, advances to step 4 once the drone viewport cursor moves at least 25% of the drone viewport, advances to step 5 once any laser is active, advances to step 6 once the artifact manager has at least one collected fragment, queries the nearest `ChargingPad` entity to place the return-home cone, advances to step 7 once the drone is within `tutorialArtifactMarkerProximity` on X/Z of the pad, displays "Collect more!" for five seconds, and then completes. It pauses updates and drawing while `GameOver` exists.
 - `RenderSystem3D` owns the shadow pass, main scene pass, drone bottom-camera viewport pass, laser rendering, slope shade shader tuning, and shadow-depth export.
-- `UserInterfaceSystem` draws total score, aligned labelled cargo and battery bars above the drone viewport, the drone viewport, the reticle, and recent collected fragments that have not yet been dropped off, with score and a color-coded `[SUPER]`/`[A]`/`[B]`/`[C]`/`[F]` grade. The gold cargo bar shows collected, non-dropped fragment weight against the 12,000-unit capacity; homing fragments are not included. The battery bar is lime at 20% charge or higher and red below 20%.
+- `UserInterfaceSystem` draws total score, aligned labelled cargo and battery bars above the drone viewport, the drone viewport, the reticle, and recent collected fragments that have not yet been dropped off, with score and a color-coded `[SUPER]`/`[A]`/`[B]`/`[C]`/`[F]` grade. The gold cargo bar shows collected, non-dropped fragment weight against the 12,000-unit capacity; homing fragments are not included. The battery bar is lime at 20% charge or higher and red below 20%. While `GameOver` exists it replaces that HUD with centered `GAME OVER` and final-score text over the still-rendered 3D scene.
 - `DebugRender3DSystem` draws axes, the drone ground ray, the light guide, and artifact ID labels when debug overlays are visible.
 - `DebugRenderSystem2D` owns the raygui shadow tuning overlay, including the normal-based terrain slope shade strength.
 

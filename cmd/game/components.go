@@ -83,6 +83,10 @@ type ChargingPad struct{}
 
 type Drone struct{}
 
+type PlayerControlled struct{}
+
+type GameOver struct{}
+
 type Battery struct {
 	charge float32
 }

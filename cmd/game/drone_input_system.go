@@ -8,11 +8,11 @@ import (
 )
 
 type DroneInputSystem struct {
-	filter *ecs.Filter3[Position3, Velocity3, Drone]
+	filter *ecs.Filter4[Position3, Velocity3, Drone, PlayerControlled]
 }
 
 func (system *DroneInputSystem) Initialize(game *Game) {
-	system.filter = ecs.NewFilter3[Position3, Velocity3, Drone](game.world)
+	system.filter = ecs.NewFilter4[Position3, Velocity3, Drone, PlayerControlled](game.world)
 }
 
 func (system *DroneInputSystem) Update(game *Game) {
@@ -20,7 +20,7 @@ func (system *DroneInputSystem) Update(game *Game) {
 	defer query.Close()
 
 	for query.Next() {
-		position, velocity, _ := query.Get()
+		position, velocity, _, _ := query.Get()
 
 		input := rl.NewVector3(0, 0, 0)
 

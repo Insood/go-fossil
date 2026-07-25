@@ -74,12 +74,13 @@ func TestPlayerDroneFireTargetSystemClearsTargetsWhileNotFiring(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
-	mapper := ecs.NewMap4[Position3, Drone, PlayerFireInput, DroneFireTargets](world)
+	mapper := ecs.NewMap5[Position3, Drone, PlayerFireInput, DroneFireTargets, PlayerControlled](world)
 	entity := mapper.NewEntity(
 		&Position3{},
 		&Drone{},
 		&PlayerFireInput{},
 		&DroneFireTargets{targets: []rl.Vector3{rl.NewVector3(1, 2, 3)}},
+		&PlayerControlled{},
 	)
 	game := &Game{world: world}
 	system := &PlayerDroneFireTargetSystem{}
@@ -97,12 +98,13 @@ func TestPlayerDroneFireTargetSystemSkipsInvalidCursorTargets(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
-	mapper := ecs.NewMap4[Position3, Drone, PlayerFireInput, DroneFireTargets](world)
+	mapper := ecs.NewMap5[Position3, Drone, PlayerFireInput, DroneFireTargets, PlayerControlled](world)
 	entity := mapper.NewEntity(
 		&Position3{},
 		&Drone{},
 		&PlayerFireInput{cursor: rl.NewVector2(2, 0), firing: true},
 		&DroneFireTargets{targets: []rl.Vector3{rl.NewVector3(1, 2, 3)}},
+		&PlayerControlled{},
 	)
 	game := &Game{world: world, chunkManager: &ChunkManager{}}
 	system := &PlayerDroneFireTargetSystem{}
@@ -126,12 +128,13 @@ func TestPlayerDroneFireTargetSystemConvertsCursorToWorldTarget(t *testing.T) {
 			chunk.Coords: chunk,
 		},
 	}
-	mapper := ecs.NewMap4[Position3, Drone, PlayerFireInput, DroneFireTargets](world)
+	mapper := ecs.NewMap5[Position3, Drone, PlayerFireInput, DroneFireTargets, PlayerControlled](world)
 	entity := mapper.NewEntity(
 		&Position3{X: 4, Y: droneCenterY, Z: 4},
 		&Drone{},
 		&PlayerFireInput{cursor: rl.NewVector2(0, 0), firing: true},
 		&DroneFireTargets{},
+		&PlayerControlled{},
 	)
 	game := &Game{world: world, chunkManager: manager}
 	system := &PlayerDroneFireTargetSystem{}

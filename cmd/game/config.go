@@ -44,6 +44,7 @@ const (
 	droneTopSpeed          = 4.0
 	droneHoverAmplitude    = 0.05
 	droneHoverCyclesPerSec = 0.2
+	droneGameOverFallSpeed = -0.5
 
 	droneBatteryCharge                = 100.0
 	droneBatteryBaseDrainPerSecond    = 0.25
@@ -97,8 +98,13 @@ const (
 	artifactFragmentDropOffDelay         = 0.25
 	artifactFragmentDropOffSpeed         = 4.0
 	artifactFragmentDropOffTargetLift    = 0.125
-	totalScoreTextX                      = 16
-	totalScoreTextY                      = 16
+
+	totalScoreTextX             = 16
+	totalScoreTextY             = 16
+	gameOverTitleText           = "GAME OVER"
+	gameOverTitleFontSize int32 = 64
+	gameOverScoreFontSize int32 = 32
+	gameOverTextGap       int32 = 20
 
 	tutorialPromptTopY                   int32 = 0
 	tutorialPromptFontSize               int32 = 48

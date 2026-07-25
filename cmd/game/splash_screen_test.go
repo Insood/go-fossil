@@ -147,7 +147,8 @@ func TestSplashDroneIsSimulatedAndRenderable(t *testing.T) {
 	}
 
 	for name, missing := range map[string]bool{
-		"PlayerFireInput": ecs.NewMap[PlayerFireInput](world).Get(entity) == nil,
+		"PlayerControlled": ecs.NewMap[PlayerControlled](world).Get(entity) == nil,
+		"PlayerFireInput":  ecs.NewMap[PlayerFireInput](world).Get(entity) == nil,
 	} {
 		if !missing {
 			t.Fatalf("splash drone unexpectedly has %s", name)

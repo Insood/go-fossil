@@ -143,8 +143,7 @@ func (system *UserInterfaceSystem) drawArtifactFragments() {
 		drawArtifactFragmentThumbnail(fragment, float32(artifactFragmentStartX), rowY, artifactFragmentThumbSize)
 
 		textX := float32(artifactFragmentStartX + artifactFragmentThumbSize + artifactFragmentTextGap)
-		rl.DrawText(fmt.Sprintf("%d", fragment.Weight), int32(textX), int32(rowY+6), 20, rl.White)
-		rl.DrawText(fmt.Sprintf("%d", fragment.Score), int32(textX), int32(rowY+32), 20, rl.White)
+		rl.DrawText(fmt.Sprintf("%d", fragment.Score), int32(textX), int32(rowY+22), 20, rl.White)
 	}
 }
 

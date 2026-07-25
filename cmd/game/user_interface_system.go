@@ -41,21 +41,37 @@ func (system *UserInterfaceSystem) drawTotalScore(game *Game) {
 }
 
 func (system *UserInterfaceSystem) drawGameOver(game *Game) {
-	titleX, titleY, scoreText, scoreX, scoreY := gameOverScreenLayout(game.TotalScore)
+	titleX, titleY, scoreText, scoreX, scoreY, promptX, promptY := gameOverScreenLayout(game.TotalScore)
 	rl.DrawText(gameOverTitleText, titleX, titleY, gameOverTitleFontSize, rl.White)
 	rl.DrawText(scoreText, scoreX, scoreY, gameOverScoreFontSize, rl.White)
+	rl.DrawText(gameOverReturnPromptText, promptX, promptY, gameOverReturnPromptFontSize, rl.White)
 }
 
-func gameOverScreenLayout(score int) (titleX, titleY int32, scoreText string, scoreX, scoreY int32) {
+func gameOverScreenLayout(score int) (
+	titleX,
+	titleY int32,
+	scoreText string,
+	scoreX,
+	scoreY,
+	promptX,
+	promptY int32,
+) {
 	scoreText = fmt.Sprintf("Score: %d", score)
 	titleWidth := rl.MeasureText(gameOverTitleText, gameOverTitleFontSize)
 	scoreWidth := rl.MeasureText(scoreText, gameOverScoreFontSize)
-	contentHeight := gameOverTitleFontSize + gameOverTextGap + gameOverScoreFontSize
+	promptWidth := rl.MeasureText(gameOverReturnPromptText, gameOverReturnPromptFontSize)
+	contentHeight := gameOverTitleFontSize +
+		gameOverTextGap +
+		gameOverScoreFontSize +
+		gameOverTextGap +
+		gameOverReturnPromptFontSize
 
 	titleX = (screenWidth - titleWidth) / 2
 	titleY = (screenHeight - contentHeight) / 2
 	scoreX = (screenWidth - scoreWidth) / 2
 	scoreY = titleY + gameOverTitleFontSize + gameOverTextGap
+	promptX = (screenWidth - promptWidth) / 2
+	promptY = scoreY + gameOverScoreFontSize + gameOverTextGap
 	return
 }
 

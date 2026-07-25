@@ -7,10 +7,10 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func TestGameOverScreenLayoutCentersTitleAndScore(t *testing.T) {
+func TestGameOverScreenLayoutCentersTitleScoreAndReturnPrompt(t *testing.T) {
 	t.Parallel()
 
-	titleX, titleY, scoreText, scoreX, scoreY := gameOverScreenLayout(1234)
+	titleX, titleY, scoreText, scoreX, scoreY, promptX, promptY := gameOverScreenLayout(1234)
 	if got, want := scoreText, "Score: 1234"; got != want {
 		t.Fatalf("score text = %q, want %q", got, want)
 	}
@@ -20,8 +20,14 @@ func TestGameOverScreenLayoutCentersTitleAndScore(t *testing.T) {
 	if got, want := scoreX, int32((screenWidth-rl.MeasureText(fmt.Sprintf("Score: %d", 1234), gameOverScoreFontSize))/2); got != want {
 		t.Fatalf("score X = %d, want %d", got, want)
 	}
+	if got, want := promptX, int32((screenWidth-rl.MeasureText(gameOverReturnPromptText, gameOverReturnPromptFontSize))/2); got != want {
+		t.Fatalf("prompt X = %d, want %d", got, want)
+	}
 	if got, want := scoreY-titleY, gameOverTitleFontSize+gameOverTextGap; got != want {
 		t.Fatalf("title-to-score Y distance = %d, want %d", got, want)
+	}
+	if got, want := promptY-scoreY, gameOverScoreFontSize+gameOverTextGap; got != want {
+		t.Fatalf("score-to-prompt Y distance = %d, want %d", got, want)
 	}
 }
 

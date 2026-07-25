@@ -99,12 +99,14 @@ const (
 	artifactFragmentDropOffSpeed         = 4.0
 	artifactFragmentDropOffTargetLift    = 0.125
 
-	totalScoreTextX             = 16
-	totalScoreTextY             = 16
-	gameOverTitleText           = "GAME OVER"
-	gameOverTitleFontSize int32 = 64
-	gameOverScoreFontSize int32 = 32
-	gameOverTextGap       int32 = 20
+	totalScoreTextX                    = 16
+	totalScoreTextY                    = 16
+	gameOverTitleText                  = "GAME OVER"
+	gameOverTitleFontSize        int32 = 64
+	gameOverScoreFontSize        int32 = 32
+	gameOverReturnPromptText           = "Press Space bar (or A) to return to title screen"
+	gameOverReturnPromptFontSize int32 = 24
+	gameOverTextGap              int32 = 20
 
 	tutorialPromptTopY                   int32 = 0
 	tutorialPromptFontSize               int32 = 48

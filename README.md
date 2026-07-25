@@ -2,6 +2,8 @@
 
 `go-fossil` is a game about recovering fossils from a junkyard. It is built with Go and [raylib](https://www.raylib.com/).
 
+<img width="556" height="500" alt="covert-art" src="https://github.com/user-attachments/assets/3c500ccd-6379-42f5-b5a8-10f3bce69829" />
+
 The player flies a drone over a desert junkyard, searches for artifacts, and then carefully cuts out artifacts from the ground while managing the drone battery. To gain points and to recharge the battery, the player must being the artifacts back to the spawn point. Once the player runs out of battery - the drone crashes and it is game over.
 
 ## Current state

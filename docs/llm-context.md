@@ -23,7 +23,7 @@ Read these files first:
 - The game uses an ECS architecture with `mlange-42/ark`.
 - The world is 3D and rendered with an orthographic main camera for an isometric-style presentation.
 - The player controls one drone with keyboard or gamepad movement.
-- The drone has a battery charge that gates laser firing and is shown above the drone viewport.
+- The drone has a battery charge that constantly drains, gates laser firing, and is shown above the drone viewport. Flight drain increases with carried cargo weight and while moving.
 - The drone follows loaded terrain height with a constant hover offset and a small sine-wave hover motion.
 - Drone movement is clamped so its 1x1 footprint stays inside loaded terrain chunk extents in X/Z.
 - The main camera uses a sliding dead zone so it only follows the drone once the drone moves far enough from center.
@@ -42,24 +42,25 @@ Systems are registered in this order in `cmd/game/game.go`:
 
 1. `InputSystem`
 2. `DroneInputSystem`
-3. `DroneFireControlSystem`
-4. `PhysicsSystem`
-5. `DroneHeightSystem`
-6. `CameraSystem`
-7. `LightSystem`
-8. `LaserSystem`
-9. `SoundSystem`
-10. `ParticleSystem`
-11. `ArtifactCutoutDetectionSystem`
-12. `MovementAnimationSystem`
-13. `ArtifactFragmentPickupSystem`
-14. `ArtifactFragmentDropOffSystem`
-15. `ChunkSpawnerSystem`
-16. `RenderSystem3D`
-17. `UserInterfaceSystem`
-18. `TutorialSystem`
-19. `DebugRender3DSystem`
-20. `DebugRenderSystem2D`
+3. `BatteryDrainSystem`
+4. `DroneFireControlSystem`
+5. `PhysicsSystem`
+6. `DroneHeightSystem`
+7. `CameraSystem`
+8. `LightSystem`
+9. `LaserSystem`
+10. `SoundSystem`
+11. `ParticleSystem`
+12. `ArtifactCutoutDetectionSystem`
+13. `MovementAnimationSystem`
+14. `ArtifactFragmentPickupSystem`
+15. `ArtifactFragmentDropOffSystem`
+16. `ChunkSpawnerSystem`
+17. `RenderSystem3D`
+18. `UserInterfaceSystem`
+19. `TutorialSystem`
+20. `DebugRender3DSystem`
+21. `DebugRenderSystem2D`
 
 All systems implement `Initialize`, `Update`, and `Unload`. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while the fragment pickup system releases all generated fragment models still in the world and the drop-off system releases generated models that remain in flight.
 
@@ -69,6 +70,7 @@ Important ownership notes:
 - `ChunkManager` loads authored chunk JSON, generates runtime chunks, builds terrain meshes/textures, caches chunks, samples terrain height, registers terrain chunk ECS entities, resolves typed entity placements through game-owned factories, tracks those entities for chunk teardown, and applies burn marks.
 - Authored artifact and entity placement coordinates are stored in baked texture pixels and converted to world units with `terrainTexturePixelsPerTile`. Entity placement types are gameplay archetypes; their factories own model selection, render settings, and ECS component composition.
 - `ArtifactManager` owns runtime artifact records, unique artifact IDs, fragment collection state, fragment textures, and carried-fragment weight calculation.
+- `BatteryDrainSystem` applies time-based flight drain after drone input determines velocity. An empty, stationary drone loses 0.25 charge per second; carried cargo scales that rate linearly up to twice the base rate at the 12,000-unit limit, and movement doubles the resulting drain. Charge is clamped at zero.
 - `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps mouse/gamepad aiming into normalized drone viewport coordinates from -1 to 1 on each axis, and stores current and previous cursor/firing state on `DroneFireControl`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.
 - `LaserSystem` maps the stored normalized drone viewport cursor to terrain-sampled world targets, interpolates between consecutive firing cursors at the configured pixel step, stamps the chunk burn overlay while firing, drains drone battery charge once per active firing update, and marks damaged chunks for cutout scanning. Lasers only fire while battery charge is positive.
 - `LaserSystem` also creates particle entities at successful terrain burn positions. These particles reuse the shared cube model, do not cast or receive shadows, and have no gameplay interaction.

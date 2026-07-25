@@ -68,6 +68,7 @@ func (game *Game) spawnInitialEntities() {
 func (game *Game) registerSystems() {
 	game.AddSystem(&InputSystem{})
 	game.AddSystem(&DroneInputSystem{})
+	game.AddSystem(&BatteryDrainSystem{})
 	game.AddSystem(&DroneFireControlSystem{})
 	game.AddSystem(&PhysicsSystem{})
 	game.AddSystem(&DroneHeightSystem{})

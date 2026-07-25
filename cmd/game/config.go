@@ -29,7 +29,11 @@ const (
 	droneTopSpeed          = 4.0
 	droneHoverAmplitude    = 0.05
 	droneHoverCyclesPerSec = 0.2
-	droneBatteryCharge     = 100.0
+
+	droneBatteryCharge                = 100.0
+	droneBatteryIdleDrainPerSecond    = 0.25
+	droneBatteryCargoDrainModifier    = 1.0
+	droneBatteryMovementDrainModifier = 2.0
 
 	droneGamepadIndex       = 0
 	droneGamepadMoveAxisX   = 0

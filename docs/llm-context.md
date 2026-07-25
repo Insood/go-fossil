@@ -12,6 +12,7 @@ Read these files first:
 ## Code Shape
 
 - `cmd/game` is the executable game and owns most gameplay code.
+- `cmd/game/splash_*.go` defines the separate ECS-backed splash screen shown before gameplay initialization.
 - `cmd/game/components.go` defines ECS components.
 - `cmd/game/*_system.go` contains one system per file.
 - `cmd/game/config.go` stores gameplay constants and tuning values.
@@ -21,6 +22,7 @@ Read these files first:
 ## Current Game
 
 - The game uses an ECS architecture with `mlange-42/ark`.
+- Application startup first runs an asset-free splash screen with its own Ark world and system lifecycle. Pressing Space or gamepad A unloads the splash and initializes the gameplay world.
 - The world is 3D and rendered with an orthographic main camera for an isometric-style presentation.
 - The player controls one drone with keyboard or gamepad movement.
 - The drone has a battery charge that constantly drains, gates laser firing, and is shown above the drone viewport. Flight drain increases with carried cargo weight and while moving.
@@ -63,6 +65,8 @@ Systems are registered in this order in `cmd/game/game.go`:
 21. `DebugRenderSystem2D`
 
 All systems implement `Initialize`, `Update`, and `Unload`. The main loop snapshots raylib's frame time into `Game.FrameTime` before each system update pass, so systems use one consistent delta per frame. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while the fragment pickup system releases all generated fragment models still in the world and the drop-off system releases generated models that remain in flight.
+
+Before these gameplay systems are created, the splash screen runs its own input and render systems against a separate Ark world. Splash systems initialize in registration order and unload in reverse order before `InitializeGame` loads gameplay assets.
 
 Important ownership notes:
 

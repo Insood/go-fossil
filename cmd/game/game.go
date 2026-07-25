@@ -45,7 +45,6 @@ func InitializeGame() *Game {
 	game.registerSystems()
 	game.InitializeSystems()
 
-	rl.SetTargetFPS(targetFPS)
 	return game
 }
 

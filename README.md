@@ -22,6 +22,7 @@ Keyboard and gamepad input are supported.
 
 | Action | Keyboard and mouse | Gamepad |
 | --- | --- | --- |
+| Start the game | `Space` | A button |
 | Move the drone | `W`, `A`, `S`, `D` | Left stick |
 | Aim the cutting laser | Mouse over the drone viewport | Right stick |
 | Fire the cutting laser | Left mouse button | Right trigger |

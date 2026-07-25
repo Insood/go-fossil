@@ -67,7 +67,14 @@ func (system *UserInterfaceSystem) drawDroneStatusBars() {
 
 	viewport := droneViewportRectangle()
 	drawDroneStatusBar("CARGO", droneCargoPercent(system.artifactManager), rl.Gold, viewport, 1)
-	drawDroneStatusBar("BATTERY", batteryPercent, rl.Lime, viewport, 0)
+	drawDroneStatusBar("BATTERY", batteryPercent, droneBatteryBarColor(batteryPercent), viewport, 0)
+}
+
+func droneBatteryBarColor(batteryPercent float32) rl.Color {
+	if batteryPercent < 0.2 {
+		return rl.Red
+	}
+	return rl.Lime
 }
 
 func drawDroneStatusBar(label string, fillPercent float32, fillColor rl.Color, viewport rl.Rectangle, row int32) {

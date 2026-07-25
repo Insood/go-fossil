@@ -54,6 +54,31 @@ func TestDroneCargoPercentUsesCollectedUndroppedWeight(t *testing.T) {
 	}
 }
 
+func TestDroneBatteryBarColorTurnsRedBelowTwentyPercent(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		percent float32
+		want    rl.Color
+	}{
+		{name: "empty", percent: 0, want: rl.Red},
+		{name: "below threshold", percent: 0.199, want: rl.Red},
+		{name: "at threshold", percent: 0.2, want: rl.Lime},
+		{name: "above threshold", percent: 0.75, want: rl.Lime},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := droneBatteryBarColor(test.percent); got != test.want {
+				t.Fatalf("battery bar color = %#v, want %#v", got, test.want)
+			}
+		})
+	}
+}
+
 func TestArtifactFragmentGradeDisplay(t *testing.T) {
 	t.Parallel()
 

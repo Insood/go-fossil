@@ -16,7 +16,7 @@ func NewArtifactFragmentPickupSpawnerFactory(world *ecs.World) *ArtifactFragment
 }
 
 func (factory *ArtifactFragmentPickupSpawnerFactory) Spawn(fragment *ArtifactFragment, position rl.Vector3) ecs.Entity {
-	model := newArtifactFragmentPickupModel(fragment)
+	model := newArtifactFragmentPlaneModel(fragment)
 	raisedPosition := position
 	raisedPosition.Y += artifactFragmentPickupRiseHeight
 
@@ -37,14 +37,14 @@ func (factory *ArtifactFragmentPickupSpawnerFactory) Spawn(fragment *ArtifactFra
 	)
 }
 
-func newArtifactFragmentPickupModel(fragment *ArtifactFragment) *rl.Model {
-	width, length := artifactFragmentPickupPlaneDimensions(fragment)
+func newArtifactFragmentPlaneModel(fragment *ArtifactFragment) *rl.Model {
+	width, length := artifactFragmentPlaneDimensions(fragment)
 	model := rl.LoadModelFromMesh(rl.GenMeshPlane(width, length, 1, 1))
 	rl.SetMaterialTexture(model.Materials, rl.MapAlbedo, fragment.Texture)
 	return &model
 }
 
-func artifactFragmentPickupPlaneDimensions(fragment *ArtifactFragment) (float32, float32) {
+func artifactFragmentPlaneDimensions(fragment *ArtifactFragment) (float32, float32) {
 	bounds := fragment.Image.Bounds()
 	return float32(bounds.Dx()) / float32(terrainTexturePixelsPerTile),
 		float32(bounds.Dy()) / float32(terrainTexturePixelsPerTile)

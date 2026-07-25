@@ -13,7 +13,7 @@ func TestArtifactFragmentPickupPlaneDimensionsPreserveWorldAspectRatio(t *testin
 	t.Parallel()
 
 	fragment := &ArtifactFragment{Image: image.NewRGBA(image.Rect(0, 0, 128, 64))}
-	width, length := artifactFragmentPickupPlaneDimensions(fragment)
+	width, length := artifactFragmentPlaneDimensions(fragment)
 
 	if width != 2 {
 		t.Fatalf("plane width = %v, want 2", width)

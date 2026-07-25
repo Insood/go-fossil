@@ -361,23 +361,13 @@ func tutorialMarkerPosition(artifact *Artifact) (rl.Vector3, bool) {
 }
 
 func chargingPadTutorialMarkerPosition(game *Game) (rl.Vector3, bool) {
-	if game == nil || game.chunkManager == nil {
+	position, ok := chargingPadPosition(game)
+	if !ok {
 		return rl.Vector3{}, false
 	}
 
-	for _, chunk := range game.chunkManager.Chunks() {
-		for _, placement := range chunk.Data.Models {
-			if placement.Name != chargingPadModelName {
-				continue
-			}
-
-			position := chunkModelPlacementPosition(chunk, placement)
-			position.Y += tutorialArtifactMarkerLift
-			return position, true
-		}
-	}
-
-	return rl.Vector3{}, false
+	position.Y += tutorialArtifactMarkerLift
+	return position, true
 }
 
 func (system *TutorialSystem) droneIsNearMarker() bool {

@@ -69,6 +69,8 @@ Chunk artifact placements are baked into two layers:
 
 Each created fragment also spawns a flat, texture-mapped pickup plane at the cutout region center. `ArtifactFragmentPickupSystem` lifts the plane vertically for 0.35 seconds, then eases it toward the drone's live position for 0.65 seconds while tilting it toward the main camera and shrinking it. The fragment becomes collected, contributes to `Game.TotalScore`, appears in the inventory UI, and satisfies fragment-based tutorial progression only after the plane reaches the drone. Pickup plane models own their generated meshes; `ArtifactManager` continues to own the shared fragment textures.
 
+When the drone moves within 0.5 X/Z units of the authored charging pad, `ArtifactFragmentDropOffSystem` queues its collected fragments oldest-first. It launches one immediately and then one every 0.25 seconds from the drone's live position. Each fragment leaves the inventory when launched, keeps its full plane size, and travels at a constant speed into the charging pad. Drop-off plane models own their generated meshes and share the manager-owned fragment textures.
+
 ## Entity Model
 
 The current runtime entities are:
@@ -78,6 +80,7 @@ The current runtime entities are:
 - one terrain chunk entity per loaded chunk
 - short-lived laser strike particle entities with position, velocity, renderable cube model, and particle lifetime state
 - short-lived artifact fragment pickup entities with position, a uniquely sized textured plane, and pickup animation state
+- short-lived artifact fragment drop-off entities with position, a uniquely sized textured plane, and a charging-pad target
 
 Current ECS components:
 
@@ -89,6 +92,7 @@ Current ECS components:
 - `Laser`
 - `Particle`
 - `ArtifactFragmentComponent`
+- `ArtifactFragmentDropOffComponent`
 - `TerrainChunkComponent`
 - `TerrainChunkDamaged`
 - `Drone`
@@ -97,18 +101,18 @@ Current ECS components:
 
 ## System Ownership
 
-Every `System` implements `Initialize`, `Update`, and `Unload`. `Game` initializes and updates systems in registration order, then unloads them in reverse registration order before manager and asset teardown. Systems with no runtime resources use a no-op `Unload`; `ArtifactFragmentPickupSystem` releases any generated pickup plane models that are still active.
+Every `System` implements `Initialize`, `Update`, and `Unload`. `Game` initializes and updates systems in registration order, then unloads them in reverse registration order before manager and asset teardown. Systems with no runtime resources use a no-op `Unload`; the fragment pickup and drop-off systems release generated plane models that are still active.
 
 - Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; aim/firing state in `DroneFireControlSystem`. Drone fire-control cursors are stored as normalized drone viewport coordinates from -1 to 1 on each axis. Debug overlays release drone fire control so the OS cursor can interact with raygui controls.
 - Motion: `PhysicsSystem` applies velocity; `DroneHeightSystem` snaps the drone to terrain height plus hover offset.
 - Presentation: `CameraSystem` updates the main orthographic camera; `LightSystem` updates the shadow camera.
-- Salvage: `LaserSystem` maps the drone viewport cursor path to terrain, applies burns while battery charge is positive, drains charge once per active firing update, and spawns short-lived cube particles at successful terrain strikes; `ArtifactCutoutDetectionSystem` scores accepted artifact regions and spawns fragment pickups; `ArtifactFragmentPickupSystem` animates pickups into the drone and finalizes collection and scoring.
+- Salvage: `LaserSystem` maps the drone viewport cursor path to terrain, applies burns while battery charge is positive, drains charge once per active firing update, and spawns short-lived cube particles at successful terrain strikes; `ArtifactCutoutDetectionSystem` scores accepted artifact regions and spawns fragment pickups; `ArtifactFragmentPickupSystem` animates pickups into the drone and finalizes collection and scoring; `ArtifactFragmentDropOffSystem` ejects collected fragments from the drone one at a time and animates them into the charging pad.
 - Sound: `SoundSystem` tracks loaded sound streams by name and updates raylib music streams while their gameplay-driven sound state is playing. The burning stream plays while any laser is active.
 - Particles: `ParticleSystem` advances particle lifetimes, fades renderable tint alpha, and removes expired particle entities. Particle motion uses the shared velocity-driven physics system.
 - World growth: `ChunkSpawnerSystem` adds generated chunks after collected fragment score increases.
 - Tutorial: `TutorialSystem` owns the active tutorial step, starts each run at step 1, advances to step 2 once the drone moves away from its starting X/Z position, spawns red shader-styled tutorial cones over artifact centers for step 2, advances to step 3 once the drone moves within 0.5 X/Z units of a cone, removes tutorial marker entities, advances to step 4 once the drone viewport cursor moves at least 25% of the drone viewport, advances to step 5 once any laser is active, advances to step 6 once the artifact manager has at least one collected fragment, spawns a tutorial cone above the authored charging pad, and completes step 6 once the drone is within `tutorialArtifactMarkerProximity` on X/Z of the pad.
 - Rendering: `RenderSystem3D` owns shadow, scene, drone viewport, laser rendering, and depth export.
-- UI/debug: `UserInterfaceSystem`, `TutorialSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, the labelled drone battery bar, fragment thumbnails, viewport, reticle, the active tutorial prompt, artifact labels, debug guides, shadow tuning controls, and the slope shade tuning control.
+- UI/debug: `UserInterfaceSystem`, `TutorialSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, the labelled drone battery bar, undeposited fragment thumbnails, viewport, reticle, the active tutorial prompt, artifact labels, debug guides, shadow tuning controls, and the slope shade tuning control.
 
 ## Repository Shape
 

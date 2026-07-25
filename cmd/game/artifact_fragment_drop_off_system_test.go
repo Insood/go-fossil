@@ -1,0 +1,184 @@
+package main
+
+import (
+	"testing"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
+	ecs "github.com/mlange-42/ark/ecs"
+
+	"go-fossil/internal/terrain"
+)
+
+func TestArtifactFragmentDropOffMovesAtConstantSpeed(t *testing.T) {
+	t.Parallel()
+
+	position := Position3{X: 0, Y: 0, Z: 0}
+	target := rl.NewVector3(3, 0, 4)
+
+	if complete := updateArtifactFragmentDropOff(&position, target, 0.5); complete {
+		t.Fatal("drop-off completed before reaching its target")
+	}
+	if got, want := rl.Vector3Distance(rl.Vector3{}, rl.Vector3(position)), float32(2); got != want {
+		t.Fatalf("distance moved = %v, want %v", got, want)
+	}
+
+	if complete := updateArtifactFragmentDropOff(&position, target, 1); !complete {
+		t.Fatal("drop-off did not complete after reaching its target")
+	}
+	assertVector3Close(t, rl.Vector3(position), target)
+}
+
+func TestArtifactFragmentDropOffSystemEjectsCollectedFragmentsInOrder(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	droneMapper := ecs.NewMap2[Position3, Drone](world)
+	droneEntity := droneMapper.NewEntity(
+		&Position3{X: 1.5, Y: 3, Z: 6.5},
+		&Drone{},
+	)
+
+	manager := NewArtifactManager()
+	manager.fragments[2] = &ArtifactFragment{ID: 2, Collected: true}
+	manager.fragments[1] = &ArtifactFragment{ID: 1, Collected: true}
+	manager.fragments[3] = &ArtifactFragment{ID: 3}
+
+	modelCount := 0
+	system := &ArtifactFragmentDropOffSystem{
+		newModel: func(*ArtifactFragment) *rl.Model {
+			modelCount++
+			return &rl.Model{}
+		},
+		unloadModel: func(rl.Model) {},
+	}
+	game := &Game{
+		world:           world,
+		artifactManager: manager,
+		chunkManager:    testChargingPadChunkManager(),
+	}
+	system.Initialize(game)
+
+	system.update(game, 0)
+	if !manager.fragments[1].DroppedOff {
+		t.Fatal("oldest collected fragment was not ejected immediately")
+	}
+	if manager.fragments[2].DroppedOff {
+		t.Fatal("second fragment was ejected without the configured delay")
+	}
+
+	dronePosition, _ := droneMapper.Get(droneEntity)
+	dronePosition.X = 7
+	system.update(game, artifactFragmentDropOffDelay-0.01)
+	if manager.fragments[2].DroppedOff {
+		t.Fatal("second fragment was ejected before the configured delay")
+	}
+
+	system.update(game, 0.01)
+	if !manager.fragments[2].DroppedOff {
+		t.Fatal("queued fragment did not eject after the configured delay")
+	}
+	if manager.fragments[3].DroppedOff {
+		t.Fatal("uncollected fragment was ejected")
+	}
+	if got, want := modelCount, 2; got != want {
+		t.Fatalf("created model count = %d, want %d", got, want)
+	}
+
+	dropOffs := artifactFragmentDropOffs(system)
+	if got, want := len(dropOffs), 2; got != want {
+		t.Fatalf("drop-off entity count = %d, want %d", got, want)
+	}
+	if got, want := dropOffs[0].component.fragment.ID, int32(1); got != want {
+		t.Fatalf("first drop-off fragment id = %d, want %d", got, want)
+	}
+	if got, want := dropOffs[1].component.fragment.ID, int32(2); got != want {
+		t.Fatalf("second drop-off fragment id = %d, want %d", got, want)
+	}
+	if got, want := dropOffs[0].renderable.scale, float32(1); got != want {
+		t.Fatalf("first drop-off scale = %v, want %v", got, want)
+	}
+	if got, want := rl.Vector3(dropOffs[1].position), rl.NewVector3(7, 3, 6.5); got != want {
+		t.Fatalf("second drop-off started at %v, want %v", got, want)
+	}
+}
+
+func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	mapper := ecs.NewMap3[Position3, Renderable, ArtifactFragmentDropOffComponent](world)
+	first := mapper.NewEntity(
+		&Position3{},
+		&Renderable{model: &rl.Model{}, scale: 1},
+		&ArtifactFragmentDropOffComponent{targetPosition: rl.NewVector3(1, 0, 0)},
+	)
+	second := mapper.NewEntity(
+		&Position3{X: 10},
+		&Renderable{model: &rl.Model{}, scale: 1},
+		&ArtifactFragmentDropOffComponent{targetPosition: rl.NewVector3(20, 0, 0)},
+	)
+
+	unloadCount := 0
+	system := &ArtifactFragmentDropOffSystem{
+		unloadModel: func(rl.Model) {
+			unloadCount++
+		},
+	}
+	game := &Game{world: world}
+	system.Initialize(game)
+	system.updateFlights(game, 0.25)
+
+	if world.Alive(first) {
+		t.Fatal("completed drop-off entity is still alive")
+	}
+	if !world.Alive(second) {
+		t.Fatal("in-flight drop-off entity was removed too early")
+	}
+	if got, want := unloadCount, 1; got != want {
+		t.Fatalf("model unload count after arrival = %d, want %d", got, want)
+	}
+
+	system.Unload()
+	if world.Alive(second) {
+		t.Fatal("in-flight drop-off entity is still alive after unload")
+	}
+	if got, want := unloadCount, 2; got != want {
+		t.Fatalf("model unload count after system unload = %d, want %d", got, want)
+	}
+}
+
+func testChargingPadChunkManager() *ChunkManager {
+	return &ChunkManager{
+		chunks: map[ChunkCoords]*TerrainChunk{
+			{}: {
+				Data: terrain.ChunkData{
+					Models: []terrain.ModelPlacement{
+						{Name: chargingPadModelName, X: 96, Y: 64, Z: 416},
+					},
+				},
+			},
+		},
+	}
+}
+
+type artifactFragmentDropOffSnapshot struct {
+	position   Position3
+	renderable Renderable
+	component  ArtifactFragmentDropOffComponent
+}
+
+func artifactFragmentDropOffs(system *ArtifactFragmentDropOffSystem) []artifactFragmentDropOffSnapshot {
+	query := system.filter.Query()
+	defer query.Close()
+
+	dropOffs := make([]artifactFragmentDropOffSnapshot, 0)
+	for query.Next() {
+		position, renderable, component := query.Get()
+		dropOffs = append(dropOffs, artifactFragmentDropOffSnapshot{
+			position:   *position,
+			renderable: *renderable,
+			component:  *component,
+		})
+	}
+	return dropOffs
+}

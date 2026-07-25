@@ -70,6 +70,10 @@ const (
 	artifactFragmentPickupRiseHeight     = 0.75
 	artifactFragmentPickupRiseDuration   = 0.35
 	artifactFragmentPickupHomingDuration = 0.65
+	artifactFragmentDropOffProximity     = 0.5
+	artifactFragmentDropOffDelay         = 0.25
+	artifactFragmentDropOffSpeed         = 4.0
+	artifactFragmentDropOffTargetLift    = 0.125
 	totalScoreTextX                      = 16
 	totalScoreTextY                      = 16
 

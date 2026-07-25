@@ -10,6 +10,7 @@ func TestSortedArtifactFragmentsOrdersByID(t *testing.T) {
 	manager.fragments[1] = &ArtifactFragment{ID: 1, Collected: true}
 	manager.fragments[2] = &ArtifactFragment{ID: 2, Collected: true}
 	manager.fragments[4] = &ArtifactFragment{ID: 4}
+	manager.fragments[5] = &ArtifactFragment{ID: 5, Collected: true, DroppedOff: true}
 
 	fragments := sortedArtifactFragments(manager)
 	if len(fragments) != 3 {

@@ -167,7 +167,7 @@ func sortedArtifactFragments(manager *ArtifactManager) []*ArtifactFragment {
 
 	fragments := make([]*ArtifactFragment, 0, len(manager.fragments))
 	for _, fragment := range manager.fragments {
-		if !fragment.Collected {
+		if !fragment.Collected || fragment.DroppedOff {
 			continue
 		}
 		fragments = append(fragments, fragment)

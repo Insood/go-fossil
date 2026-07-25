@@ -50,6 +50,11 @@ type ArtifactFragmentComponent struct {
 	raisedPosition rl.Vector3
 }
 
+type ArtifactFragmentDropOffComponent struct {
+	fragment       *ArtifactFragment
+	targetPosition rl.Vector3
+}
+
 type TerrainChunkComponent struct {
 	Chunk *TerrainChunk
 }

@@ -33,7 +33,7 @@ Read these files first:
 - Generated terrain chunks are added as the running score increases, placed on exposed edges of the loaded chunk set.
 - Generated chunks use random height samples that match loaded neighbor borders and random artifact placements from loaded artifact definitions.
 - Artifacts are embedded as baked texture overlays plus a per-pixel artifact ID mask.
-- The salvage loop is movement, downward drone-camera aiming, laser burning, cutout detection, animated fragment pickup, scoring, and chunk expansion.
+- The salvage loop is movement, downward drone-camera aiming, laser burning, cutout detection, animated fragment pickup, scoring, charging-pad drop-off, and chunk expansion.
 - Successful laser terrain strikes spawn short-lived tinted cube particles that travel upward in a narrow cone and fade out.
 
 ## Current Systems
@@ -52,14 +52,15 @@ Systems are registered in this order in `cmd/game/game.go`:
 10. `ParticleSystem`
 11. `ArtifactCutoutDetectionSystem`
 12. `ArtifactFragmentPickupSystem`
-13. `ChunkSpawnerSystem`
-14. `RenderSystem3D`
-15. `UserInterfaceSystem`
-16. `TutorialSystem`
-17. `DebugRender3DSystem`
-18. `DebugRenderSystem2D`
+13. `ArtifactFragmentDropOffSystem`
+14. `ChunkSpawnerSystem`
+15. `RenderSystem3D`
+16. `UserInterfaceSystem`
+17. `TutorialSystem`
+18. `DebugRender3DSystem`
+19. `DebugRenderSystem2D`
 
-All systems implement `Initialize`, `Update`, and `Unload`. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while `ArtifactFragmentPickupSystem` releases generated models that remain in flight.
+All systems implement `Initialize`, `Update`, and `Unload`. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while the fragment pickup and drop-off systems release generated models that remain in flight.
 
 Important ownership notes:
 
@@ -74,10 +75,11 @@ Important ownership notes:
 - `ParticleSystem` advances particle lifetimes, fades `Renderable.tint`, and removes expired particle entities. `PhysicsSystem` moves particles because they carry `Velocity3`.
 - `ArtifactCutoutDetectionSystem` periodically scans damaged chunks, flood-fills remaining artifact ID regions, accepts regions below `MaximumRegionSize`, scores recovered artifact pixels, creates fragments for regions at or above `artifactFragmentMinPixels`, spawns pickup planes at cutout centers, clears accepted artifact overlay pixels, and softens the burn overlay so the terrain shader renders a shallow divot.
 - `ArtifactFragmentPickupSystem` lifts each fragment plane for 0.35 seconds, then eases it toward the live drone position for 0.65 seconds while tilting and shrinking it. Arrival marks the fragment collected, awards its score, exposes it to the inventory UI and tutorial, unloads the generated plane model, and removes the pickup entity.
+- `ArtifactFragmentDropOffSystem` starts a deposit when the drone moves within 0.5 X/Z units of the authored charging pad. It launches collected fragments oldest-first from the drone at 0.25-second intervals, hides each launched fragment from inventory, and moves its full-size plane at a constant speed into the pad before unloading the plane model.
 - `ChunkSpawnerSystem` watches collected score deltas and adds generated chunks after enough artifact value is recovered.
 - `TutorialSystem` owns the active tutorial step, starts each run at tutorial step 1, tracks the drone's starting X/Z position, advances to step 2 once the drone moves on X or Z, spawns red shader-styled tutorial cones over artifact centers for step 2, advances to step 3 once the drone moves within 0.5 X/Z units of a cone, removes tutorial marker entities, advances to step 4 once the drone viewport cursor moves at least 25% of the drone viewport, advances to step 5 once any laser is active, advances to step 6 once the artifact manager has at least one collected fragment, spawns a tutorial cone above the authored charging pad, and completes step 6 once the drone is within `tutorialArtifactMarkerProximity` on X/Z of the pad.
 - `RenderSystem3D` owns the shadow pass, main scene pass, drone bottom-camera viewport pass, laser rendering, slope shade shader tuning, and shadow-depth export.
-- `UserInterfaceSystem` draws total score, the labelled drone battery bar, the drone viewport, the reticle, and recent collected-fragment thumbnails with weight and score.
+- `UserInterfaceSystem` draws total score, the labelled drone battery bar, the drone viewport, the reticle, and recent collected fragments that have not yet been dropped off, with weight and score.
 - `DebugRender3DSystem` draws axes, the drone ground ray, the light guide, and artifact ID labels when debug overlays are visible.
 - `DebugRenderSystem2D` owns the raygui shadow tuning overlay, including the normal-based terrain slope shade strength.
 

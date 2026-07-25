@@ -12,12 +12,14 @@ const (
 	windowTitle  = "go-fossil"
 	targetFPS    = 60
 
-	splashTitleText                 = "Fossil hunter"
-	splashTitleFontSize       int32 = 64
-	splashTitleY              int32 = 280
-	splashStartPromptText           = "Press Space bar (or A) to start"
-	splashStartPromptFontSize int32 = 24
-	splashStartPromptY        int32 = 380
+	splashTitleText                        = "Fossil hunter"
+	splashTitleFontSize            int32   = 64
+	splashTitleY                   int32   = 280
+	splashStartPromptText                  = "Press Space bar (or A) to start"
+	splashStartPromptFontSize      int32   = 24
+	splashStartPromptY             int32   = 380
+	splashDroneDirectionDuration           = 1.0
+	splashDroneMaximumMoveDistance float32 = 6
 
 	terrainTexturePixelsPerTile      = 64
 	terrainRenderSubdivisionsPerTile = 8

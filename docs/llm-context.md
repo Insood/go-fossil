@@ -22,7 +22,7 @@ Read these files first:
 ## Current Game
 
 - The game uses an ECS architecture with `mlange-42/ark`.
-- Application startup first runs a splash scene with its own Ark world, nine randomly generated chunks centered on `(0,0)`, a hovering non-player-controlled drone, fixed gameplay camera framing, and splash text. Pressing Space or gamepad A unloads the splash runtime scene and initializes the gameplay world.
+- Application startup first runs a splash scene with its own Ark world, nine randomly generated chunks centered on `(0,0)`, a simulated drone, fixed gameplay camera framing, and splash text. The drone chooses a random full-speed X/Z heading once per second, uses normal physics and terrain-bound clamping, and stays within 6 world units on each axis of a point offset 2 world units toward positive X/Z from the center chunk's geometric center. It cannot be controlled by the player. Pressing Space or gamepad A unloads the splash runtime scene and initializes the gameplay world.
 - The world is 3D and rendered with an orthographic main camera for an isometric-style presentation.
 - The player controls one drone with keyboard or gamepad movement.
 - The drone has a battery charge that constantly drains, gates laser firing, and is shown above the drone viewport. Flight drain increases with carried cargo weight and while moving.
@@ -66,7 +66,7 @@ Systems are registered in this order in `cmd/game/game.go`:
 
 All systems implement `Initialize`, `Update`, and `Unload`. The main loop snapshots raylib's frame time into `Game.FrameTime` before each system update pass, so systems use one consistent delta per frame. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while the fragment pickup system releases all generated fragment models still in the world and the drop-off system releases generated models that remain in flight.
 
-Before these gameplay systems are created, the splash runs `DroneHeightSystem`, `LightSystem`, and `RenderSystem3D` against its temporary world, followed by its own input and text-render systems. The 3D renderer omits the drone viewport pass. Splash systems initialize in registration order and unload in reverse order; generated chunks, their GPU resources, the shadow framebuffer, managers, entities, and the world are destroyed before gameplay loads the authored default chunk. `main` owns the disk-loaded `AssetManager`, lends it to each scene, and unloads it once after the active scene is torn down.
+Before these gameplay systems are created, the splash runs `SplashScreenDroneControlSystem`, `PhysicsSystem`, `DroneHeightSystem`, `LightSystem`, and `RenderSystem3D` against its temporary world, followed by its own input and text-render systems. The splash controller changes the drone's random velocity once per second and clamps its movement both to loaded terrain and to a configured square with a 6-world-unit X/Z radius around the offset splash focus point. The 3D renderer omits the drone viewport pass. Splash systems initialize in registration order and unload in reverse order; generated chunks, their GPU resources, the shadow framebuffer, managers, entities, and the world are destroyed before gameplay loads the authored default chunk. `main` owns the disk-loaded `AssetManager`, lends it to each scene, and unloads it once after the active scene is torn down.
 
 Important ownership notes:
 

@@ -21,6 +21,7 @@ type SplashScreen struct {
 	world          *ecs.World
 	scene          *Game
 	systems        []SplashSystem
+	FrameTime      float32
 	StartRequested bool
 }
 
@@ -90,9 +91,10 @@ func (screen *SplashScreen) spawnDrone(centerChunk *TerrainChunk) {
 }
 
 func spawnSplashDrone(world *ecs.World, model *rl.Model, position Position3) ecs.Entity {
-	mapper := ecs.NewMap4[Position3, Renderable, Drone, HoverMotion](world)
+	mapper := ecs.NewMap5[Position3, Velocity3, Renderable, Drone, HoverMotion](world)
 	return mapper.NewEntity(
 		&position,
+		&Velocity3{},
 		&Renderable{
 			model:          model,
 			scale:          1.0,
@@ -109,6 +111,8 @@ func spawnSplashDrone(world *ecs.World, model *rl.Model, position Position3) ecs
 }
 
 func (screen *SplashScreen) registerSceneSystems() {
+	screen.scene.AddSystem(&SplashScreenDroneControlSystem{})
+	screen.scene.AddSystem(&PhysicsSystem{})
 	screen.scene.AddSystem(&DroneHeightSystem{})
 	screen.scene.AddSystem(&LightSystem{})
 	screen.scene.AddSystem(&RenderSystem3D{skipDroneViewport: true})
@@ -139,6 +143,7 @@ func (screen *SplashScreen) InitializeSystems() {
 }
 
 func (screen *SplashScreen) UpdateSystems() {
+	screen.scene.FrameTime = screen.FrameTime
 	screen.scene.UpdateSystems()
 	for _, system := range screen.systems {
 		system.Update(screen)

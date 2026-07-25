@@ -21,6 +21,7 @@ func main() {
 	for !rl.WindowShouldClose() && !splash.StartRequested {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.SkyBlue)
+		splash.FrameTime = rl.GetFrameTime()
 		splash.UpdateSystems()
 		rl.EndDrawing()
 	}

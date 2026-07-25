@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+	"math/rand"
 	"testing"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -109,7 +111,7 @@ func TestSplashChunkCoordsLoadCenterCardinalsThenDiagonals(t *testing.T) {
 	}
 }
 
-func TestSplashDroneIsStaticAndRenderable(t *testing.T) {
+func TestSplashDroneIsSimulatedAndRenderable(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
@@ -129,9 +131,12 @@ func TestSplashDroneIsStaticAndRenderable(t *testing.T) {
 	if ecs.NewMap[HoverMotion](world).Get(entity) == nil {
 		t.Fatal("splash drone is missing HoverMotion")
 	}
+	velocity := ecs.NewMap[Velocity3](world).Get(entity)
+	if velocity == nil || *velocity != (Velocity3{}) {
+		t.Fatalf("initial splash drone velocity = %+v, want zero", velocity)
+	}
 
 	for name, missing := range map[string]bool{
-		"Velocity3":        ecs.NewMap[Velocity3](world).Get(entity) == nil,
 		"Battery":          ecs.NewMap[Battery](world).Get(entity) == nil,
 		"Laser":            ecs.NewMap[Laser](world).Get(entity) == nil,
 		"DroneFireControl": ecs.NewMap[DroneFireControl](world).Get(entity) == nil,
@@ -149,21 +154,120 @@ func TestSplashRegistersOnlyScenePresentationSystems(t *testing.T) {
 	screen := &SplashScreen{scene: scene}
 	screen.registerSceneSystems()
 
-	if got, want := len(scene.systems), 3; got != want {
+	if got, want := len(scene.systems), 5; got != want {
 		t.Fatalf("splash scene system count = %d, want %d", got, want)
 	}
-	if _, ok := scene.systems[0].(*DroneHeightSystem); !ok {
-		t.Fatalf("splash scene system 0 = %T, want *DroneHeightSystem", scene.systems[0])
+	if _, ok := scene.systems[0].(*SplashScreenDroneControlSystem); !ok {
+		t.Fatalf("splash scene system 0 = %T, want *SplashScreenDroneControlSystem", scene.systems[0])
 	}
-	if _, ok := scene.systems[1].(*LightSystem); !ok {
-		t.Fatalf("splash scene system 1 = %T, want *LightSystem", scene.systems[1])
+	if _, ok := scene.systems[1].(*PhysicsSystem); !ok {
+		t.Fatalf("splash scene system 1 = %T, want *PhysicsSystem", scene.systems[1])
 	}
-	renderSystem, ok := scene.systems[2].(*RenderSystem3D)
+	if _, ok := scene.systems[2].(*DroneHeightSystem); !ok {
+		t.Fatalf("splash scene system 2 = %T, want *DroneHeightSystem", scene.systems[2])
+	}
+	if _, ok := scene.systems[3].(*LightSystem); !ok {
+		t.Fatalf("splash scene system 3 = %T, want *LightSystem", scene.systems[3])
+	}
+	renderSystem, ok := scene.systems[4].(*RenderSystem3D)
 	if !ok {
-		t.Fatalf("splash scene system 2 = %T, want *RenderSystem3D", scene.systems[2])
+		t.Fatalf("splash scene system 4 = %T, want *RenderSystem3D", scene.systems[4])
 	}
 	if !renderSystem.skipDroneViewport {
 		t.Fatal("splash render system did not skip the drone viewport")
+	}
+}
+
+func TestSplashDroneDirectionTimerChoosesImmediatelyAndEverySecond(t *testing.T) {
+	t.Parallel()
+
+	elapsed, choose := advanceSplashDroneDirectionTimer(splashDroneDirectionDuration, 0)
+	if !choose || elapsed != 0 {
+		t.Fatalf("initial timer = (%v, %v), want (0, true)", elapsed, choose)
+	}
+
+	elapsed, choose = advanceSplashDroneDirectionTimer(elapsed, 0.5)
+	if choose || elapsed != 0.5 {
+		t.Fatalf("half-second timer = (%v, %v), want (0.5, false)", elapsed, choose)
+	}
+
+	elapsed, choose = advanceSplashDroneDirectionTimer(elapsed, 0.5)
+	if !choose || elapsed != 0 {
+		t.Fatalf("one-second timer = (%v, %v), want (0, true)", elapsed, choose)
+	}
+}
+
+func TestRandomSplashDroneVelocityUsesFullHorizontalSpeed(t *testing.T) {
+	t.Parallel()
+
+	velocity := randomSplashDroneVelocity(rand.New(rand.NewSource(1)))
+	speed := math.Sqrt(float64(velocity.X*velocity.X + velocity.Z*velocity.Z))
+
+	if math.Abs(speed-float64(droneTopSpeed)) > 0.00001 {
+		t.Fatalf("random splash drone speed = %v, want %v", speed, droneTopSpeed)
+	}
+	if velocity.Y != 0 {
+		t.Fatalf("random splash drone Y velocity = %v, want 0", velocity.Y)
+	}
+}
+
+func TestClampSplashDroneVelocityToCenter(t *testing.T) {
+	t.Parallel()
+
+	center := rl.NewVector3(6, 0, 6)
+	tests := []struct {
+		name     string
+		position Position3
+		velocity Velocity3
+		want     Velocity3
+	}{
+		{
+			name:     "blocks positive X beyond limit",
+			position: Position3{X: 11, Z: 6},
+			velocity: Velocity3{X: 2, Z: 1},
+			want:     Velocity3{Z: 1},
+		},
+		{
+			name:     "blocks negative X beyond limit",
+			position: Position3{X: 1, Z: 6},
+			velocity: Velocity3{X: -2},
+			want:     Velocity3{},
+		},
+		{
+			name:     "blocks positive Z beyond limit",
+			position: Position3{X: 6, Z: 11},
+			velocity: Velocity3{X: 1, Z: 2},
+			want:     Velocity3{X: 1},
+		},
+		{
+			name:     "allows inward movement",
+			position: Position3{X: 11, Z: 6},
+			velocity: Velocity3{X: -2},
+			want:     Velocity3{X: -2},
+		},
+		{
+			name:     "allows movement to exact limit",
+			position: Position3{X: 11, Z: 6},
+			velocity: Velocity3{X: 1},
+			want:     Velocity3{X: 1},
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			got := clampSplashDroneVelocityToCenter(
+				test.position,
+				test.velocity,
+				1,
+				center,
+				splashDroneMaximumMoveDistance,
+			)
+			if got != test.want {
+				t.Fatalf("clamped velocity = %+v, want %+v", got, test.want)
+			}
+		})
 	}
 }
 

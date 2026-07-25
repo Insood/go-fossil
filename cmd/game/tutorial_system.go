@@ -28,7 +28,7 @@ func NewTutorialState() *TutorialState {
 
 type TutorialSystem struct {
 	droneFilter             *ecs.Filter2[Position3, Drone]
-	fireControlFilter       *ecs.Filter1[DroneFireControl]
+	playerFireInputFilter   *ecs.Filter1[PlayerFireInput]
 	laserFilter             *ecs.Filter1[Laser]
 	chargingPadFilter       *ecs.Filter2[Position3, ChargingPad]
 	markerMapper            *ecs.Map3[Position3, Renderable, TutorialMarker]
@@ -45,7 +45,7 @@ type TutorialSystem struct {
 
 func (system *TutorialSystem) Initialize(game *Game) {
 	system.droneFilter = ecs.NewFilter2[Position3, Drone](game.world)
-	system.fireControlFilter = ecs.NewFilter1[DroneFireControl](game.world)
+	system.playerFireInputFilter = ecs.NewFilter1[PlayerFireInput](game.world)
 	system.laserFilter = ecs.NewFilter1[Laser](game.world)
 	system.chargingPadFilter = ecs.NewFilter2[Position3, ChargingPad](game.world)
 	system.markerMapper = ecs.NewMap3[Position3, Renderable, TutorialMarker](game.world)
@@ -131,7 +131,7 @@ func (system *TutorialSystem) updateFindArtifactStep(game *Game) {
 }
 
 func (system *TutorialSystem) updateMoveLaserStep() {
-	control, ok := system.fireControl()
+	control, ok := system.playerFireInput()
 	if !ok {
 		return
 	}
@@ -454,12 +454,12 @@ func (system *TutorialSystem) dronePosition() (rl.Vector3, bool) {
 	return rl.Vector3(*position), true
 }
 
-func (system *TutorialSystem) fireControl() (DroneFireControl, bool) {
-	query := system.fireControlFilter.Query()
+func (system *TutorialSystem) playerFireInput() (PlayerFireInput, bool) {
+	query := system.playerFireInputFilter.Query()
 	defer query.Close()
 
 	if !query.Next() {
-		return DroneFireControl{}, false
+		return PlayerFireInput{}, false
 	}
 
 	return *query.Get(), true

@@ -10,12 +10,12 @@ import (
 )
 
 type UserInterfaceSystem struct {
-	filter          *ecs.Filter2[DroneFireControl, Battery]
+	filter          *ecs.Filter2[PlayerFireInput, Battery]
 	artifactManager *ArtifactManager
 }
 
 func (system *UserInterfaceSystem) Initialize(game *Game) {
-	system.filter = ecs.NewFilter2[DroneFireControl, Battery](game.world)
+	system.filter = ecs.NewFilter2[PlayerFireInput, Battery](game.world)
 	system.artifactManager = game.artifactManager
 }
 

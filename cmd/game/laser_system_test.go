@@ -11,66 +11,95 @@ import (
 	"go-fossil/internal/terrain"
 )
 
-func TestLaserBurnCursorsUsesCurrentCursorWhenPreviousFrameWasNotFiring(t *testing.T) {
+func TestLaserSystemConsumesTargetsAndPresentsLastTarget(t *testing.T) {
 	t.Parallel()
 
-	cursors := laserBurnCursors(DroneFireControl{
-		cursor:     rl.NewVector2(0.2, 0.3),
-		firing:     true,
-		lastCursor: rl.NewVector2(0.1, 0.3),
-		lastFiring: false,
-	})
+	world := ecs.NewWorld()
+	manager, chunk := newLaserTestChunkManager(world)
+	first := rl.NewVector3(0, 0, 0)
+	last := rl.NewVector3(1, 0, 1)
+	mapper := ecs.NewMap3[Laser, DroneFireTargets, Battery](world)
+	entity := mapper.NewEntity(
+		&Laser{},
+		&DroneFireTargets{targets: []rl.Vector3{first, last}},
+		&Battery{charge: droneBatteryCharge},
+	)
+	game := &Game{world: world, chunkManager: manager}
+	system := &LaserSystem{}
+	system.Initialize(game)
 
-	if len(cursors) != 1 {
-		t.Fatalf("len(cursors) = %d, want 1", len(cursors))
+	system.Update(game)
+
+	laser := ecs.NewMap[Laser](world).Get(entity)
+	if !laser.active {
+		t.Fatal("laser is inactive after consuming targets")
 	}
-	if cursors[0].X != 0.2 || cursors[0].Y != 0.3 {
-		t.Fatalf("cursor = (%.2f, %.2f), want (0.20, 0.30)", cursors[0].X, cursors[0].Y)
+	if laser.target != last {
+		t.Fatalf("laser target = %+v, want %+v", laser.target, last)
+	}
+	targets := ecs.NewMap[DroneFireTargets](world).Get(entity)
+	if len(targets.targets) != 0 {
+		t.Fatalf("remaining target count = %d, want 0", len(targets.targets))
+	}
+	battery := ecs.NewMap[Battery](world).Get(entity)
+	if battery.charge != droneBatteryCharge-laserBatteryDrainPerBurn {
+		t.Fatalf("battery charge = %v, want %v", battery.charge, droneBatteryCharge-laserBatteryDrainPerBurn)
+	}
+	if chunk.BurnOverlayImage.RGBAAt(0, 0).A != 255 || chunk.BurnOverlayImage.RGBAAt(1, 1).A != 255 {
+		t.Fatal("laser did not burn every supplied target")
 	}
 }
 
-func TestLaserBurnCursorsInterpolatesWithConfiguredMaximumStep(t *testing.T) {
+func TestLaserSystemClearsTargetsWithoutFiringWhenBatteryIsEmpty(t *testing.T) {
 	t.Parallel()
 
-	cursors := laserBurnCursors(DroneFireControl{
-		cursor:     rl.NewVector2(12.0/float32(droneViewPixels)*2, 0),
-		firing:     true,
-		lastCursor: rl.NewVector2(0, 0),
-		lastFiring: true,
-	})
+	world := ecs.NewWorld()
+	manager, chunk := newLaserTestChunkManager(world)
+	mapper := ecs.NewMap3[Laser, DroneFireTargets, Battery](world)
+	entity := mapper.NewEntity(
+		&Laser{active: true},
+		&DroneFireTargets{targets: []rl.Vector3{rl.NewVector3(0, 0, 0)}},
+		&Battery{},
+	)
+	game := &Game{world: world, chunkManager: manager}
+	system := &LaserSystem{}
+	system.Initialize(game)
 
-	if len(cursors) != 3 {
-		t.Fatalf("len(cursors) = %d, want 3", len(cursors))
-	}
+	system.Update(game)
 
-	wantX := []float32{
-		4.0 / float32(droneViewPixels) * 2,
-		8.0 / float32(droneViewPixels) * 2,
-		12.0 / float32(droneViewPixels) * 2,
+	if ecs.NewMap[Laser](world).Get(entity).active {
+		t.Fatal("laser remained active with an empty battery")
 	}
-	for i, cursor := range cursors {
-		if cursor.X != wantX[i] || cursor.Y != 0 {
-			t.Fatalf("cursor %d = (%.4f, %.4f), want (%.4f, 0.0000)", i, cursor.X, cursor.Y, wantX[i])
-		}
+	if targets := ecs.NewMap[DroneFireTargets](world).Get(entity); len(targets.targets) != 0 {
+		t.Fatalf("remaining target count = %d, want 0", len(targets.targets))
+	}
+	if got := chunk.BurnOverlayImage.RGBAAt(0, 0).A; got != 0 {
+		t.Fatalf("burn alpha = %d, want 0", got)
 	}
 }
 
-func TestLaserBurnCursorsKeepsSmallMotionToSingleCurrentCursor(t *testing.T) {
+func TestLaserSystemStaysInactiveWithoutTargets(t *testing.T) {
 	t.Parallel()
 
-	cursors := laserBurnCursors(DroneFireControl{
-		cursor:     rl.NewVector2(4.0/float32(droneViewPixels)*2, 0),
-		firing:     true,
-		lastCursor: rl.NewVector2(0, 0),
-		lastFiring: true,
-	})
+	world := ecs.NewWorld()
+	manager, _ := newLaserTestChunkManager(world)
+	mapper := ecs.NewMap3[Laser, DroneFireTargets, Battery](world)
+	entity := mapper.NewEntity(
+		&Laser{active: true},
+		&DroneFireTargets{},
+		&Battery{charge: droneBatteryCharge},
+	)
+	game := &Game{world: world, chunkManager: manager}
+	system := &LaserSystem{}
+	system.Initialize(game)
 
-	if len(cursors) != 1 {
-		t.Fatalf("len(cursors) = %d, want 1", len(cursors))
+	system.Update(game)
+
+	if ecs.NewMap[Laser](world).Get(entity).active {
+		t.Fatal("laser remained active without targets")
 	}
-	wantX := 4.0 / float32(droneViewPixels) * 2
-	if cursors[0].X != wantX || cursors[0].Y != 0 {
-		t.Fatalf("cursor = (%.4f, %.4f), want (%.4f, 0.0000)", cursors[0].X, cursors[0].Y, wantX)
+	if got := ecs.NewMap[Battery](world).Get(entity).charge; got != droneBatteryCharge {
+		t.Fatalf("battery charge = %v, want %v", got, droneBatteryCharge)
 	}
 }
 
@@ -252,4 +281,23 @@ func TestDrainLaserBatteryClampsAtZero(t *testing.T) {
 	if battery.charge != 0 {
 		t.Fatalf("battery charge = %.2f, want 0", battery.charge)
 	}
+}
+
+func newLaserTestChunkManager(world *ecs.World) (*ChunkManager, *TerrainChunk) {
+	manager := &ChunkManager{
+		world:           world,
+		terrainChunkMap: ecs.NewMap1[TerrainChunkComponent](world),
+		chunks:          make(map[ChunkCoords]*TerrainChunk),
+	}
+	chunk := &TerrainChunk{
+		Coords: ChunkCoords{X: 0, Z: 0},
+		Data: terrain.ChunkData{
+			Width:  4,
+			Height: 4,
+		},
+		BurnOverlayImage: image.NewRGBA(image.Rect(0, 0, 4, 4)),
+	}
+	manager.registerTerrainChunkEntity(chunk)
+	manager.chunks[chunk.Coords] = chunk
+	return manager, chunk
 }

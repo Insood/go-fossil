@@ -67,11 +67,12 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&InputSystem{})
 	game.AddSystem(&DroneInputSystem{})
 	game.AddSystem(&BatteryDrainSystem{})
-	game.AddSystem(&DroneFireControlSystem{})
+	game.AddSystem(&PlayerDroneFireControlSystem{})
 	game.AddSystem(&PhysicsSystem{})
 	game.AddSystem(&DroneHeightSystem{})
 	game.AddSystem(&CameraSystem{})
 	game.AddSystem(&LightSystem{})
+	game.AddSystem(&PlayerDroneFireTargetSystem{})
 	game.AddSystem(&LaserSystem{})
 	game.AddSystem(&SoundSystem{})
 	game.AddSystem(&ParticleSystem{})
@@ -89,7 +90,7 @@ func (game *Game) registerSystems() {
 
 func (game *Game) spawnDrone() {
 	baseY := game.chunkManager.SampleHeight(droneWorldSpawnX, droneWorldSpawnZ) + droneCenterY
-	droneMapper := ecs.NewMap8[Position3, Velocity3, Renderable, Drone, HoverMotion, Laser, DroneFireControl, Battery](game.world)
+	droneMapper := ecs.NewMap9[Position3, Velocity3, Renderable, Drone, HoverMotion, Laser, PlayerFireInput, DroneFireTargets, Battery](game.world)
 	droneMapper.NewEntity(
 		&Position3{X: droneWorldSpawnX, Y: baseY, Z: droneWorldSpawnZ},
 		&Velocity3{},
@@ -106,7 +107,8 @@ func (game *Game) spawnDrone() {
 			angularSpeed: droneHoverAngularSpeed,
 		},
 		&Laser{},
-		&DroneFireControl{},
+		&PlayerFireInput{},
+		&DroneFireTargets{},
 		&Battery{charge: droneBatteryCharge},
 	)
 }

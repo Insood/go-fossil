@@ -91,9 +91,13 @@ type BatteryRecharge struct {
 	Charge float32
 }
 
-type DroneFireControl struct {
+type PlayerFireInput struct {
 	cursor     rl.Vector2
 	firing     bool
 	lastCursor rl.Vector2
 	lastFiring bool
+}
+
+type DroneFireTargets struct {
+	targets []rl.Vector3
 }

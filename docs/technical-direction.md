@@ -106,7 +106,8 @@ Current ECS components:
 - `Drone`
 - `Battery`
 - `BatteryRecharge`
-- `DroneFireControl`
+- `PlayerFireInput`
+- `DroneFireTargets`
 
 ## System Ownership
 
@@ -116,12 +117,12 @@ Application startup first creates a temporary splash scene with its own Ark worl
 
 `main` owns the disk-loaded `AssetManager` and passes it to both scene initializers. Pressing Space or gamepad A unloads the splash systems, all generated chunk meshes and textures, artifact resources, shadow framebuffer, managers, entities, and world before creating the gameplay ECS and authored default chunk with the same shared assets. Scene teardown never unloads the shared manager; `main` unloads it exactly once after the active scene is torn down.
 
-- Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; aim/firing state in `DroneFireControlSystem`. Drone fire-control cursors are stored as normalized drone viewport coordinates from -1 to 1 on each axis. Debug overlays release drone fire control so the OS cursor can interact with raygui controls.
+- Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; player aim/firing state in `PlayerDroneFireControlSystem`. `PlayerFireInput` stores current and previous normalized drone viewport cursors plus firing state. Debug overlays release player fire control so the OS cursor can interact with raygui controls.
 - Battery: `BatteryDrainSystem` applies time-based drain after movement input. The drain rate is a base 0.25 charge per second plus the carried-weight percentage multiplied by the 1.0 cargo modifier, producing 1.25 charge per second at the 12,000-unit cargo limit; movement does not alter the rate. Completed fragment drop-offs add `score * 0.05` to the drone's `BatteryRecharge` reservoir, accumulating with any pending recharge. The battery system transfers up to 1 charge from that reservoir per update, removes an exhausted reservoir, clamps battery charge to 100, and discards pending recharge when a transfer would exceed that limit. Battery charge is clamped at zero after drain.
 - Motion: `PhysicsSystem` applies velocity; `DroneHeightSystem` snaps the drone to terrain height plus hover offset.
 - Presentation: `CameraSystem` updates the main orthographic camera; `LightSystem` updates the shadow camera.
 - Motion animation: `MovementAnimationSystem` translates entities between stored endpoints using duration-based linear or cubic easing, optionally resolving a live target entity, and removes completed movement components.
-- Salvage: `LaserSystem` maps the drone viewport cursor path to terrain, applies burns while battery charge is positive, drains charge once per active firing update, and spawns short-lived cube particles at successful terrain strikes; `ArtifactCutoutDetectionSystem` calculates fragment values and spawns fragment planes with rise movement; `ArtifactFragmentPickupSystem` enforces drone capacity, selects nearby fitting fragments, configures live-target homing, applies pickup presentation, and finalizes collection; `ArtifactFragmentDropOffSystem` queries `ChargingPad` entities, ejects collected fragments from the drone one at a time, configures their pad movement, awards their score and queues score-derived battery recharge on arrival, and cleans them up.
+- Salvage: `PlayerDroneFireTargetSystem` interpolates the player cursor path after motion updates and replaces the per-frame `DroneFireTargets` buffer with valid terrain-sampled world coordinates. `LaserSystem` consumes source-independent world targets, applies burns while battery charge is positive, drains charge once per active firing update, updates laser presentation from the last target, spawns short-lived cube particles, and clears the consumed buffer; `ArtifactCutoutDetectionSystem` calculates fragment values and spawns fragment planes with rise movement; `ArtifactFragmentPickupSystem` enforces drone capacity, selects nearby fitting fragments, configures live-target homing, applies pickup presentation, and finalizes collection; `ArtifactFragmentDropOffSystem` queries `ChargingPad` entities, ejects collected fragments from the drone one at a time, configures their pad movement, awards their score and queues score-derived battery recharge on arrival, and cleans them up.
 - Sound: `SoundSystem` tracks loaded sound streams by name and updates raylib music streams while their gameplay-driven sound state is playing. The burning stream plays while any laser is active.
 - Particles: `ParticleSystem` advances particle lifetimes, fades renderable tint alpha, and removes expired particle entities. Particle motion uses the shared velocity-driven physics system.
 - World growth: `ChunkSpawnerSystem` adds generated chunks after deposited fragment score increases.

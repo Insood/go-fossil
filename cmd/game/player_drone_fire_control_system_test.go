@@ -6,13 +6,13 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func TestDroneFireControlCursorUsesMouseWhenGamepadIsIdle(t *testing.T) {
+func TestPlayerDroneFireControlCursorUsesMouseWhenGamepadIsIdle(t *testing.T) {
 	t.Parallel()
 
 	viewport := rl.NewRectangle(100, 200, 256, 256)
 	mouse := rl.NewVector2(20, 500)
 
-	cursor, usingGamepad := droneFireControlCursor(mouse, 0, 0, viewport)
+	cursor, usingGamepad := playerDroneFireControlCursor(mouse, 0, 0, viewport)
 	if usingGamepad {
 		t.Fatal("expected mouse control when gamepad is idle")
 	}
@@ -22,12 +22,12 @@ func TestDroneFireControlCursorUsesMouseWhenGamepadIsIdle(t *testing.T) {
 	}
 }
 
-func TestDroneFireControlCursorUsesGamepadWhenAxesMove(t *testing.T) {
+func TestPlayerDroneFireControlCursorUsesGamepadWhenAxesMove(t *testing.T) {
 	t.Parallel()
 
 	viewport := rl.NewRectangle(100, 200, 256, 256)
 
-	cursor, usingGamepad := droneFireControlCursor(rl.NewVector2(0, 0), 1, -1, viewport)
+	cursor, usingGamepad := playerDroneFireControlCursor(rl.NewVector2(0, 0), 1, -1, viewport)
 	if !usingGamepad {
 		t.Fatal("expected gamepad control when axes move")
 	}
@@ -37,12 +37,12 @@ func TestDroneFireControlCursorUsesGamepadWhenAxesMove(t *testing.T) {
 	}
 }
 
-func TestDroneFireControlCursorUsesSmallGamepadAxesWithoutDeadzone(t *testing.T) {
+func TestPlayerDroneFireControlCursorUsesSmallGamepadAxesWithoutDeadzone(t *testing.T) {
 	t.Parallel()
 
 	viewport := rl.NewRectangle(100, 200, 256, 256)
 
-	cursor, usingGamepad := droneFireControlCursor(rl.NewVector2(0, 0), 0.05, -0.05, viewport)
+	cursor, usingGamepad := playerDroneFireControlCursor(rl.NewVector2(0, 0), 0.05, -0.05, viewport)
 	if !usingGamepad {
 		t.Fatal("expected gamepad control for small non-zero axes")
 	}

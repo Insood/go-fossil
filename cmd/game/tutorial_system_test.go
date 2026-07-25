@@ -156,8 +156,8 @@ func TestTutorialStepThreeWaitsForCursorMovement(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
-	fireControlMapper := ecs.NewMap1[DroneFireControl](world)
-	fireControlEntity := fireControlMapper.NewEntity(&DroneFireControl{
+	playerFireInputMapper := ecs.NewMap1[PlayerFireInput](world)
+	playerFireInputEntity := playerFireInputMapper.NewEntity(&PlayerFireInput{
 		cursor: rl.NewVector2(0, 0),
 	})
 
@@ -167,7 +167,7 @@ func TestTutorialStepThreeWaitsForCursorMovement(t *testing.T) {
 	system.state.currentStep = tutorialStepMoveLaser
 
 	system.updateCurrentStep(game)
-	control := fireControlMapper.Get(fireControlEntity)
+	control := playerFireInputMapper.Get(playerFireInputEntity)
 	control.cursor = rl.NewVector2(0, 0)
 	system.updateCurrentStep(game)
 
@@ -182,8 +182,8 @@ func TestTutorialStepThreeStartsFireLaserStepAfterCursorMovesThreshold(t *testin
 	t.Parallel()
 
 	world := ecs.NewWorld()
-	fireControlMapper := ecs.NewMap1[DroneFireControl](world)
-	fireControlEntity := fireControlMapper.NewEntity(&DroneFireControl{
+	playerFireInputMapper := ecs.NewMap1[PlayerFireInput](world)
+	playerFireInputEntity := playerFireInputMapper.NewEntity(&PlayerFireInput{
 		cursor: rl.NewVector2(0, 0),
 	})
 
@@ -194,7 +194,7 @@ func TestTutorialStepThreeStartsFireLaserStepAfterCursorMovesThreshold(t *testin
 
 	system.updateCurrentStep(game)
 
-	control := fireControlMapper.Get(fireControlEntity)
+	control := playerFireInputMapper.Get(playerFireInputEntity)
 	control.cursor = rl.NewVector2(tutorialLaserMoveThresholdNormalized, 0)
 	system.updateCurrentStep(game)
 

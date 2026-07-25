@@ -5,16 +5,16 @@ import (
 	ecs "github.com/mlange-42/ark/ecs"
 )
 
-type DroneFireControlSystem struct {
-	filter *ecs.Filter1[DroneFireControl]
+type PlayerDroneFireControlSystem struct {
+	filter *ecs.Filter1[PlayerFireInput]
 }
 
-func (system *DroneFireControlSystem) Initialize(game *Game) {
-	system.filter = ecs.NewFilter1[DroneFireControl](game.world)
+func (system *PlayerDroneFireControlSystem) Initialize(game *Game) {
+	system.filter = ecs.NewFilter1[PlayerFireInput](game.world)
 	rl.HideCursor()
 }
 
-func (system *DroneFireControlSystem) Update(game *Game) {
+func (system *PlayerDroneFireControlSystem) Update(game *Game) {
 	if debugOverlayVisible {
 		rl.ShowCursor()
 		system.clearFireControlState()
@@ -30,7 +30,7 @@ func (system *DroneFireControlSystem) Update(game *Game) {
 	if rl.IsGamepadAvailable(droneGamepadIndex) {
 		axisX := rl.GetGamepadAxisMovement(droneGamepadIndex, droneGamepadTargetAxisX)
 		axisZ := rl.GetGamepadAxisMovement(droneGamepadIndex, droneGamepadTargetAxisZ)
-		cursor, _ = droneFireControlCursor(mouse, axisX, axisZ, viewport)
+		cursor, _ = playerDroneFireControlCursor(mouse, axisX, axisZ, viewport)
 	}
 
 	cursorPixel := droneViewportCursorPixel(cursor, viewport)
@@ -53,9 +53,9 @@ func (system *DroneFireControlSystem) Update(game *Game) {
 	}
 }
 
-func (system *DroneFireControlSystem) Unload() {}
+func (system *PlayerDroneFireControlSystem) Unload() {}
 
-func (system *DroneFireControlSystem) clearFireControlState() {
+func (system *PlayerDroneFireControlSystem) clearFireControlState() {
 	query := system.filter.Query()
 	defer query.Close()
 
@@ -67,7 +67,7 @@ func (system *DroneFireControlSystem) clearFireControlState() {
 	}
 }
 
-func droneFireControlCursor(mouse rl.Vector2, axisX, axisZ float32, viewport rl.Rectangle) (rl.Vector2, bool) {
+func playerDroneFireControlCursor(mouse rl.Vector2, axisX, axisZ float32, viewport rl.Rectangle) (rl.Vector2, bool) {
 	if axisX != 0 || axisZ != 0 {
 		return droneViewportCursorFromGamepad(viewport, axisX, axisZ), true
 	}

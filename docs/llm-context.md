@@ -45,24 +45,25 @@ Systems are registered in this order in `cmd/game/game.go`:
 1. `InputSystem`
 2. `DroneInputSystem`
 3. `BatteryDrainSystem`
-4. `DroneFireControlSystem`
+4. `PlayerDroneFireControlSystem`
 5. `PhysicsSystem`
 6. `DroneHeightSystem`
 7. `CameraSystem`
 8. `LightSystem`
-9. `LaserSystem`
-10. `SoundSystem`
-11. `ParticleSystem`
-12. `ArtifactCutoutDetectionSystem`
-13. `MovementAnimationSystem`
-14. `ArtifactFragmentPickupSystem`
-15. `ArtifactFragmentDropOffSystem`
-16. `ChunkSpawnerSystem`
-17. `RenderSystem3D`
-18. `UserInterfaceSystem`
-19. `TutorialSystem`
-20. `DebugRender3DSystem`
-21. `DebugRenderSystem2D`
+9. `PlayerDroneFireTargetSystem`
+10. `LaserSystem`
+11. `SoundSystem`
+12. `ParticleSystem`
+13. `ArtifactCutoutDetectionSystem`
+14. `MovementAnimationSystem`
+15. `ArtifactFragmentPickupSystem`
+16. `ArtifactFragmentDropOffSystem`
+17. `ChunkSpawnerSystem`
+18. `RenderSystem3D`
+19. `UserInterfaceSystem`
+20. `TutorialSystem`
+21. `DebugRender3DSystem`
+22. `DebugRenderSystem2D`
 
 All systems implement `Initialize`, `Update`, and `Unload`. The main loop snapshots raylib's frame time into `Game.FrameTime` before each system update pass, so systems use one consistent delta per frame. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while the fragment pickup system releases all generated fragment models still in the world and the drop-off system releases generated models that remain in flight.
 
@@ -75,8 +76,9 @@ Important ownership notes:
 - Authored artifact and entity placement coordinates are stored in baked texture pixels and converted to world units with `terrainTexturePixelsPerTile`. Entity placement types are gameplay archetypes; their factories own model selection, render settings, and ECS component composition.
 - `ArtifactManager` owns runtime artifact records, unique artifact IDs, fragment collection state, fragment textures, and carried-fragment weight calculation.
 - `BatteryDrainSystem` applies time-based drain after drone input. Its rate is 0.25 charge per second plus carried-weight percentage multiplied by the 1.0 cargo modifier, reaching 1.25 charge per second at the 12,000-unit limit; movement does not alter drain. Completed drop-offs accumulate `score * 0.05` in a drone `BatteryRecharge` component. The battery system transfers up to 1 charge from that reservoir per update, removes it when exhausted, clamps battery charge to 100, and discards pending recharge when a transfer would exceed 100. Drained charge is clamped at zero.
-- `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps mouse/gamepad aiming into normalized drone viewport coordinates from -1 to 1 on each axis, and stores current and previous cursor/firing state on `DroneFireControl`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.
-- `LaserSystem` maps the stored normalized drone viewport cursor to terrain-sampled world targets, interpolates between consecutive firing cursors at the configured pixel step, stamps the chunk burn overlay while firing, drains drone battery charge once per active firing update, and marks damaged chunks for cutout scanning. Lasers only fire while battery charge is positive.
+- `PlayerDroneFireControlSystem` owns the player drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps mouse/gamepad aiming into normalized coordinates from -1 to 1 on each axis, and stores current and previous cursor/firing state on `PlayerFireInput`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.
+- `PlayerDroneFireTargetSystem` clears the player's per-frame `DroneFireTargets`, interpolates between consecutive firing cursors at the configured pixel step, and converts valid normalized cursors into terrain-sampled world coordinates after drone movement and height updates.
+- `LaserSystem` consumes world-space `DroneFireTargets` without depending on player input. With positive battery and at least one target, it presents the final target, drains charge once, stamps every target into the chunk burn overlay, and marks damaged chunks for cutout scanning. It clears target buffers whether it fires or the battery is empty.
 - `LaserSystem` also creates particle entities at successful terrain burn positions. These particles reuse the shared cube model, do not cast or receive shadows, and have no gameplay interaction.
 - `SoundSystem` tracks every loaded sound stream by name and plays the `burning` stream while any laser is active.
 - `ParticleSystem` advances particle lifetimes, fades `Renderable.tint`, and removes expired particle entities. `PhysicsSystem` moves particles because they carry `Velocity3`.
@@ -109,7 +111,7 @@ Important ownership notes:
 | New gameplay system | `cmd/game/*_system.go` |
 | New render behavior | `cmd/game/render_system.go` or a dedicated render system |
 | Framebuffer / render-target setup | `cmd/game/framebuffer.go` |
-| New input behavior | `cmd/game/input_system.go`, `cmd/game/drone_input_system.go`, or `cmd/game/drone_fire_control_system.go` |
+| New input behavior | `cmd/game/input_system.go`, `cmd/game/drone_input_system.go`, or `cmd/game/player_drone_fire_control_system.go` |
 | System order changes | `cmd/game/game.go` |
 | Gameplay constants | `cmd/game/config.go` |
 | Shared small helpers | `cmd/game/utils.go` |

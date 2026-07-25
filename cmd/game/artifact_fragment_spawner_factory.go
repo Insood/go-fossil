@@ -6,19 +6,17 @@ import (
 )
 
 type ArtifactFragmentSpawnerFactory struct {
-	mapper *ecs.Map4[Position3, Renderable, ArtifactFragmentComponent, ArtifactFragmentRiseComponent]
+	mapper *ecs.Map4[Position3, Renderable, ArtifactFragmentComponent, MovementAnimationComponent]
 }
 
 func NewArtifactFragmentSpawnerFactory(world *ecs.World) *ArtifactFragmentSpawnerFactory {
 	return &ArtifactFragmentSpawnerFactory{
-		mapper: ecs.NewMap4[Position3, Renderable, ArtifactFragmentComponent, ArtifactFragmentRiseComponent](world),
+		mapper: ecs.NewMap4[Position3, Renderable, ArtifactFragmentComponent, MovementAnimationComponent](world),
 	}
 }
 
 func (factory *ArtifactFragmentSpawnerFactory) Spawn(fragment *ArtifactFragment, position rl.Vector3) ecs.Entity {
 	model := newArtifactFragmentPlaneModel(fragment)
-	raisedPosition := position
-	raisedPosition.Y += artifactFragmentPickupRiseHeight
 
 	return factory.mapper.NewEntity(
 		&Position3{X: position.X, Y: position.Y, Z: position.Z},
@@ -32,11 +30,19 @@ func (factory *ArtifactFragmentSpawnerFactory) Spawn(fragment *ArtifactFragment,
 		&ArtifactFragmentComponent{
 			fragment: fragment,
 		},
-		&ArtifactFragmentRiseComponent{
-			startPosition:  position,
-			raisedPosition: raisedPosition,
-		},
+		artifactFragmentRiseMovement(position),
 	)
+}
+
+func artifactFragmentRiseMovement(position rl.Vector3) *MovementAnimationComponent {
+	raisedPosition := position
+	raisedPosition.Y += artifactFragmentPickupRiseHeight
+	return &MovementAnimationComponent{
+		startPosition:  position,
+		targetPosition: raisedPosition,
+		duration:       artifactFragmentPickupRiseDuration,
+		easing:         MovementAnimationEaseOutCubic,
+	}
 }
 
 func newArtifactFragmentPlaneModel(fragment *ArtifactFragment) *rl.Model {

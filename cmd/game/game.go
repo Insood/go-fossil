@@ -77,7 +77,7 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&SoundSystem{})
 	game.AddSystem(&ParticleSystem{})
 	game.AddSystem(&ArtifactCutoutDetectionSystem{})
-	game.AddSystem(&ArtifactFragmentRiseSystem{})
+	game.AddSystem(&MovementAnimationSystem{})
 	game.AddSystem(&ArtifactFragmentPickupSystem{})
 	game.AddSystem(&ArtifactFragmentDropOffSystem{})
 	game.AddSystem(&ChunkSpawnerSystem{})

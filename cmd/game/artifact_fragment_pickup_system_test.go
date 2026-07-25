@@ -32,13 +32,16 @@ func TestArtifactFragmentPickupPositionUsesRegionCenterAndTerrainHeight(t *testi
 	assertVector3(t, position, 10, 2+artifactFragmentPickupGroundLift, -5)
 }
 
-func TestUpdateArtifactFragmentPickupTracksDrone(t *testing.T) {
+func TestUpdateArtifactFragmentPickupPresentationTiltsAndShrinks(t *testing.T) {
 	t.Parallel()
 
-	start := rl.NewVector3(1, 2, 3)
-	pickup := &ArtifactFragmentPickupComponent{startPosition: start}
+	movement := &MovementAnimationComponent{
+		duration: artifactFragmentPickupHomingDuration,
+		elapsed:  artifactFragmentPickupHomingDuration / 2,
+		easing:   MovementAnimationEaseInCubic,
+	}
 	model := &rl.Model{}
-	position := Position3(start)
+	position := Position3{X: 5, Y: 4, Z: 3}
 	renderable := &Renderable{model: model, scale: 1}
 	camera := rl.NewCamera3D(
 		rl.NewVector3(20, 20, 20),
@@ -47,36 +50,14 @@ func TestUpdateArtifactFragmentPickupTracksDrone(t *testing.T) {
 		45,
 		rl.CameraPerspective,
 	)
-	dronePosition := rl.NewVector3(9, 6, 7)
 
-	if complete := updateArtifactFragmentPickup(pickup, &position, renderable, dronePosition, camera, 0); complete {
-		t.Fatal("pickup completed at start")
-	}
-	assertVector3Close(t, rl.Vector3(position), start)
+	updateArtifactFragmentPickupPresentation(movement, &position, renderable, camera)
 
-	if complete := updateArtifactFragmentPickup(pickup, &position, renderable, dronePosition, camera, artifactFragmentPickupHomingDuration/2); complete {
-		t.Fatal("pickup completed midway through homing")
-	}
-	wantMidpoint := rl.Vector3Lerp(start, dronePosition, easeInCubic(0.5))
-	assertVector3Close(t, rl.Vector3(position), wantMidpoint)
-	if renderable.scale >= 1 || renderable.scale <= 0 {
-		t.Fatalf("scale midway through homing = %v, want between 0 and 1", renderable.scale)
+	if got, want := renderable.scale, float32(0.875); got != want {
+		t.Fatalf("scale midway through homing = %v, want %v", got, want)
 	}
 	if model.Transform == rl.MatrixIdentity() {
 		t.Fatal("model did not tilt during homing")
-	}
-
-	movedDronePosition := rl.NewVector3(13, 10, 11)
-	updateArtifactFragmentPickup(pickup, &position, renderable, movedDronePosition, camera, 0)
-	wantTrackedPosition := rl.Vector3Lerp(start, movedDronePosition, easeInCubic(0.5))
-	assertVector3Close(t, rl.Vector3(position), wantTrackedPosition)
-
-	if complete := updateArtifactFragmentPickup(pickup, &position, renderable, movedDronePosition, camera, artifactFragmentPickupHomingDuration/2+0.001); !complete {
-		t.Fatal("pickup did not complete")
-	}
-	assertVector3Close(t, rl.Vector3(position), movedDronePosition)
-	if renderable.scale != 0 {
-		t.Fatalf("scale at completion = %v, want 0", renderable.scale)
 	}
 }
 
@@ -88,7 +69,7 @@ func TestArtifactFragmentPickupSystemStartsOneNearestReadyFragment(t *testing.T)
 	tieHigherID := addTestWorldFragment(world, &ArtifactFragment{ID: 3, Weight: 10}, rl.NewVector3(0.2, 1, 0))
 	tieLowerID := addTestWorldFragment(world, &ArtifactFragment{ID: 2, Weight: 10}, rl.NewVector3(-0.2, 1, 0))
 
-	system.update(game, 0)
+	system.update(game)
 
 	if system.pickupMap.Has(farther) {
 		t.Fatal("farther fragment started homing")
@@ -99,6 +80,35 @@ func TestArtifactFragmentPickupSystemStartsOneNearestReadyFragment(t *testing.T)
 	if !system.pickupMap.Has(tieLowerID) {
 		t.Fatal("nearest fragment with lowest tie-breaking ID did not start homing")
 	}
+}
+
+func TestArtifactFragmentPickupSystemTracksMovingDrone(t *testing.T) {
+	t.Parallel()
+
+	world, game, pickupSystem := newArtifactFragmentPickupTest(t)
+	start := rl.NewVector3(0.1, 1, 0)
+	fragmentEntity := addTestWorldFragment(world, &ArtifactFragment{ID: 1, Weight: 10}, start)
+	droneEntity, _, ok := pickupSystem.drone()
+	if !ok {
+		t.Fatal("test drone was not found")
+	}
+
+	pickupSystem.update(game)
+	movementSystem := &MovementAnimationSystem{}
+	movementSystem.Initialize(game)
+	dronePosition := ecs.NewMap[Position3](world).Get(droneEntity)
+	*dronePosition = Position3{X: 0.4}
+	movementSystem.update(artifactFragmentPickupHomingDuration / 2)
+
+	fragmentPosition := ecs.NewMap[Position3](world).Get(fragmentEntity)
+	want := rl.Vector3Lerp(start, rl.NewVector3(0.4, 0, 0), movementAnimationEasedProgress(0.5, MovementAnimationEaseInCubic))
+	assertVector3Close(t, rl.Vector3(*fragmentPosition), want)
+
+	*dronePosition = Position3{X: 0.5}
+	movementSystem.update(0)
+	fragmentPosition = ecs.NewMap[Position3](world).Get(fragmentEntity)
+	want = rl.Vector3Lerp(start, rl.NewVector3(0.5, 0, 0), movementAnimationEasedProgress(0.5, MovementAnimationEaseInCubic))
+	assertVector3Close(t, rl.Vector3(*fragmentPosition), want)
 }
 
 func TestArtifactFragmentPickupSystemWaitsForRiseRangeAndCapacity(t *testing.T) {
@@ -114,9 +124,9 @@ func TestArtifactFragmentPickupSystemWaitsForRiseRangeAndCapacity(t *testing.T) 
 	tooHeavy := addTestWorldFragment(world, &ArtifactFragment{ID: 2, Weight: 101}, rl.NewVector3(0.1, 1, 0))
 	outOfRange := addTestWorldFragment(world, &ArtifactFragment{ID: 3, Weight: 1}, rl.NewVector3(1, 1, 0))
 	rising := addTestWorldFragment(world, &ArtifactFragment{ID: 4, Weight: 1}, rl.NewVector3(0.05, 1, 0))
-	ecs.NewMap[ArtifactFragmentRiseComponent](world).Add(rising, &ArtifactFragmentRiseComponent{})
+	ecs.NewMap[MovementAnimationComponent](world).Add(rising, &MovementAnimationComponent{duration: 1})
 
-	system.update(game, 0)
+	system.update(game)
 
 	if !system.pickupMap.Has(exactFit) {
 		t.Fatal("exact-fit fragment did not start homing")
@@ -137,10 +147,17 @@ func TestArtifactFragmentPickupSystemReservesHomingWeight(t *testing.T) {
 
 	world, game, system := newArtifactFragmentPickupTest(t)
 	active := addTestWorldFragment(world, &ArtifactFragment{ID: 1, Weight: droneMaximumCarryWeight}, rl.NewVector3(0.1, 1, 0))
-	system.pickupMap.Add(active, &ArtifactFragmentPickupComponent{startPosition: rl.NewVector3(0.1, 1, 0)})
+	system.pickupMoverMap.Add(
+		active,
+		&ArtifactFragmentPickupComponent{},
+		&MovementAnimationComponent{
+			startPosition: rl.NewVector3(0.1, 1, 0),
+			duration:      artifactFragmentPickupHomingDuration,
+		},
+	)
 	waiting := addTestWorldFragment(world, &ArtifactFragment{ID: 2, Weight: 1}, rl.NewVector3(0.2, 1, 0))
 
-	system.update(game, 0)
+	system.update(game)
 
 	if system.pickupMap.Has(waiting) {
 		t.Fatal("waiting fragment ignored weight reserved by homing fragment")
@@ -155,13 +172,13 @@ func TestArtifactFragmentPickupSystemRetriesAfterDropOffFreesCapacity(t *testing
 	game.artifactManager.fragments[carried.ID] = carried
 	waiting := addTestWorldFragment(world, &ArtifactFragment{ID: 2, Weight: 1}, rl.NewVector3(0.2, 1, 0))
 
-	system.update(game, 0)
+	system.update(game)
 	if system.pickupMap.Has(waiting) {
 		t.Fatal("fragment started while drone was full")
 	}
 
 	carried.DroppedOff = true
-	system.update(game, 0)
+	system.update(game)
 	if !system.pickupMap.Has(waiting) {
 		t.Fatal("fragment did not start after drop-off freed capacity")
 	}
@@ -179,7 +196,11 @@ func TestArtifactFragmentPickupSystemCollectsScoresAndRemovesEntity(t *testing.T
 	system.unloadModel = func(rl.Model) {
 		unloadCount++
 	}
-	system.update(game, artifactFragmentPickupHomingDuration)
+	system.update(game)
+	movementSystem := &MovementAnimationSystem{}
+	movementSystem.Initialize(game)
+	movementSystem.update(artifactFragmentPickupHomingDuration)
+	system.update(game)
 
 	if world.Alive(entity) {
 		t.Fatal("pickup entity is still alive after completion")
@@ -207,8 +228,12 @@ func TestArtifactFragmentPickupSystemUnloadReleasesAllWorldFragmentModels(t *tes
 	ready := addTestWorldFragment(world, &ArtifactFragment{ID: 1}, rl.Vector3{})
 	rising := addTestWorldFragment(world, &ArtifactFragment{ID: 2}, rl.Vector3{})
 	homing := addTestWorldFragment(world, &ArtifactFragment{ID: 3}, rl.Vector3{})
-	ecs.NewMap[ArtifactFragmentRiseComponent](world).Add(rising, &ArtifactFragmentRiseComponent{})
-	system.pickupMap.Add(homing, &ArtifactFragmentPickupComponent{})
+	ecs.NewMap[MovementAnimationComponent](world).Add(rising, &MovementAnimationComponent{duration: 1})
+	system.pickupMoverMap.Add(
+		homing,
+		&ArtifactFragmentPickupComponent{},
+		&MovementAnimationComponent{duration: 1},
+	)
 
 	unloadCount := 0
 	system.unloadModel = func(rl.Model) {

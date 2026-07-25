@@ -12,15 +12,21 @@ func TestArtifactFragmentDropOffMovesAtConstantSpeed(t *testing.T) {
 
 	position := Position3{X: 0, Y: 0, Z: 0}
 	target := rl.NewVector3(3, 0, 4)
+	movement := &MovementAnimationComponent{
+		startPosition:  rl.Vector3(position),
+		targetPosition: target,
+		duration:       artifactFragmentDropOffDuration(rl.Vector3(position), target),
+		easing:         MovementAnimationLinear,
+	}
 
-	if complete := updateArtifactFragmentDropOff(&position, target, 0.5); complete {
+	if complete := updateMovementAnimation(movement, &position, target, 0.5); complete {
 		t.Fatal("drop-off completed before reaching its target")
 	}
 	if got, want := rl.Vector3Distance(rl.Vector3{}, rl.Vector3(position)), float32(2); got != want {
 		t.Fatalf("distance moved = %v, want %v", got, want)
 	}
 
-	if complete := updateArtifactFragmentDropOff(&position, target, 1); !complete {
+	if complete := updateMovementAnimation(movement, &position, target, 1); !complete {
 		t.Fatal("drop-off did not complete after reaching its target")
 	}
 	assertVector3Close(t, rl.Vector3(position), target)
@@ -108,16 +114,25 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
-	mapper := ecs.NewMap3[Position3, Renderable, ArtifactFragmentDropOffComponent](world)
+	mapper := ecs.NewMap4[Position3, Renderable, ArtifactFragmentDropOffComponent, MovementAnimationComponent](world)
 	first := mapper.NewEntity(
 		&Position3{},
 		&Renderable{model: &rl.Model{}, scale: 1},
-		&ArtifactFragmentDropOffComponent{targetPosition: rl.NewVector3(1, 0, 0)},
+		&ArtifactFragmentDropOffComponent{},
+		&MovementAnimationComponent{
+			targetPosition: rl.NewVector3(1, 0, 0),
+			duration:       0.25,
+		},
 	)
 	second := mapper.NewEntity(
 		&Position3{X: 10},
 		&Renderable{model: &rl.Model{}, scale: 1},
-		&ArtifactFragmentDropOffComponent{targetPosition: rl.NewVector3(20, 0, 0)},
+		&ArtifactFragmentDropOffComponent{},
+		&MovementAnimationComponent{
+			startPosition:  rl.NewVector3(10, 0, 0),
+			targetPosition: rl.NewVector3(20, 0, 0),
+			duration:       2.5,
+		},
 	)
 
 	unloadCount := 0
@@ -128,7 +143,10 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 	}
 	game := &Game{world: world}
 	system.Initialize(game)
-	system.updateFlights(game, 0.25)
+	movementSystem := &MovementAnimationSystem{}
+	movementSystem.Initialize(game)
+	movementSystem.update(0.25)
+	system.completeFlights(game)
 
 	if world.Alive(first) {
 		t.Fatal("completed drop-off entity is still alive")

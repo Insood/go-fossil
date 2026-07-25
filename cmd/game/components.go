@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
+	ecs "github.com/mlange-42/ark/ecs"
 )
 
 type Position3 rl.Vector3
@@ -47,20 +48,27 @@ type ArtifactFragmentComponent struct {
 	fragment *ArtifactFragment
 }
 
-type ArtifactFragmentRiseComponent struct {
-	elapsed        float32
+type MovementAnimationEasing uint8
+
+const (
+	MovementAnimationLinear MovementAnimationEasing = iota
+	MovementAnimationEaseInCubic
+	MovementAnimationEaseOutCubic
+)
+
+type MovementAnimationComponent struct {
 	startPosition  rl.Vector3
-	raisedPosition rl.Vector3
+	targetPosition rl.Vector3
+	targetEntity   ecs.Entity
+	duration       float32
+	elapsed        float32
+	easing         MovementAnimationEasing
 }
 
-type ArtifactFragmentPickupComponent struct {
-	elapsed       float32
-	startPosition rl.Vector3
-}
+type ArtifactFragmentPickupComponent struct{}
 
 type ArtifactFragmentDropOffComponent struct {
-	fragment       *ArtifactFragment
-	targetPosition rl.Vector3
+	fragment *ArtifactFragment
 }
 
 type TerrainChunkComponent struct {

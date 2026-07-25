@@ -9,7 +9,8 @@ type ArtifactFragmentDropOffSystem struct {
 	filter            *ecs.Filter3[Position3, Renderable, ArtifactFragmentDropOffComponent]
 	droneFilter       *ecs.Filter2[Position3, Drone]
 	chargingPadFilter *ecs.Filter2[Position3, ChargingPad]
-	mapper            *ecs.Map3[Position3, Renderable, ArtifactFragmentDropOffComponent]
+	mapper            *ecs.Map4[Position3, Renderable, ArtifactFragmentDropOffComponent, MovementAnimationComponent]
+	movementMap       *ecs.Map[MovementAnimationComponent]
 	world             *ecs.World
 	queue             []*ArtifactFragment
 	queued            map[int32]struct{}
@@ -23,7 +24,8 @@ func (system *ArtifactFragmentDropOffSystem) Initialize(game *Game) {
 	system.filter = ecs.NewFilter3[Position3, Renderable, ArtifactFragmentDropOffComponent](game.world)
 	system.droneFilter = ecs.NewFilter2[Position3, Drone](game.world)
 	system.chargingPadFilter = ecs.NewFilter2[Position3, ChargingPad](game.world)
-	system.mapper = ecs.NewMap3[Position3, Renderable, ArtifactFragmentDropOffComponent](game.world)
+	system.mapper = ecs.NewMap4[Position3, Renderable, ArtifactFragmentDropOffComponent, MovementAnimationComponent](game.world)
+	system.movementMap = ecs.NewMap[MovementAnimationComponent](game.world)
 	system.world = game.world
 	system.queued = make(map[int32]struct{})
 	if system.newModel == nil {
@@ -39,7 +41,7 @@ func (system *ArtifactFragmentDropOffSystem) Update(game *Game) {
 }
 
 func (system *ArtifactFragmentDropOffSystem) update(game *Game, dt float32) {
-	system.updateFlights(game, dt)
+	system.completeFlights(game)
 
 	dronePosition, ok := system.dronePosition()
 	if !ok {
@@ -71,12 +73,12 @@ func (system *ArtifactFragmentDropOffSystem) update(game *Game, dt float32) {
 	}
 }
 
-func (system *ArtifactFragmentDropOffSystem) updateFlights(game *Game, dt float32) {
+func (system *ArtifactFragmentDropOffSystem) completeFlights(game *Game) {
 	query := system.filter.Query()
 	completed := make([]ecs.Entity, 0)
 	for query.Next() {
-		position, renderable, dropOff := query.Get()
-		if !updateArtifactFragmentDropOff(position, dropOff.targetPosition, dt) {
+		_, renderable, _ := query.Get()
+		if system.movementMap.Get(query.Entity()) != nil {
 			continue
 		}
 
@@ -117,8 +119,13 @@ func (system *ArtifactFragmentDropOffSystem) ejectNext(dronePosition, padTarget 
 			receivesShadow: false,
 		},
 		&ArtifactFragmentDropOffComponent{
-			fragment:       fragment,
+			fragment: fragment,
+		},
+		&MovementAnimationComponent{
+			startPosition:  dronePosition,
 			targetPosition: padTarget,
+			duration:       artifactFragmentDropOffDuration(dronePosition, padTarget),
+			easing:         MovementAnimationLinear,
 		},
 	)
 	system.hasEjected = true
@@ -156,21 +163,11 @@ func (system *ArtifactFragmentDropOffSystem) Unload() {
 	}
 }
 
-func updateArtifactFragmentDropOff(position *Position3, target rl.Vector3, dt float32) bool {
-	current := rl.Vector3(*position)
-	distance := rl.Vector3Distance(current, target)
-	maxDistance := artifactFragmentDropOffSpeed * dt
-	if distance <= maxDistance {
-		*position = Position3(target)
-		return true
+func artifactFragmentDropOffDuration(start, target rl.Vector3) float32 {
+	if artifactFragmentDropOffSpeed <= 0 {
+		return 0
 	}
-	if distance == 0 || maxDistance <= 0 {
-		return distance == 0
-	}
-
-	direction := rl.Vector3Normalize(rl.Vector3Subtract(target, current))
-	*position = Position3(rl.Vector3Add(current, rl.Vector3Scale(direction, maxDistance)))
-	return false
+	return rl.Vector3Distance(start, target) / artifactFragmentDropOffSpeed
 }
 
 func droneWithinXZDistance(dronePosition, targetPosition rl.Vector3, proximity float32) bool {

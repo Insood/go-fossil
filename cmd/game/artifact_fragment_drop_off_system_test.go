@@ -97,6 +97,9 @@ func TestArtifactFragmentDropOffSystemEjectsCollectedFragmentsInOrder(t *testing
 	if got, want := modelCount, 2; got != want {
 		t.Fatalf("created model count = %d, want %d", got, want)
 	}
+	if game.TotalScore != 0 {
+		t.Fatalf("total score after ejection = %d, want 0 before pad arrival", game.TotalScore)
+	}
 
 	dropOffs := artifactFragmentDropOffs(system)
 	if got, want := len(dropOffs), 2; got != want {
@@ -124,7 +127,9 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 	first := mapper.NewEntity(
 		&Position3{},
 		&Renderable{model: &rl.Model{}, scale: 1},
-		&ArtifactFragmentDropOffComponent{},
+		&ArtifactFragmentDropOffComponent{
+			fragment: &ArtifactFragment{ID: 1, Score: 17, DroppedOff: true},
+		},
 		&MovementAnimationComponent{
 			targetPosition: rl.NewVector3(1, 0, 0),
 			duration:       0.25,
@@ -133,7 +138,9 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 	second := mapper.NewEntity(
 		&Position3{X: 10},
 		&Renderable{model: &rl.Model{}, scale: 1},
-		&ArtifactFragmentDropOffComponent{},
+		&ArtifactFragmentDropOffComponent{
+			fragment: &ArtifactFragment{ID: 2, Score: 23, DroppedOff: true},
+		},
 		&MovementAnimationComponent{
 			startPosition:  rl.NewVector3(10, 0, 0),
 			targetPosition: rl.NewVector3(20, 0, 0),
@@ -147,7 +154,7 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 			unloadCount++
 		},
 	}
-	game := &Game{world: world}
+	game := &Game{world: world, TotalScore: 5}
 	system.Initialize(game)
 	movementSystem := &MovementAnimationSystem{}
 	movementSystem.Initialize(game)
@@ -163,6 +170,9 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 	if got, want := unloadCount, 1; got != want {
 		t.Fatalf("model unload count after arrival = %d, want %d", got, want)
 	}
+	if got, want := game.TotalScore, 22; got != want {
+		t.Fatalf("total score after first arrival = %d, want %d", got, want)
+	}
 
 	system.Unload()
 	if world.Alive(second) {
@@ -170,6 +180,9 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 	}
 	if got, want := unloadCount, 2; got != want {
 		t.Fatalf("model unload count after system unload = %d, want %d", got, want)
+	}
+	if got, want := game.TotalScore, 22; got != want {
+		t.Fatalf("total score after unloading in-flight fragment = %d, want %d", got, want)
 	}
 }
 

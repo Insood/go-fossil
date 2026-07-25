@@ -72,11 +72,12 @@ func (system *ArtifactFragmentDropOffSystem) completeFlights(game *Game) {
 	query := system.filter.Query()
 	completed := make([]ecs.Entity, 0)
 	for query.Next() {
-		_, renderable, _ := query.Get()
+		_, renderable, dropOff := query.Get()
 		if system.movementMap.Get(query.Entity()) != nil {
 			continue
 		}
 
+		game.TotalScore += dropOff.fragment.Score
 		system.unloadModel(*renderable.model)
 		renderable.model = nil
 		completed = append(completed, query.Entity())

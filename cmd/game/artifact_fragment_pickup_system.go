@@ -50,7 +50,7 @@ func (system *ArtifactFragmentPickupSystem) update(game *Game) {
 			continue
 		}
 
-		collectArtifactFragment(game, fragmentComponent.fragment)
+		collectArtifactFragment(fragmentComponent.fragment)
 		system.unloadModel(*renderable.model)
 		renderable.model = nil
 		completed = append(completed, entity)
@@ -187,11 +187,10 @@ func updateArtifactFragmentPickupPresentation(
 	renderable.model.Transform = rl.QuaternionToMatrix(rotation)
 }
 
-func collectArtifactFragment(game *Game, fragment *ArtifactFragment) {
+func collectArtifactFragment(fragment *ArtifactFragment) {
 	if fragment.Collected {
 		return
 	}
 
 	fragment.Collected = true
-	game.TotalScore += fragment.Score
 }

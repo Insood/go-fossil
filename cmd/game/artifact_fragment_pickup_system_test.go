@@ -184,7 +184,7 @@ func TestArtifactFragmentPickupSystemRetriesAfterDropOffFreesCapacity(t *testing
 	}
 }
 
-func TestArtifactFragmentPickupSystemCollectsScoresAndRemovesEntity(t *testing.T) {
+func TestArtifactFragmentPickupSystemCollectsWithoutScoringAndRemovesEntity(t *testing.T) {
 	t.Parallel()
 
 	world, game, system := newArtifactFragmentPickupTest(t)
@@ -208,15 +208,15 @@ func TestArtifactFragmentPickupSystemCollectsScoresAndRemovesEntity(t *testing.T
 	if !fragment.Collected {
 		t.Fatal("fragment was not marked collected")
 	}
-	if got, want := game.TotalScore, 22; got != want {
+	if got, want := game.TotalScore, 5; got != want {
 		t.Fatalf("total score = %d, want %d", got, want)
 	}
 	if got, want := unloadCount, 1; got != want {
 		t.Fatalf("model unload count = %d, want %d", got, want)
 	}
 
-	collectArtifactFragment(game, fragment)
-	if got, want := game.TotalScore, 22; got != want {
+	collectArtifactFragment(fragment)
+	if got, want := game.TotalScore, 5; got != want {
 		t.Fatalf("total score after duplicate collection = %d, want %d", got, want)
 	}
 }

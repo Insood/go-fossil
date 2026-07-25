@@ -29,9 +29,11 @@ Terrain chunks use a fixed 8x8 tile footprint with a 9x9 height sample grid. Ter
 Authored chunks:
 
 - live in `cmd/game/assets/terrain_chunks/*.json`
-- define a chunk name, tile index grid, tile texture definitions, height samples, artifact placements, and model placements
-- express artifact and model placement coordinates in baked texture pixels, converted to world units by `terrainTexturePixelsPerTile`
+- define a chunk name, tile index grid, tile texture definitions, height samples, artifact placements, and typed entity placements
+- express artifact and entity placement coordinates in baked texture pixels, converted to world units by `terrainTexturePixelsPerTile`
 - are parsed and validated by `internal/terrain`
+
+Entity placements use a gameplay type such as `"charging_pad"` rather than listing ECS components or model assets. `ChunkManager` resolves each type through the chunk-entity factory registry in `cmd/game`; the factory owns the entity's model, render settings, and component composition. Unsupported entity types and missing factory assets stop chunk loading with placement context.
 
 Generated chunks:
 
@@ -49,7 +51,7 @@ Built terrain chunks contain:
 - a per-pixel artifact ID mask
 - a burn overlay image/texture
 - registered runtime artifact records
-- chunk-owned model entities spawned from authored model placements as shadow casters and receivers
+- chunk-owned typed entities spawned from authored entity placements
 - a `TerrainChunkComponent` ECS entity
 
 `internal/terrain` uses raylib vector helpers for mesh normal accumulation while still owning the terrain mesh data shape.
@@ -78,6 +80,7 @@ The current runtime entities are:
 - one player drone with position, velocity, renderable model, drone tag, hover motion, laser, fire-control, and battery components
 - one light entity with a mutable orthographic camera
 - one terrain chunk entity per loaded chunk
+- one renderable charging-pad entity with a `ChargingPad` tag for the authored charging pad
 - short-lived laser strike particle entities with position, velocity, renderable cube model, and particle lifetime state
 - short-lived artifact fragment pickup entities with position, a uniquely sized textured plane, and pickup animation state
 - short-lived artifact fragment drop-off entities with position, a uniquely sized textured plane, and a charging-pad target
@@ -95,6 +98,7 @@ Current ECS components:
 - `ArtifactFragmentDropOffComponent`
 - `TerrainChunkComponent`
 - `TerrainChunkDamaged`
+- `ChargingPad`
 - `Drone`
 - `Battery`
 - `DroneFireControl`
@@ -106,11 +110,11 @@ Every `System` implements `Initialize`, `Update`, and `Unload`. `Game` initializ
 - Input: gamepad quit handling in `InputSystem`; movement in `DroneInputSystem`; aim/firing state in `DroneFireControlSystem`. Drone fire-control cursors are stored as normalized drone viewport coordinates from -1 to 1 on each axis. Debug overlays release drone fire control so the OS cursor can interact with raygui controls.
 - Motion: `PhysicsSystem` applies velocity; `DroneHeightSystem` snaps the drone to terrain height plus hover offset.
 - Presentation: `CameraSystem` updates the main orthographic camera; `LightSystem` updates the shadow camera.
-- Salvage: `LaserSystem` maps the drone viewport cursor path to terrain, applies burns while battery charge is positive, drains charge once per active firing update, and spawns short-lived cube particles at successful terrain strikes; `ArtifactCutoutDetectionSystem` scores accepted artifact regions and spawns fragment pickups; `ArtifactFragmentPickupSystem` animates pickups into the drone and finalizes collection and scoring; `ArtifactFragmentDropOffSystem` ejects collected fragments from the drone one at a time and animates them into the charging pad.
+- Salvage: `LaserSystem` maps the drone viewport cursor path to terrain, applies burns while battery charge is positive, drains charge once per active firing update, and spawns short-lived cube particles at successful terrain strikes; `ArtifactCutoutDetectionSystem` scores accepted artifact regions and spawns fragment pickups; `ArtifactFragmentPickupSystem` animates pickups into the drone and finalizes collection and scoring; `ArtifactFragmentDropOffSystem` queries `ChargingPad` entities, ejects collected fragments from the drone one at a time, and animates them into the nearest pad.
 - Sound: `SoundSystem` tracks loaded sound streams by name and updates raylib music streams while their gameplay-driven sound state is playing. The burning stream plays while any laser is active.
 - Particles: `ParticleSystem` advances particle lifetimes, fades renderable tint alpha, and removes expired particle entities. Particle motion uses the shared velocity-driven physics system.
 - World growth: `ChunkSpawnerSystem` adds generated chunks after collected fragment score increases.
-- Tutorial: `TutorialSystem` owns the active tutorial step, starts each run at step 1, advances to step 2 once the drone moves away from its starting X/Z position, spawns red shader-styled tutorial cones over artifact centers for step 2, advances to step 3 once the drone moves within 0.5 X/Z units of a cone, removes tutorial marker entities, advances to step 4 once the drone viewport cursor moves at least 25% of the drone viewport, advances to step 5 once any laser is active, advances to step 6 once the artifact manager has at least one collected fragment, spawns a tutorial cone above the authored charging pad, and completes step 6 once the drone is within `tutorialArtifactMarkerProximity` on X/Z of the pad.
+- Tutorial: `TutorialSystem` owns the active tutorial step, starts each run at step 1, advances to step 2 once the drone moves away from its starting X/Z position, spawns red shader-styled tutorial cones over artifact centers for step 2, advances to step 3 once the drone moves within 0.5 X/Z units of a cone, removes tutorial marker entities, advances to step 4 once the drone viewport cursor moves at least 25% of the drone viewport, advances to step 5 once any laser is active, advances to step 6 once the artifact manager has at least one collected fragment, queries the nearest `ChargingPad` entity to place the return-home cone, and completes step 6 once the drone is within `tutorialArtifactMarkerProximity` on X/Z of the pad.
 - Rendering: `RenderSystem3D` owns shadow, scene, drone viewport, laser rendering, and depth export.
 - UI/debug: `UserInterfaceSystem`, `TutorialSystem`, `DebugRender3DSystem`, and `DebugRenderSystem2D` draw score, the labelled drone battery bar, undeposited fragment thumbnails, viewport, reticle, the active tutorial prompt, artifact labels, debug guides, shadow tuning controls, and the slope shade tuning control.
 

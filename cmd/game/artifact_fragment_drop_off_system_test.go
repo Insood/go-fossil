@@ -5,8 +5,6 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
-
-	"go-fossil/internal/terrain"
 )
 
 func TestArtifactFragmentDropOffMovesAtConstantSpeed(t *testing.T) {
@@ -37,6 +35,11 @@ func TestArtifactFragmentDropOffSystemEjectsCollectedFragmentsInOrder(t *testing
 		&Position3{X: 1.5, Y: 3, Z: 6.5},
 		&Drone{},
 	)
+	chargingPadMapper := ecs.NewMap2[Position3, ChargingPad](world)
+	chargingPadMapper.NewEntity(
+		&Position3{X: 1.5, Y: 1, Z: 6.5},
+		&ChargingPad{},
+	)
 
 	manager := NewArtifactManager()
 	manager.fragments[2] = &ArtifactFragment{ID: 2, Collected: true}
@@ -54,7 +57,6 @@ func TestArtifactFragmentDropOffSystemEjectsCollectedFragmentsInOrder(t *testing
 	game := &Game{
 		world:           world,
 		artifactManager: manager,
-		chunkManager:    testChargingPadChunkManager(),
 	}
 	system.Initialize(game)
 
@@ -144,20 +146,6 @@ func TestArtifactFragmentDropOffSystemCompletesAndUnloadsFlights(t *testing.T) {
 	}
 	if got, want := unloadCount, 2; got != want {
 		t.Fatalf("model unload count after system unload = %d, want %d", got, want)
-	}
-}
-
-func testChargingPadChunkManager() *ChunkManager {
-	return &ChunkManager{
-		chunks: map[ChunkCoords]*TerrainChunk{
-			{}: {
-				Data: terrain.ChunkData{
-					Models: []terrain.ModelPlacement{
-						{Name: chargingPadModelName, X: 96, Y: 64, Z: 416},
-					},
-				},
-			},
-		},
 	}
 }
 

@@ -29,6 +29,7 @@ type TutorialSystem struct {
 	droneFilter             *ecs.Filter2[Position3, Drone]
 	fireControlFilter       *ecs.Filter1[DroneFireControl]
 	laserFilter             *ecs.Filter1[Laser]
+	chargingPadFilter       *ecs.Filter2[Position3, ChargingPad]
 	markerMapper            *ecs.Map3[Position3, Renderable, TutorialMarker]
 	markerFilter            *ecs.Filter2[Position3, TutorialMarker]
 	state                   TutorialState
@@ -44,6 +45,7 @@ func (system *TutorialSystem) Initialize(game *Game) {
 	system.droneFilter = ecs.NewFilter2[Position3, Drone](game.world)
 	system.fireControlFilter = ecs.NewFilter1[DroneFireControl](game.world)
 	system.laserFilter = ecs.NewFilter1[Laser](game.world)
+	system.chargingPadFilter = ecs.NewFilter2[Position3, ChargingPad](game.world)
 	system.markerMapper = ecs.NewMap3[Position3, Renderable, TutorialMarker](game.world)
 	system.markerFilter = ecs.NewFilter2[Position3, TutorialMarker](game.world)
 	system.state = *NewTutorialState()
@@ -327,7 +329,7 @@ func (system *TutorialSystem) spawnChargingPadMarker(game *Game) {
 		return
 	}
 
-	position, ok := chargingPadTutorialMarkerPosition(game)
+	position, ok := system.chargingPadTutorialMarkerPosition()
 	if !ok {
 		return
 	}
@@ -360,8 +362,13 @@ func tutorialMarkerPosition(artifact *Artifact) (rl.Vector3, bool) {
 	return rl.NewVector3(worldX, worldY, worldZ), true
 }
 
-func chargingPadTutorialMarkerPosition(game *Game) (rl.Vector3, bool) {
-	position, ok := chargingPadPosition(game)
+func (system *TutorialSystem) chargingPadTutorialMarkerPosition() (rl.Vector3, bool) {
+	dronePosition, ok := system.dronePosition()
+	if !ok {
+		return rl.Vector3{}, false
+	}
+
+	position, ok := nearestChargingPadPosition(system.chargingPadFilter, dronePosition)
 	if !ok {
 		return rl.Vector3{}, false
 	}

@@ -6,21 +6,23 @@ import (
 )
 
 type ArtifactFragmentDropOffSystem struct {
-	filter         *ecs.Filter3[Position3, Renderable, ArtifactFragmentDropOffComponent]
-	droneFilter    *ecs.Filter2[Position3, Drone]
-	mapper         *ecs.Map3[Position3, Renderable, ArtifactFragmentDropOffComponent]
-	world          *ecs.World
-	queue          []*ArtifactFragment
-	queued         map[int32]struct{}
-	timeSinceEject float32
-	hasEjected     bool
-	newModel       func(*ArtifactFragment) *rl.Model
-	unloadModel    func(rl.Model)
+	filter            *ecs.Filter3[Position3, Renderable, ArtifactFragmentDropOffComponent]
+	droneFilter       *ecs.Filter2[Position3, Drone]
+	chargingPadFilter *ecs.Filter2[Position3, ChargingPad]
+	mapper            *ecs.Map3[Position3, Renderable, ArtifactFragmentDropOffComponent]
+	world             *ecs.World
+	queue             []*ArtifactFragment
+	queued            map[int32]struct{}
+	timeSinceEject    float32
+	hasEjected        bool
+	newModel          func(*ArtifactFragment) *rl.Model
+	unloadModel       func(rl.Model)
 }
 
 func (system *ArtifactFragmentDropOffSystem) Initialize(game *Game) {
 	system.filter = ecs.NewFilter3[Position3, Renderable, ArtifactFragmentDropOffComponent](game.world)
 	system.droneFilter = ecs.NewFilter2[Position3, Drone](game.world)
+	system.chargingPadFilter = ecs.NewFilter2[Position3, ChargingPad](game.world)
 	system.mapper = ecs.NewMap3[Position3, Renderable, ArtifactFragmentDropOffComponent](game.world)
 	system.world = game.world
 	system.queued = make(map[int32]struct{})
@@ -44,7 +46,7 @@ func (system *ArtifactFragmentDropOffSystem) update(game *Game, dt float32) {
 		return
 	}
 
-	padPosition, ok := chargingPadPosition(game)
+	padPosition, ok := nearestChargingPadPosition(system.chargingPadFilter, dronePosition)
 	if !ok {
 		return
 	}
@@ -169,22 +171,6 @@ func updateArtifactFragmentDropOff(position *Position3, target rl.Vector3, dt fl
 	direction := rl.Vector3Normalize(rl.Vector3Subtract(target, current))
 	*position = Position3(rl.Vector3Add(current, rl.Vector3Scale(direction, maxDistance)))
 	return false
-}
-
-func chargingPadPosition(game *Game) (rl.Vector3, bool) {
-	if game == nil || game.chunkManager == nil {
-		return rl.Vector3{}, false
-	}
-
-	for _, chunk := range game.chunkManager.Chunks() {
-		for _, placement := range chunk.Data.Models {
-			if placement.Name == chargingPadModelName {
-				return chunkModelPlacementPosition(chunk, placement), true
-			}
-		}
-	}
-
-	return rl.Vector3{}, false
 }
 
 func droneWithinXZDistance(dronePosition, targetPosition rl.Vector3, proximity float32) bool {

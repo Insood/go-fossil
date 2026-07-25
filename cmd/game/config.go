@@ -91,6 +91,7 @@ const (
 	tutorialFireLaserTextureName               = "tutorial_04"
 	tutorialCutOutFossilAnimationName          = "tutorial_laser01"
 	tutorialArtifactMarkerModelName            = "tutorial_cone"
+	chargingPadEntityType                      = "charging_pad"
 	chargingPadModelName                       = "charging_pad"
 
 	generatedArtifactEdgeMarginPixels   = 96

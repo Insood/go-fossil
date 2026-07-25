@@ -63,6 +63,8 @@ type TerrainChunkDamaged struct{}
 
 type TutorialMarker struct{}
 
+type ChargingPad struct{}
+
 type Drone struct{}
 
 type Battery struct {

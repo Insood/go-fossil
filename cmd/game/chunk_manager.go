@@ -21,7 +21,7 @@ type ChunkManager struct {
 	artifactManager *ArtifactManager
 	rng             *rand.Rand
 	terrainChunkMap *ecs.Map1[TerrainChunkComponent]
-	renderableMap   *ecs.Map2[Position3, Renderable]
+	chargingPadMap  *ecs.Map3[Position3, Renderable, ChargingPad]
 	chunkData       map[ChunkCoords]terrain.ChunkData
 	chunks          map[ChunkCoords]*TerrainChunk
 }
@@ -33,7 +33,7 @@ func NewChunkManager(world *ecs.World, assets *AssetManager, artifactManager *Ar
 		artifactManager: artifactManager,
 		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
 		terrainChunkMap: ecs.NewMap1[TerrainChunkComponent](world),
-		renderableMap:   ecs.NewMap2[Position3, Renderable](world),
+		chargingPadMap:  ecs.NewMap3[Position3, Renderable, ChargingPad](world),
 		chunkData:       make(map[ChunkCoords]terrain.ChunkData),
 		chunks:          make(map[ChunkCoords]*TerrainChunk),
 	}
@@ -142,7 +142,7 @@ func (manager *ChunkManager) Chunks() []*TerrainChunk {
 
 func (manager *ChunkManager) Unload() {
 	for _, chunk := range manager.chunks {
-		manager.removeChunkModelEntities(chunk)
+		manager.removeChunkEntities(chunk)
 		if chunk.Entity != (ecs.Entity{}) && manager.world != nil && manager.world.Alive(chunk.Entity) {
 			manager.world.RemoveEntity(chunk.Entity)
 			chunk.Entity = ecs.Entity{}
@@ -213,7 +213,7 @@ func (manager *ChunkManager) buildChunk(coords ChunkCoords, chunkData terrain.Ch
 	chunk.BurnOverlayTexture = burnOverlayTexture
 
 	manager.registerTerrainChunkEntity(chunk)
-	manager.registerChunkModelEntities(chunk)
+	manager.registerChunkEntities(chunk)
 	return chunk
 }
 
@@ -422,49 +422,45 @@ func (manager *ChunkManager) registerTerrainChunkEntity(chunk *TerrainChunk) {
 	})
 }
 
-func (manager *ChunkManager) registerChunkModelEntities(chunk *TerrainChunk) {
-	if manager == nil || manager.world == nil || manager.assets == nil || chunk == nil || len(chunk.Data.Models) == 0 {
+type chunkEntityFactory func(*ChunkManager, *TerrainChunk, terrain.EntityPlacement) (ecs.Entity, error)
+
+var chunkEntityFactories = map[string]chunkEntityFactory{
+	chargingPadEntityType: spawnChargingPadChunkEntity,
+}
+
+func (manager *ChunkManager) registerChunkEntities(chunk *TerrainChunk) {
+	if manager == nil || manager.world == nil || manager.assets == nil || chunk == nil || len(chunk.Data.Entities) == 0 {
 		return
 	}
-	if manager.renderableMap == nil {
-		manager.renderableMap = ecs.NewMap2[Position3, Renderable](manager.world)
-	}
 
-	for modelIndex, placement := range chunk.Data.Models {
-		model, ok := manager.assets.LookupModel(placement.Name)
-		if !ok || model == nil {
-			panic(fmt.Errorf("chunk %s model placement %d references missing model %q", chunk.Coords.String(), modelIndex, placement.Name))
+	for entityIndex, placement := range chunk.Data.Entities {
+		factory, ok := chunkEntityFactories[placement.Type]
+		if !ok {
+			panic(fmt.Errorf("chunk %s entity placement %d has unsupported type %q", chunk.Coords.String(), entityIndex, placement.Type))
 		}
 
-		position := chunkModelPlacementPosition(chunk, placement)
-		entity := manager.renderableMap.NewEntity(
-			&Position3{X: position.X, Y: position.Y, Z: position.Z},
-			&Renderable{
-				model:          model,
-				scale:          1.0,
-				tint:           rl.White,
-				castsShadow:    true,
-				receivesShadow: true,
-			},
-		)
-		chunk.ModelEntities = append(chunk.ModelEntities, entity)
+		entity, err := factory(manager, chunk, placement)
+		if err != nil {
+			panic(fmt.Errorf("chunk %s entity placement %d type %q: %w", chunk.Coords.String(), entityIndex, placement.Type, err))
+		}
+		chunk.ChunkEntities = append(chunk.ChunkEntities, entity)
 	}
 }
 
-func (manager *ChunkManager) removeChunkModelEntities(chunk *TerrainChunk) {
+func (manager *ChunkManager) removeChunkEntities(chunk *TerrainChunk) {
 	if manager == nil || manager.world == nil || chunk == nil {
 		return
 	}
 
-	for _, entity := range chunk.ModelEntities {
+	for _, entity := range chunk.ChunkEntities {
 		if entity != (ecs.Entity{}) && manager.world.Alive(entity) {
 			manager.world.RemoveEntity(entity)
 		}
 	}
-	chunk.ModelEntities = nil
+	chunk.ChunkEntities = nil
 }
 
-func chunkModelPlacementPosition(chunk *TerrainChunk, placement terrain.ModelPlacement) rl.Vector3 {
+func chunkEntityPlacementPosition(chunk *TerrainChunk, placement terrain.EntityPlacement) rl.Vector3 {
 	return rl.NewVector3(
 		chunk.OriginX+placement.X/float32(terrainTexturePixelsPerTile),
 		placement.Y/float32(terrainTexturePixelsPerTile),

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"math"
 	"math/rand"
+	"strings"
 	"testing"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -134,42 +136,44 @@ func TestChunkManagerRegistersTerrainChunkEntity(t *testing.T) {
 	}
 }
 
-func TestChunkManagerRegistersChunkModelEntities(t *testing.T) {
+func TestChunkManagerRegistersTypedChunkEntities(t *testing.T) {
 	t.Parallel()
 
 	world := ecs.NewWorld()
 	model := &rl.Model{}
 	manager := &ChunkManager{
-		world:         world,
-		assets:        &AssetManager{models: map[string]*rl.Model{"charging_pad": model}},
-		renderableMap: ecs.NewMap2[Position3, Renderable](world),
+		world:  world,
+		assets: &AssetManager{models: map[string]*rl.Model{chargingPadModelName: model}},
 	}
 	chunk := &TerrainChunk{
 		Coords:  ChunkCoords{X: 1, Z: -1},
 		OriginX: 8,
 		OriginZ: -8,
 		Data: terrain.ChunkData{
-			Models: []terrain.ModelPlacement{
-				{Name: "charging_pad", X: 96, Y: 64, Z: 416},
+			Entities: []terrain.EntityPlacement{
+				{Type: chargingPadEntityType, X: 96, Y: 64, Z: 416},
 			},
 		},
 	}
 
-	manager.registerChunkModelEntities(chunk)
+	manager.registerChunkEntities(chunk)
 
-	if got, want := len(chunk.ModelEntities), 1; got != want {
-		t.Fatalf("model entity count = %d, want %d", got, want)
+	if got, want := len(chunk.ChunkEntities), 1; got != want {
+		t.Fatalf("chunk entity count = %d, want %d", got, want)
 	}
 
-	entity := chunk.ModelEntities[0]
+	entity := chunk.ChunkEntities[0]
 	if !world.Alive(entity) {
-		t.Fatal("model entity is not alive")
+		t.Fatal("chunk entity is not alive")
 	}
 
-	position, renderable := manager.renderableMap.Get(entity)
+	position, renderable, chargingPad := manager.chargingPadMap.Get(entity)
 	assertVector3(t, rl.Vector3(*position), 9.5, 1, -1.5)
 	if got, want := renderable.model, model; got != want {
 		t.Fatalf("renderable model = %p, want %p", got, want)
+	}
+	if chargingPad == nil {
+		t.Fatal("charging pad component is nil")
 	}
 	if !renderable.castsShadow {
 		t.Fatal("renderable castsShadow = false, want true")
@@ -178,13 +182,73 @@ func TestChunkManagerRegistersChunkModelEntities(t *testing.T) {
 		t.Fatal("renderable receivesShadow = false, want true")
 	}
 
-	manager.removeChunkModelEntities(chunk)
+	manager.removeChunkEntities(chunk)
 	if world.Alive(entity) {
-		t.Fatal("model entity is still alive after removal")
+		t.Fatal("chunk entity is still alive after removal")
 	}
-	if len(chunk.ModelEntities) != 0 {
-		t.Fatalf("model entity count after removal = %d, want 0", len(chunk.ModelEntities))
+	if len(chunk.ChunkEntities) != 0 {
+		t.Fatalf("chunk entity count after removal = %d, want 0", len(chunk.ChunkEntities))
 	}
+}
+
+func TestChunkManagerRejectsUnsupportedChunkEntityType(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	manager := &ChunkManager{
+		world:  world,
+		assets: &AssetManager{},
+	}
+	chunk := &TerrainChunk{
+		Coords: ChunkCoords{X: 2, Z: -3},
+		Data: terrain.ChunkData{
+			Entities: []terrain.EntityPlacement{
+				{Type: "unknown"},
+			},
+		},
+	}
+
+	assertPanicsContaining(t, `chunk (2,-3) entity placement 0 has unsupported type "unknown"`, func() {
+		manager.registerChunkEntities(chunk)
+	})
+}
+
+func TestChunkManagerReportsMissingChunkEntityModel(t *testing.T) {
+	t.Parallel()
+
+	world := ecs.NewWorld()
+	manager := &ChunkManager{
+		world:  world,
+		assets: &AssetManager{models: map[string]*rl.Model{}},
+	}
+	chunk := &TerrainChunk{
+		Coords: ChunkCoords{X: -1, Z: 4},
+		Data: terrain.ChunkData{
+			Entities: []terrain.EntityPlacement{
+				{Type: chargingPadEntityType},
+			},
+		},
+	}
+
+	assertPanicsContaining(t, `chunk (-1,4) entity placement 0 type "charging_pad": missing model "charging_pad"`, func() {
+		manager.registerChunkEntities(chunk)
+	})
+}
+
+func assertPanicsContaining(t *testing.T, want string, action func()) {
+	t.Helper()
+
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("action did not panic, want message containing %q", want)
+		}
+		if got := fmt.Sprint(recovered); !strings.Contains(got, want) {
+			t.Fatalf("panic = %q, want substring %q", got, want)
+		}
+	}()
+
+	action()
 }
 
 func TestChunkManagerBurnAtWorldPositionBurnsOverlay(t *testing.T) {

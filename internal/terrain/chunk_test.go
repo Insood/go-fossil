@@ -42,8 +42,8 @@ func TestLoadChunkDataSuccess(t *testing.T) {
   "artifacts": [
     { "name": "phone", "x": 128, "z": 128, "orientation": 45 }
   ],
-  "models": [
-    { "name": "charging_pad", "x": 96, "y": 64, "z": 416 }
+  "entities": [
+    { "type": "charging_pad", "x": 96, "y": 64, "z": 416 }
   ]
 }`),
 		},
@@ -87,20 +87,20 @@ func TestLoadChunkDataSuccess(t *testing.T) {
 	if got := chunk.Artifacts[0].Orientation; got != 45 {
 		t.Fatalf("artifact orientation = %v, want 45", got)
 	}
-	if got, want := len(chunk.Models), 1; got != want {
-		t.Fatalf("model count = %d, want %d", got, want)
+	if got, want := len(chunk.Entities), 1; got != want {
+		t.Fatalf("entity count = %d, want %d", got, want)
 	}
-	if got := chunk.Models[0].Name; got != "charging_pad" {
-		t.Fatalf("model name = %q, want charging_pad", got)
+	if got := chunk.Entities[0].Type; got != "charging_pad" {
+		t.Fatalf("entity type = %q, want charging_pad", got)
 	}
-	if got := chunk.Models[0].X; got != 96 {
-		t.Fatalf("model x = %v, want 96", got)
+	if got := chunk.Entities[0].X; got != 96 {
+		t.Fatalf("entity x = %v, want 96", got)
 	}
-	if got := chunk.Models[0].Y; got != 64 {
-		t.Fatalf("model y = %v, want 64", got)
+	if got := chunk.Entities[0].Y; got != 64 {
+		t.Fatalf("entity y = %v, want 64", got)
 	}
-	if got := chunk.Models[0].Z; got != 416 {
-		t.Fatalf("model z = %v, want 416", got)
+	if got := chunk.Entities[0].Z; got != 416 {
+		t.Fatalf("entity z = %v, want 416", got)
 	}
 }
 
@@ -141,7 +141,7 @@ func TestLoadChunkDataValidationErrors(t *testing.T) {
 			wantErr: `artifacts[0] name must not be empty`,
 		},
 		{
-			name: "model missing name",
+			name: "entity missing type",
 			chunkFS: fstest.MapFS{
 				"terrain_chunks/chunk.json": &fstest.MapFile{
 					Data: []byte(`{
@@ -149,11 +149,26 @@ func TestLoadChunkDataValidationErrors(t *testing.T) {
   "tiles": [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]],
   "tile_definitions": ["ground_grid.png"],
   "height_samples": [[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
-  "models": [{"x": 1, "y": 2, "z": 3}]
+  "entities": [{"x": 1, "y": 2, "z": 3}]
 }`),
 				},
 			},
-			wantErr: `models[0] name must not be empty`,
+			wantErr: `entities[0] type must not be empty`,
+		},
+		{
+			name: "removed models key",
+			chunkFS: fstest.MapFS{
+				"terrain_chunks/chunk.json": &fstest.MapFile{
+					Data: []byte(`{
+  "name": "Chunk",
+  "tiles": [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]],
+  "tile_definitions": ["ground_grid.png"],
+  "height_samples": [[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
+  "models": [{"name": "charging_pad", "x": 1, "y": 2, "z": 3}]
+}`),
+				},
+			},
+			wantErr: `unknown field "models"`,
 		},
 		{
 			name: "tiles wrong row count",

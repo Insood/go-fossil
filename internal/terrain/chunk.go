@@ -20,7 +20,7 @@ type ChunkData struct {
 	TileDefinitions []string
 	HeightSamples   [][]float32
 	Artifacts       []ArtifactPlacement
-	Models          []ModelPlacement
+	Entities        []EntityPlacement
 }
 
 type ArtifactPlacement struct {
@@ -30,8 +30,8 @@ type ArtifactPlacement struct {
 	Orientation float32 `json:"orientation"`
 }
 
-type ModelPlacement struct {
-	Name string  `json:"name"`
+type EntityPlacement struct {
+	Type string  `json:"type"`
 	X    float32 `json:"x"`
 	Y    float32 `json:"y"`
 	Z    float32 `json:"z"`
@@ -43,7 +43,7 @@ type chunkMetadata struct {
 	TileDefinitions []string            `json:"tile_definitions"`
 	HeightSamples   [][]float32         `json:"height_samples"`
 	Artifacts       []ArtifactPlacement `json:"artifacts"`
-	Models          []ModelPlacement    `json:"models"`
+	Entities        []EntityPlacement   `json:"entities"`
 }
 
 func LoadChunkData(chunkFS fs.FS, chunkPath string) (ChunkData, error) {
@@ -75,7 +75,7 @@ func loadChunkMetadata(chunkFS fs.FS, chunkPath string) (ChunkData, error) {
 		TileDefinitions: metadata.TileDefinitions,
 		HeightSamples:   metadata.HeightSamples,
 		Artifacts:       metadata.Artifacts,
-		Models:          metadata.Models,
+		Entities:        metadata.Entities,
 	}, nil
 }
 
@@ -126,9 +126,9 @@ func (metadata chunkMetadata) validate(chunkPath string) error {
 			return fmt.Errorf("%s: artifacts[%d] name must not be empty", chunkPath, artifactIndex)
 		}
 	}
-	for modelIndex, model := range metadata.Models {
-		if model.Name == "" {
-			return fmt.Errorf("%s: models[%d] name must not be empty", chunkPath, modelIndex)
+	for entityIndex, entity := range metadata.Entities {
+		if entity.Type == "" {
+			return fmt.Errorf("%s: entities[%d] type must not be empty", chunkPath, entityIndex)
 		}
 	}
 

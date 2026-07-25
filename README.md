@@ -49,6 +49,7 @@ Current content format:
 - tile layout stays in chunk JSON
 - vertex heights come from inline height samples sized `(width+1) x (height+1)`
 - artifact placements in chunk JSON reference artifact definitions by name
+- typed entity placements in chunk JSON reference game-owned archetypes such as `charging_pad`
 - `AssetManager` loads runtime images, textures, shaders, models, streamed sounds, and artifact definitions from disk beside the built executable
 
 ## Build
@@ -110,4 +111,3 @@ https://pixabay.com/sound-effects/film-special-effects-burning-fire-steam-87118/
 Grixel Acme 9 by Nikos Giannakopoulos (Creative Commons Attribution-NoDerivs 2.5)
 https://www.dafont.com/grixel-acme-9.font
 http://creativecommons.org/licenses/by-nd/2.5/
-

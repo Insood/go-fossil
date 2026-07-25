@@ -6,8 +6,6 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
-
-	"go-fossil/internal/terrain"
 )
 
 func TestTutorialSystemStartsAtMoveDroneStep(t *testing.T) {
@@ -267,25 +265,15 @@ func TestTutorialStepSixMarksChargingPadAndCompletesAtProximity(t *testing.T) {
 		&Position3{X: 1, Y: 2, Z: 3},
 		&Drone{},
 	)
+	chargingPadMapper := ecs.NewMap2[Position3, ChargingPad](world)
+	chargingPadMapper.NewEntity(
+		&Position3{X: 9.5, Y: 1, Z: -1.5},
+		&ChargingPad{},
+	)
 
 	markerModel := &rl.Model{}
-	chunkManager := &ChunkManager{
-		chunks: map[ChunkCoords]*TerrainChunk{
-			{X: 1, Z: -1}: {
-				Coords:  ChunkCoords{X: 1, Z: -1},
-				OriginX: 8,
-				OriginZ: -8,
-				Data: terrain.ChunkData{
-					Models: []terrain.ModelPlacement{
-						{Name: chargingPadModelName, X: 96, Y: 64, Z: 416},
-					},
-				},
-			},
-		},
-	}
 	game := &Game{
-		world:        world,
-		chunkManager: chunkManager,
+		world: world,
 		assets: &AssetManager{
 			models: map[string]*rl.Model{
 				tutorialArtifactMarkerModelName: markerModel,

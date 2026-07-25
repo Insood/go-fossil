@@ -12,10 +12,7 @@ type ArtifactFragmentDropOffSystem struct {
 	mapper            *ecs.Map4[Position3, Renderable, ArtifactFragmentDropOffComponent, MovementAnimationComponent]
 	movementMap       *ecs.Map[MovementAnimationComponent]
 	world             *ecs.World
-	queue             []*ArtifactFragment
-	queued            map[int32]struct{}
 	timeSinceEject    float32
-	hasEjected        bool
 	newModel          func(*ArtifactFragment) *rl.Model
 	unloadModel       func(rl.Model)
 }
@@ -27,7 +24,7 @@ func (system *ArtifactFragmentDropOffSystem) Initialize(game *Game) {
 	system.mapper = ecs.NewMap4[Position3, Renderable, ArtifactFragmentDropOffComponent, MovementAnimationComponent](game.world)
 	system.movementMap = ecs.NewMap[MovementAnimationComponent](game.world)
 	system.world = game.world
-	system.queued = make(map[int32]struct{})
+	system.timeSinceEject = artifactFragmentDropOffDelay
 	if system.newModel == nil {
 		system.newModel = newArtifactFragmentPlaneModel
 	}
@@ -42,6 +39,15 @@ func (system *ArtifactFragmentDropOffSystem) Update(game *Game) {
 
 func (system *ArtifactFragmentDropOffSystem) update(game *Game, dt float32) {
 	system.completeFlights(game)
+	system.timeSinceEject += dt
+	if system.timeSinceEject < artifactFragmentDropOffDelay {
+		return
+	}
+
+	fragments := sortedArtifactFragments(game.artifactManager)
+	if len(fragments) == 0 {
+		return
+	}
 
 	dronePosition, ok := system.dronePosition()
 	if !ok {
@@ -55,22 +61,11 @@ func (system *ArtifactFragmentDropOffSystem) update(game *Game, dt float32) {
 	padTarget := padPosition
 	padTarget.Y += artifactFragmentDropOffTargetLift
 
-	if len(system.queue) == 0 && droneWithinXZDistance(dronePosition, padPosition, artifactFragmentDropOffProximity) {
-		system.enqueueCollectedFragments(game.artifactManager)
-	}
-
-	if !system.hasEjected {
-		if len(system.queue) > 0 {
-			system.ejectNext(dronePosition, padTarget)
-		}
+	if !droneWithinXZDistance(dronePosition, padPosition, artifactFragmentDropOffProximity) {
 		return
 	}
 
-	system.timeSinceEject += dt
-	if len(system.queue) > 0 && system.timeSinceEject >= artifactFragmentDropOffDelay {
-		system.timeSinceEject -= artifactFragmentDropOffDelay
-		system.ejectNext(dronePosition, padTarget)
-	}
+	system.ejectNext(fragments[0], dronePosition, padTarget)
 }
 
 func (system *ArtifactFragmentDropOffSystem) completeFlights(game *Game) {
@@ -93,20 +88,11 @@ func (system *ArtifactFragmentDropOffSystem) completeFlights(game *Game) {
 	}
 }
 
-func (system *ArtifactFragmentDropOffSystem) enqueueCollectedFragments(manager *ArtifactManager) {
-	for _, fragment := range sortedArtifactFragments(manager) {
-		if _, ok := system.queued[fragment.ID]; ok {
-			continue
-		}
-		system.queue = append(system.queue, fragment)
-		system.queued[fragment.ID] = struct{}{}
-	}
-}
-
-func (system *ArtifactFragmentDropOffSystem) ejectNext(dronePosition, padTarget rl.Vector3) {
-	fragment := system.queue[0]
-	system.queue = system.queue[1:]
-	delete(system.queued, fragment.ID)
+func (system *ArtifactFragmentDropOffSystem) ejectNext(
+	fragment *ArtifactFragment,
+	dronePosition,
+	padTarget rl.Vector3,
+) {
 	fragment.DroppedOff = true
 
 	system.mapper.NewEntity(
@@ -128,7 +114,6 @@ func (system *ArtifactFragmentDropOffSystem) ejectNext(dronePosition, padTarget 
 			easing:         MovementAnimationLinear,
 		},
 	)
-	system.hasEjected = true
 	system.timeSinceEject = 0
 }
 

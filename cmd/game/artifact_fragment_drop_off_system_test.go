@@ -82,8 +82,14 @@ func TestArtifactFragmentDropOffSystemEjectsCollectedFragmentsInOrder(t *testing
 	}
 
 	system.update(game, 0.01)
+	if manager.fragments[2].DroppedOff {
+		t.Fatal("second fragment ejected while the drone was away from the charging pad")
+	}
+
+	dronePosition.X = 1.5
+	system.update(game, 0)
 	if !manager.fragments[2].DroppedOff {
-		t.Fatal("queued fragment did not eject after the configured delay")
+		t.Fatal("oldest available fragment did not eject after the drone returned")
 	}
 	if manager.fragments[3].DroppedOff {
 		t.Fatal("uncollected fragment was ejected")
@@ -105,7 +111,7 @@ func TestArtifactFragmentDropOffSystemEjectsCollectedFragmentsInOrder(t *testing
 	if got, want := dropOffs[0].renderable.scale, float32(1); got != want {
 		t.Fatalf("first drop-off scale = %v, want %v", got, want)
 	}
-	if got, want := rl.Vector3(dropOffs[1].position), rl.NewVector3(7, 3, 6.5); got != want {
+	if got, want := rl.Vector3(dropOffs[1].position), rl.NewVector3(1.5, 3, 6.5); got != want {
 		t.Fatalf("second drop-off started at %v, want %v", got, want)
 	}
 }

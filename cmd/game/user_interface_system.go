@@ -58,10 +58,7 @@ func (system *UserInterfaceSystem) drawDroneBattery() {
 	query := system.filter.Query()
 	defer query.Close()
 
-	viewport := droneViewportRectangle()
-	barX := int32(viewport.X)
-	barY := int32(viewport.Y) - droneBatteryBarGap - droneBatteryBarHeight
-	barWidth := int32(viewport.Width)
+	barX, barY, barWidth, labelX, labelY := droneBatteryLayout(droneViewportRectangle())
 	fillWidth := int32(0)
 
 	for query.Next() {
@@ -72,6 +69,7 @@ func (system *UserInterfaceSystem) drawDroneBattery() {
 		break
 	}
 
+	rl.DrawText("BATTERY", labelX, labelY, droneBatteryLabelFontSize, rl.White)
 	rl.DrawRectangle(barX, barY, barWidth, droneBatteryBarHeight, rl.Fade(rl.Black, 0.8))
 	rl.DrawRectangle(
 		barX+droneBatteryBarPadding,
@@ -80,6 +78,17 @@ func (system *UserInterfaceSystem) drawDroneBattery() {
 		droneBatteryBarHeight-droneBatteryBarPadding*2,
 		rl.Lime,
 	)
+}
+
+func droneBatteryLayout(viewport rl.Rectangle) (barX, barY, barWidth, labelX, labelY int32) {
+	labelText := "BATTERY"
+	labelWidth := rl.MeasureText(labelText, droneBatteryLabelFontSize)
+	labelX = int32(viewport.X)
+	barY = int32(viewport.Y) - droneBatteryBarGap - droneBatteryBarHeight
+	labelY = barY + (droneBatteryBarHeight-droneBatteryLabelFontSize)/2
+	barX = labelX + labelWidth + droneBatteryLabelGap
+	barWidth = int32(viewport.Width) - labelWidth - droneBatteryLabelGap + droneBatteryBarExtraWidth
+	return barX, barY, barWidth, labelX, labelY
 }
 
 func (system *UserInterfaceSystem) drawDroneReticle() {

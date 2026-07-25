@@ -52,9 +52,12 @@ const (
 	droneViewReticleHalfSize  = 5.0
 	droneViewReticleThickness = 2.0
 
-	droneBatteryBarHeight  = 8
-	droneBatteryBarGap     = 6
-	droneBatteryBarPadding = 1
+	droneBatteryLabelFontSize = 8
+	droneBatteryLabelGap      = 6
+	droneBatteryBarExtraWidth = 2
+	droneBatteryBarHeight     = 8
+	droneBatteryBarGap        = 6
+	droneBatteryBarPadding    = 1
 
 	artifactFragmentThumbSize            = 64
 	artifactFragmentRowStep              = 70

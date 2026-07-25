@@ -6,7 +6,7 @@ This repo is a small 3D salvage game built in Go and raylib. If you are a coding
 
 Read these files first:
 
-- [README.md](../README.md) for the project summary and repo shape
+- [README.md](../README.md) for the player-facing project summary and build instructions
 - [docs/technical-direction.md](technical-direction.md) for architecture and ownership guidance
 
 ## Code Shape

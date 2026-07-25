@@ -6,15 +6,21 @@ import (
 )
 
 type ArtifactFragmentPickupSystem struct {
-	filter      *ecs.Filter3[Position3, Renderable, ArtifactFragmentComponent]
-	droneFilter *ecs.Filter2[Position3, Drone]
-	world       *ecs.World
-	unloadModel func(rl.Model)
+	pickupFilter   *ecs.Filter4[Position3, Renderable, ArtifactFragmentComponent, ArtifactFragmentPickupComponent]
+	fragmentFilter *ecs.Filter3[Position3, Renderable, ArtifactFragmentComponent]
+	droneFilter    *ecs.Filter2[Position3, Drone]
+	riseMap        *ecs.Map[ArtifactFragmentRiseComponent]
+	pickupMap      *ecs.Map[ArtifactFragmentPickupComponent]
+	world          *ecs.World
+	unloadModel    func(rl.Model)
 }
 
 func (system *ArtifactFragmentPickupSystem) Initialize(game *Game) {
-	system.filter = ecs.NewFilter3[Position3, Renderable, ArtifactFragmentComponent](game.world)
+	system.pickupFilter = ecs.NewFilter4[Position3, Renderable, ArtifactFragmentComponent, ArtifactFragmentPickupComponent](game.world)
+	system.fragmentFilter = ecs.NewFilter3[Position3, Renderable, ArtifactFragmentComponent](game.world)
 	system.droneFilter = ecs.NewFilter2[Position3, Drone](game.world)
+	system.riseMap = ecs.NewMap[ArtifactFragmentRiseComponent](game.world)
+	system.pickupMap = ecs.NewMap[ArtifactFragmentPickupComponent](game.world)
 	system.world = game.world
 	if system.unloadModel == nil {
 		system.unloadModel = rl.UnloadModel
@@ -31,15 +37,17 @@ func (system *ArtifactFragmentPickupSystem) update(game *Game, dt float32) {
 		return
 	}
 
-	query := system.filter.Query()
+	system.startNearestPickup(game.artifactManager, dronePosition)
+
+	query := system.pickupFilter.Query()
 	completed := make([]ecs.Entity, 0)
 	for query.Next() {
-		position, renderable, pickup := query.Get()
+		position, renderable, fragmentComponent, pickup := query.Get()
 		if !updateArtifactFragmentPickup(pickup, position, renderable, dronePosition, game.camera, dt) {
 			continue
 		}
 
-		collectArtifactFragment(game, pickup.fragment)
+		collectArtifactFragment(game, fragmentComponent.fragment)
 		system.unloadModel(*renderable.model)
 		renderable.model = nil
 		completed = append(completed, query.Entity())
@@ -51,17 +59,80 @@ func (system *ArtifactFragmentPickupSystem) update(game *Game, dt float32) {
 	}
 }
 
-func (system *ArtifactFragmentPickupSystem) Unload() {
-	if system.filter == nil {
+func (system *ArtifactFragmentPickupSystem) startNearestPickup(manager *ArtifactManager, dronePosition rl.Vector3) {
+	availableWeight := droneMaximumCarryWeight - system.occupiedWeight(manager)
+	if availableWeight <= 0 {
 		return
 	}
 
-	query := system.filter.Query()
+	query := system.fragmentFilter.Query()
+	var nearestEntity ecs.Entity
+	var nearestFragment *ArtifactFragment
+	var nearestPosition rl.Vector3
+	nearestDistance := float32(0)
+	found := false
+	for query.Next() {
+		position, _, fragmentComponent := query.Get()
+		entity := query.Entity()
+		fragment := fragmentComponent.fragment
+		if fragment == nil || fragment.Collected || fragment.Weight > availableWeight {
+			continue
+		}
+		if system.riseMap.Has(entity) || system.pickupMap.Has(entity) {
+			continue
+		}
+
+		distance := rl.Vector2Distance(xzVector(dronePosition), xzVector(rl.Vector3(*position)))
+		if distance > artifactFragmentPickupProximity {
+			continue
+		}
+		if found && (distance > nearestDistance || distance == nearestDistance && fragment.ID >= nearestFragment.ID) {
+			continue
+		}
+
+		nearestEntity = entity
+		nearestFragment = fragment
+		nearestPosition = rl.Vector3(*position)
+		nearestDistance = distance
+		found = true
+	}
+	query.Close()
+
+	if found {
+		system.pickupMap.Add(nearestEntity, &ArtifactFragmentPickupComponent{
+			startPosition: nearestPosition,
+		})
+	}
+}
+
+func (system *ArtifactFragmentPickupSystem) occupiedWeight(manager *ArtifactManager) int {
+	weight := manager.CarriedFragmentWeight()
+
+	query := system.pickupFilter.Query()
+	for query.Next() {
+		_, _, fragmentComponent, _ := query.Get()
+		if fragmentComponent.fragment != nil && !fragmentComponent.fragment.Collected {
+			weight += fragmentComponent.fragment.Weight
+		}
+	}
+	query.Close()
+
+	return weight
+}
+
+func (system *ArtifactFragmentPickupSystem) Unload() {
+	if system.fragmentFilter == nil {
+		return
+	}
+
+	query := system.fragmentFilter.Query()
 	entities := make([]ecs.Entity, 0)
 	for query.Next() {
 		_, renderable, _ := query.Get()
-		system.unloadModel(*renderable.model)
-		renderable.model = nil
+		if renderable.model != nil {
+			system.unloadModel(*renderable.model)
+			renderable.model = nil
+		}
 		entities = append(entities, query.Entity())
 	}
 	query.Close()
@@ -84,30 +155,17 @@ func (system *ArtifactFragmentPickupSystem) dronePosition() (rl.Vector3, bool) {
 }
 
 func updateArtifactFragmentPickup(
-	pickup *ArtifactFragmentComponent,
+	pickup *ArtifactFragmentPickupComponent,
 	position *Position3,
 	renderable *Renderable,
 	dronePosition rl.Vector3,
 	camera rl.Camera3D,
 	dt float32,
 ) bool {
-	pickup.elapsed = minFloat32(
-		pickup.elapsed+dt,
-		artifactFragmentPickupRiseDuration+artifactFragmentPickupHomingDuration,
-	)
-
-	if pickup.elapsed <= artifactFragmentPickupRiseDuration {
-		progress := pickup.elapsed / artifactFragmentPickupRiseDuration
-		easedProgress := easeOutCubic(progress)
-		*position = Position3(rl.Vector3Lerp(pickup.startPosition, pickup.raisedPosition, easedProgress))
-		renderable.scale = 1
-		renderable.model.Transform = rl.MatrixIdentity()
-		return false
-	}
-
-	progress := (pickup.elapsed - artifactFragmentPickupRiseDuration) / artifactFragmentPickupHomingDuration
+	pickup.elapsed = minFloat32(pickup.elapsed+dt, artifactFragmentPickupHomingDuration)
+	progress := pickup.elapsed / artifactFragmentPickupHomingDuration
 	easedProgress := easeInCubic(progress)
-	currentPosition := rl.Vector3Lerp(pickup.raisedPosition, dronePosition, easedProgress)
+	currentPosition := rl.Vector3Lerp(pickup.startPosition, dronePosition, easedProgress)
 	*position = Position3(currentPosition)
 	renderable.scale = 1 - easedProgress
 
@@ -116,7 +174,7 @@ func updateArtifactFragmentPickup(
 	rotation := rl.QuaternionSlerp(rl.QuaternionIdentity(), targetRotation, easedProgress)
 	renderable.model.Transform = rl.QuaternionToMatrix(rotation)
 
-	return pickup.elapsed >= artifactFragmentPickupRiseDuration+artifactFragmentPickupHomingDuration
+	return pickup.elapsed >= artifactFragmentPickupHomingDuration
 }
 
 func collectArtifactFragment(game *Game, fragment *ArtifactFragment) {

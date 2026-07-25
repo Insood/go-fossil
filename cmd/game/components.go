@@ -44,10 +44,18 @@ type Particle struct {
 }
 
 type ArtifactFragmentComponent struct {
-	fragment       *ArtifactFragment
+	fragment *ArtifactFragment
+}
+
+type ArtifactFragmentRiseComponent struct {
 	elapsed        float32
 	startPosition  rl.Vector3
 	raisedPosition rl.Vector3
+}
+
+type ArtifactFragmentPickupComponent struct {
+	elapsed       float32
+	startPosition rl.Vector3
 }
 
 type ArtifactFragmentDropOffComponent struct {

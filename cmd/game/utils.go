@@ -5,6 +5,7 @@ import (
 	"image/color"
 
 	"github.com/disintegration/gift"
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 // Positive orientation rotates clockwise in the image plane.
@@ -32,4 +33,8 @@ func clampFloat32(value, min, max float32) float32 {
 	}
 
 	return value
+}
+
+func xzVector(position rl.Vector3) rl.Vector2 {
+	return rl.NewVector2(position.X, position.Z)
 }

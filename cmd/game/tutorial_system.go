@@ -396,10 +396,6 @@ func (system *TutorialSystem) droneIsNearMarker() bool {
 	return false
 }
 
-func xzVector(position rl.Vector3) rl.Vector2 {
-	return rl.NewVector2(position.X, position.Z)
-}
-
 func (system *TutorialSystem) removeTutorialMarkers(game *Game) {
 	query := system.markerFilter.Query()
 	defer query.Close()

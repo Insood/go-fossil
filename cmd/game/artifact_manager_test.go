@@ -72,6 +72,20 @@ func TestArtifactManagerFragmentCount(t *testing.T) {
 	}
 }
 
+func TestArtifactManagerCarriedFragmentWeight(t *testing.T) {
+	t.Parallel()
+
+	manager := NewArtifactManager()
+	manager.fragments[1] = &ArtifactFragment{ID: 1, Weight: 10}
+	manager.fragments[2] = &ArtifactFragment{ID: 2, Weight: 20, Collected: true}
+	manager.fragments[3] = &ArtifactFragment{ID: 3, Weight: 30, Collected: true, DroppedOff: true}
+	manager.fragments[4] = &ArtifactFragment{ID: 4, Weight: 40, Collected: true}
+
+	if got, want := manager.CarriedFragmentWeight(), 60; got != want {
+		t.Fatalf("carried fragment weight = %d, want %d", got, want)
+	}
+}
+
 func TestCreateFragmentFromRegionUsesExactPixels(t *testing.T) {
 	t.Parallel()
 

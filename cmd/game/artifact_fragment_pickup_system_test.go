@@ -32,15 +32,11 @@ func TestArtifactFragmentPickupPositionUsesRegionCenterAndTerrainHeight(t *testi
 	assertVector3(t, position, 10, 2+artifactFragmentPickupGroundLift, -5)
 }
 
-func TestUpdateArtifactFragmentPickupRisesThenTracksDrone(t *testing.T) {
+func TestUpdateArtifactFragmentPickupTracksDrone(t *testing.T) {
 	t.Parallel()
 
 	start := rl.NewVector3(1, 2, 3)
-	raised := rl.NewVector3(1, 2+artifactFragmentPickupRiseHeight, 3)
-	pickup := &ArtifactFragmentComponent{
-		startPosition:  start,
-		raisedPosition: raised,
-	}
+	pickup := &ArtifactFragmentPickupComponent{startPosition: start}
 	model := &rl.Model{}
 	position := Position3(start)
 	renderable := &Renderable{model: model, scale: 1}
@@ -58,32 +54,10 @@ func TestUpdateArtifactFragmentPickupRisesThenTracksDrone(t *testing.T) {
 	}
 	assertVector3Close(t, rl.Vector3(position), start)
 
-	if complete := updateArtifactFragmentPickup(
-		pickup,
-		&position,
-		renderable,
-		dronePosition,
-		camera,
-		artifactFragmentPickupRiseDuration,
-	); complete {
-		t.Fatal("pickup completed at rise boundary")
-	}
-	assertVector3Close(t, rl.Vector3(position), raised)
-	if renderable.scale != 1 {
-		t.Fatalf("scale at rise boundary = %v, want 1", renderable.scale)
-	}
-
-	if complete := updateArtifactFragmentPickup(
-		pickup,
-		&position,
-		renderable,
-		dronePosition,
-		camera,
-		artifactFragmentPickupHomingDuration/2,
-	); complete {
+	if complete := updateArtifactFragmentPickup(pickup, &position, renderable, dronePosition, camera, artifactFragmentPickupHomingDuration/2); complete {
 		t.Fatal("pickup completed midway through homing")
 	}
-	wantMidpoint := rl.Vector3Lerp(raised, dronePosition, easeInCubic(0.5))
+	wantMidpoint := rl.Vector3Lerp(start, dronePosition, easeInCubic(0.5))
 	assertVector3Close(t, rl.Vector3(position), wantMidpoint)
 	if renderable.scale >= 1 || renderable.scale <= 0 {
 		t.Fatalf("scale midway through homing = %v, want between 0 and 1", renderable.scale)
@@ -94,18 +68,11 @@ func TestUpdateArtifactFragmentPickupRisesThenTracksDrone(t *testing.T) {
 
 	movedDronePosition := rl.NewVector3(13, 10, 11)
 	updateArtifactFragmentPickup(pickup, &position, renderable, movedDronePosition, camera, 0)
-	wantTrackedPosition := rl.Vector3Lerp(raised, movedDronePosition, easeInCubic(0.5))
+	wantTrackedPosition := rl.Vector3Lerp(start, movedDronePosition, easeInCubic(0.5))
 	assertVector3Close(t, rl.Vector3(position), wantTrackedPosition)
 
-	if complete := updateArtifactFragmentPickup(
-		pickup,
-		&position,
-		renderable,
-		movedDronePosition,
-		camera,
-		artifactFragmentPickupHomingDuration/2+0.001,
-	); !complete {
-		t.Fatal("pickup did not complete after one second")
+	if complete := updateArtifactFragmentPickup(pickup, &position, renderable, movedDronePosition, camera, artifactFragmentPickupHomingDuration/2+0.001); !complete {
+		t.Fatal("pickup did not complete")
 	}
 	assertVector3Close(t, rl.Vector3(position), movedDronePosition)
 	if renderable.scale != 0 {
@@ -113,45 +80,106 @@ func TestUpdateArtifactFragmentPickupRisesThenTracksDrone(t *testing.T) {
 	}
 }
 
+func TestArtifactFragmentPickupSystemStartsOneNearestReadyFragment(t *testing.T) {
+	t.Parallel()
+
+	world, game, system := newArtifactFragmentPickupTest(t)
+	farther := addTestWorldFragment(world, &ArtifactFragment{ID: 1, Weight: 10}, rl.NewVector3(0.4, 1, 0))
+	tieHigherID := addTestWorldFragment(world, &ArtifactFragment{ID: 3, Weight: 10}, rl.NewVector3(0.2, 1, 0))
+	tieLowerID := addTestWorldFragment(world, &ArtifactFragment{ID: 2, Weight: 10}, rl.NewVector3(-0.2, 1, 0))
+
+	system.update(game, 0)
+
+	if system.pickupMap.Has(farther) {
+		t.Fatal("farther fragment started homing")
+	}
+	if system.pickupMap.Has(tieHigherID) {
+		t.Fatal("higher-ID equidistant fragment started homing")
+	}
+	if !system.pickupMap.Has(tieLowerID) {
+		t.Fatal("nearest fragment with lowest tie-breaking ID did not start homing")
+	}
+}
+
+func TestArtifactFragmentPickupSystemWaitsForRiseRangeAndCapacity(t *testing.T) {
+	t.Parallel()
+
+	world, game, system := newArtifactFragmentPickupTest(t)
+	game.artifactManager.fragments[100] = &ArtifactFragment{
+		ID:        100,
+		Weight:    droneMaximumCarryWeight - 100,
+		Collected: true,
+	}
+	exactFit := addTestWorldFragment(world, &ArtifactFragment{ID: 1, Weight: 100}, rl.NewVector3(0.25, 1, 0))
+	tooHeavy := addTestWorldFragment(world, &ArtifactFragment{ID: 2, Weight: 101}, rl.NewVector3(0.1, 1, 0))
+	outOfRange := addTestWorldFragment(world, &ArtifactFragment{ID: 3, Weight: 1}, rl.NewVector3(1, 1, 0))
+	rising := addTestWorldFragment(world, &ArtifactFragment{ID: 4, Weight: 1}, rl.NewVector3(0.05, 1, 0))
+	ecs.NewMap[ArtifactFragmentRiseComponent](world).Add(rising, &ArtifactFragmentRiseComponent{})
+
+	system.update(game, 0)
+
+	if !system.pickupMap.Has(exactFit) {
+		t.Fatal("exact-fit fragment did not start homing")
+	}
+	for entity, name := range map[ecs.Entity]string{
+		tooHeavy:   "too-heavy",
+		outOfRange: "out-of-range",
+		rising:     "rising",
+	} {
+		if system.pickupMap.Has(entity) {
+			t.Fatalf("%s fragment started homing", name)
+		}
+	}
+}
+
+func TestArtifactFragmentPickupSystemReservesHomingWeight(t *testing.T) {
+	t.Parallel()
+
+	world, game, system := newArtifactFragmentPickupTest(t)
+	active := addTestWorldFragment(world, &ArtifactFragment{ID: 1, Weight: droneMaximumCarryWeight}, rl.NewVector3(0.1, 1, 0))
+	system.pickupMap.Add(active, &ArtifactFragmentPickupComponent{startPosition: rl.NewVector3(0.1, 1, 0)})
+	waiting := addTestWorldFragment(world, &ArtifactFragment{ID: 2, Weight: 1}, rl.NewVector3(0.2, 1, 0))
+
+	system.update(game, 0)
+
+	if system.pickupMap.Has(waiting) {
+		t.Fatal("waiting fragment ignored weight reserved by homing fragment")
+	}
+}
+
+func TestArtifactFragmentPickupSystemRetriesAfterDropOffFreesCapacity(t *testing.T) {
+	t.Parallel()
+
+	world, game, system := newArtifactFragmentPickupTest(t)
+	carried := &ArtifactFragment{ID: 1, Weight: droneMaximumCarryWeight, Collected: true}
+	game.artifactManager.fragments[carried.ID] = carried
+	waiting := addTestWorldFragment(world, &ArtifactFragment{ID: 2, Weight: 1}, rl.NewVector3(0.2, 1, 0))
+
+	system.update(game, 0)
+	if system.pickupMap.Has(waiting) {
+		t.Fatal("fragment started while drone was full")
+	}
+
+	carried.DroppedOff = true
+	system.update(game, 0)
+	if !system.pickupMap.Has(waiting) {
+		t.Fatal("fragment did not start after drop-off freed capacity")
+	}
+}
+
 func TestArtifactFragmentPickupSystemCollectsScoresAndRemovesEntity(t *testing.T) {
 	t.Parallel()
 
-	world := ecs.NewWorld()
-	droneMapper := ecs.NewMap2[Position3, Drone](world)
-	droneMapper.NewEntity(&Position3{X: 5, Y: 4, Z: 3}, &Drone{})
-
-	model := &rl.Model{}
-	fragment := &ArtifactFragment{ID: 1, Score: 17}
-	pickupMapper := ecs.NewMap3[Position3, Renderable, ArtifactFragmentComponent](world)
-	entity := pickupMapper.NewEntity(
-		&Position3{X: 1, Y: 1, Z: 1},
-		&Renderable{model: model, scale: 1},
-		&ArtifactFragmentComponent{
-			fragment:       fragment,
-			startPosition:  rl.NewVector3(1, 1, 1),
-			raisedPosition: rl.NewVector3(1, 1+artifactFragmentPickupRiseHeight, 1),
-		},
-	)
+	world, game, system := newArtifactFragmentPickupTest(t)
+	game.TotalScore = 5
+	fragment := &ArtifactFragment{ID: 1, Weight: 10, Score: 17}
+	entity := addTestWorldFragment(world, fragment, rl.NewVector3(0.1, 1, 0))
 
 	unloadCount := 0
-	system := &ArtifactFragmentPickupSystem{
-		unloadModel: func(rl.Model) {
-			unloadCount++
-		},
+	system.unloadModel = func(rl.Model) {
+		unloadCount++
 	}
-	game := &Game{
-		world: world,
-		camera: rl.NewCamera3D(
-			rl.NewVector3(10, 10, 10),
-			rl.Vector3{},
-			rl.NewVector3(0, 1, 0),
-			45,
-			rl.CameraPerspective,
-		),
-		TotalScore: 5,
-	}
-	system.Initialize(game)
-	system.update(game, artifactFragmentPickupRiseDuration+artifactFragmentPickupHomingDuration)
+	system.update(game, artifactFragmentPickupHomingDuration)
 
 	if world.Alive(entity) {
 		t.Fatal("pickup entity is still alive after completion")
@@ -172,34 +200,61 @@ func TestArtifactFragmentPickupSystemCollectsScoresAndRemovesEntity(t *testing.T
 	}
 }
 
-func TestArtifactFragmentPickupSystemUnloadReleasesActiveModels(t *testing.T) {
+func TestArtifactFragmentPickupSystemUnloadReleasesAllWorldFragmentModels(t *testing.T) {
 	t.Parallel()
 
-	world := ecs.NewWorld()
-	model := &rl.Model{}
-	mapper := ecs.NewMap3[Position3, Renderable, ArtifactFragmentComponent](world)
-	entity := mapper.NewEntity(
-		&Position3{},
-		&Renderable{model: model, scale: 1},
-		&ArtifactFragmentComponent{fragment: &ArtifactFragment{ID: 1}},
-	)
+	world, _, system := newArtifactFragmentPickupTest(t)
+	ready := addTestWorldFragment(world, &ArtifactFragment{ID: 1}, rl.Vector3{})
+	rising := addTestWorldFragment(world, &ArtifactFragment{ID: 2}, rl.Vector3{})
+	homing := addTestWorldFragment(world, &ArtifactFragment{ID: 3}, rl.Vector3{})
+	ecs.NewMap[ArtifactFragmentRiseComponent](world).Add(rising, &ArtifactFragmentRiseComponent{})
+	system.pickupMap.Add(homing, &ArtifactFragmentPickupComponent{})
 
 	unloadCount := 0
-	system := &ArtifactFragmentPickupSystem{
-		unloadModel: func(rl.Model) {
-			unloadCount++
-		},
+	system.unloadModel = func(rl.Model) {
+		unloadCount++
 	}
-	game := &Game{world: world}
-	system.Initialize(game)
 	system.Unload()
 
-	if world.Alive(entity) {
-		t.Fatal("pickup entity is still alive after system unload")
+	for _, entity := range []ecs.Entity{ready, rising, homing} {
+		if world.Alive(entity) {
+			t.Fatal("fragment entity is still alive after system unload")
+		}
 	}
-	if got, want := unloadCount, 1; got != want {
+	if got, want := unloadCount, 3; got != want {
 		t.Fatalf("model unload count = %d, want %d", got, want)
 	}
+}
+
+func newArtifactFragmentPickupTest(t *testing.T) (*ecs.World, *Game, *ArtifactFragmentPickupSystem) {
+	t.Helper()
+
+	world := ecs.NewWorld()
+	ecs.NewMap2[Position3, Drone](world).NewEntity(&Position3{}, &Drone{})
+	game := &Game{
+		world:           world,
+		artifactManager: NewArtifactManager(),
+		camera: rl.NewCamera3D(
+			rl.NewVector3(10, 10, 10),
+			rl.Vector3{},
+			rl.NewVector3(0, 1, 0),
+			45,
+			rl.CameraPerspective,
+		),
+	}
+	system := &ArtifactFragmentPickupSystem{
+		unloadModel: func(rl.Model) {},
+	}
+	system.Initialize(game)
+	return world, game, system
+}
+
+func addTestWorldFragment(world *ecs.World, fragment *ArtifactFragment, position rl.Vector3) ecs.Entity {
+	return ecs.NewMap3[Position3, Renderable, ArtifactFragmentComponent](world).NewEntity(
+		(*Position3)(&position),
+		&Renderable{model: &rl.Model{}, scale: 1},
+		&ArtifactFragmentComponent{fragment: fragment},
+	)
 }
 
 func assertVector3Close(t *testing.T, got, want rl.Vector3) {

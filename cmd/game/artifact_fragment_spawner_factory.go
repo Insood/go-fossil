@@ -5,17 +5,17 @@ import (
 	ecs "github.com/mlange-42/ark/ecs"
 )
 
-type ArtifactFragmentPickupSpawnerFactory struct {
-	mapper *ecs.Map3[Position3, Renderable, ArtifactFragmentComponent]
+type ArtifactFragmentSpawnerFactory struct {
+	mapper *ecs.Map4[Position3, Renderable, ArtifactFragmentComponent, ArtifactFragmentRiseComponent]
 }
 
-func NewArtifactFragmentPickupSpawnerFactory(world *ecs.World) *ArtifactFragmentPickupSpawnerFactory {
-	return &ArtifactFragmentPickupSpawnerFactory{
-		mapper: ecs.NewMap3[Position3, Renderable, ArtifactFragmentComponent](world),
+func NewArtifactFragmentSpawnerFactory(world *ecs.World) *ArtifactFragmentSpawnerFactory {
+	return &ArtifactFragmentSpawnerFactory{
+		mapper: ecs.NewMap4[Position3, Renderable, ArtifactFragmentComponent, ArtifactFragmentRiseComponent](world),
 	}
 }
 
-func (factory *ArtifactFragmentPickupSpawnerFactory) Spawn(fragment *ArtifactFragment, position rl.Vector3) ecs.Entity {
+func (factory *ArtifactFragmentSpawnerFactory) Spawn(fragment *ArtifactFragment, position rl.Vector3) ecs.Entity {
 	model := newArtifactFragmentPlaneModel(fragment)
 	raisedPosition := position
 	raisedPosition.Y += artifactFragmentPickupRiseHeight
@@ -30,7 +30,9 @@ func (factory *ArtifactFragmentPickupSpawnerFactory) Spawn(fragment *ArtifactFra
 			receivesShadow: false,
 		},
 		&ArtifactFragmentComponent{
-			fragment:       fragment,
+			fragment: fragment,
+		},
+		&ArtifactFragmentRiseComponent{
 			startPosition:  position,
 			raisedPosition: raisedPosition,
 		},

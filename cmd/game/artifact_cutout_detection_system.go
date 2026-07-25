@@ -11,9 +11,9 @@ import (
 )
 
 type ArtifactCutoutDetectionSystem struct {
-	filter        *ecs.Filter2[TerrainChunkComponent, TerrainChunkDamaged]
-	damageMap     *ecs.Map[TerrainChunkDamaged]
-	pickupSpawner *ArtifactFragmentPickupSpawnerFactory
+	filter          *ecs.Filter2[TerrainChunkComponent, TerrainChunkDamaged]
+	damageMap       *ecs.Map[TerrainChunkDamaged]
+	fragmentSpawner *ArtifactFragmentSpawnerFactory
 }
 
 type artifactRegion struct {
@@ -31,7 +31,7 @@ type artifactRegionCutout struct {
 func (system *ArtifactCutoutDetectionSystem) Initialize(game *Game) {
 	system.filter = ecs.NewFilter2[TerrainChunkComponent, TerrainChunkDamaged](game.world)
 	system.damageMap = ecs.NewMap[TerrainChunkDamaged](game.world)
-	system.pickupSpawner = NewArtifactFragmentPickupSpawnerFactory(game.world)
+	system.fragmentSpawner = NewArtifactFragmentSpawnerFactory(game.world)
 }
 
 func (system *ArtifactCutoutDetectionSystem) Update(game *Game) {
@@ -57,7 +57,7 @@ func (system *ArtifactCutoutDetectionSystem) Update(game *Game) {
 	query.Close()
 
 	for _, cutout := range cutouts {
-		applyArtifactRegion(game.artifactManager, system.pickupSpawner, cutout.chunk, cutout.region)
+		applyArtifactRegion(game.artifactManager, system.fragmentSpawner, cutout.chunk, cutout.region)
 	}
 
 	system.damageMap.RemoveBatch(system.filter.Batch(), nil)
@@ -135,14 +135,14 @@ func floodFillArtifactRegionWithPoints(data *ArtifactData, startX, startY int, t
 
 func applyArtifactRegion(
 	manager *ArtifactManager,
-	pickupSpawner *ArtifactFragmentPickupSpawnerFactory,
+	fragmentSpawner *ArtifactFragmentSpawnerFactory,
 	chunk *TerrainChunk,
 	region artifactRegion,
 ) {
 	score := scoreArtifactRegion(manager, chunk, region)
 	fragment := manager.CreateFragmentFromRegionWithScore(chunk.SurfaceTexture.BaseImage, chunk.ArtifactImage, region.bounds, region.points, score)
 	if fragment != nil {
-		pickupSpawner.Spawn(fragment, artifactFragmentPickupPosition(chunk, region.bounds))
+		fragmentSpawner.Spawn(fragment, artifactFragmentPickupPosition(chunk, region.bounds))
 	}
 
 	for _, point := range region.points {

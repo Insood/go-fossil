@@ -33,7 +33,7 @@ Read these files first:
 - Generated terrain chunks are added as the running score increases, placed on exposed edges of the loaded chunk set.
 - Generated chunks use random height samples that match loaded neighbor borders and random artifact placements from loaded artifact definitions.
 - Artifacts are embedded as baked texture overlays plus a per-pixel artifact ID mask.
-- The salvage loop is movement, downward drone-camera aiming, laser burning, cutout detection, animated fragment pickup, scoring, charging-pad drop-off, and chunk expansion.
+- The salvage loop is movement, downward drone-camera aiming, laser burning, cutout detection, fragment rising and proximity pickup within drone cargo capacity, scoring, charging-pad drop-off, and chunk expansion.
 - Successful laser terrain strikes spawn short-lived tinted cube particles that travel upward in a narrow cone and fade out.
 
 ## Current Systems
@@ -51,30 +51,32 @@ Systems are registered in this order in `cmd/game/game.go`:
 9. `SoundSystem`
 10. `ParticleSystem`
 11. `ArtifactCutoutDetectionSystem`
-12. `ArtifactFragmentPickupSystem`
-13. `ArtifactFragmentDropOffSystem`
-14. `ChunkSpawnerSystem`
-15. `RenderSystem3D`
-16. `UserInterfaceSystem`
-17. `TutorialSystem`
-18. `DebugRender3DSystem`
-19. `DebugRenderSystem2D`
+12. `ArtifactFragmentRiseSystem`
+13. `ArtifactFragmentPickupSystem`
+14. `ArtifactFragmentDropOffSystem`
+15. `ChunkSpawnerSystem`
+16. `RenderSystem3D`
+17. `UserInterfaceSystem`
+18. `TutorialSystem`
+19. `DebugRender3DSystem`
+20. `DebugRenderSystem2D`
 
-All systems implement `Initialize`, `Update`, and `Unload`. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while the fragment pickup and drop-off systems release generated models that remain in flight.
+All systems implement `Initialize`, `Update`, and `Unload`. Initialization and updates follow registration order; shutdown calls `Unload` in reverse order before manager and asset teardown. Most systems currently use a no-op unload, while the fragment pickup system releases all generated fragment models still in the world and the drop-off system releases generated models that remain in flight.
 
 Important ownership notes:
 
 - `AssetManager` loads runtime images, textures, GIF animations, shaders, models, streamed sounds, and artifact definitions from disk beside the built executable.
 - `ChunkManager` loads authored chunk JSON, generates runtime chunks, builds terrain meshes/textures, caches chunks, samples terrain height, registers terrain chunk ECS entities, resolves typed entity placements through game-owned factories, tracks those entities for chunk teardown, and applies burn marks.
 - Authored artifact and entity placement coordinates are stored in baked texture pixels and converted to world units with `terrainTexturePixelsPerTile`. Entity placement types are gameplay archetypes; their factories own model selection, render settings, and ECS component composition.
-- `ArtifactManager` owns runtime artifact records, unique artifact IDs, fragment collection state, and fragment textures.
+- `ArtifactManager` owns runtime artifact records, unique artifact IDs, fragment collection state, fragment textures, and carried-fragment weight calculation.
 - `DroneFireControlSystem` owns the drone viewport cursor, clamps mouse motion to the viewport, hides the OS cursor during gameplay, maps mouse/gamepad aiming into normalized drone viewport coordinates from -1 to 1 on each axis, and stores current and previous cursor/firing state on `DroneFireControl`. It shows the OS cursor and clears firing state while debug overlays are visible so raygui controls can be clicked.
 - `LaserSystem` maps the stored normalized drone viewport cursor to terrain-sampled world targets, interpolates between consecutive firing cursors at the configured pixel step, stamps the chunk burn overlay while firing, drains drone battery charge once per active firing update, and marks damaged chunks for cutout scanning. Lasers only fire while battery charge is positive.
 - `LaserSystem` also creates particle entities at successful terrain burn positions. These particles reuse the shared cube model, do not cast or receive shadows, and have no gameplay interaction.
 - `SoundSystem` tracks every loaded sound stream by name and plays the `burning` stream while any laser is active.
 - `ParticleSystem` advances particle lifetimes, fades `Renderable.tint`, and removes expired particle entities. `PhysicsSystem` moves particles because they carry `Velocity3`.
-- `ArtifactCutoutDetectionSystem` periodically scans damaged chunks, flood-fills remaining artifact ID regions, accepts regions below `MaximumRegionSize`, scores recovered artifact pixels, creates fragments for regions at or above `artifactFragmentMinPixels`, spawns pickup planes at cutout centers, clears accepted artifact overlay pixels, and softens the burn overlay so the terrain shader renders a shallow divot.
-- `ArtifactFragmentPickupSystem` lifts each fragment plane for 0.35 seconds, then eases it toward the live drone position for 0.65 seconds while tilting and shrinking it. Arrival marks the fragment collected, awards its score, exposes it to the inventory UI and tutorial, unloads the generated plane model, and removes the pickup entity.
+- `ArtifactCutoutDetectionSystem` periodically scans damaged chunks, flood-fills remaining artifact ID regions, accepts regions below `MaximumRegionSize`, scores recovered artifact pixels, creates fragments for regions at or above `artifactFragmentMinPixels`, spawns textured fragment planes at cutout centers, clears accepted artifact overlay pixels, and softens the burn overlay so the terrain shader renders a shallow divot.
+- `ArtifactFragmentRiseSystem` lifts each new fragment plane for 0.35 seconds, then removes its rise state and leaves the plane hovering at the raised position until it is eligible for pickup.
+- `ArtifactFragmentPickupSystem` gives the drone a 12,000-unit carry limit. Each update it may start homing the nearest ready fragment within 0.5 X/Z units whose full pixel weight fits, using fragment ID to break distance ties. It starts at most one pickup per update, and homing fragments reserve capacity immediately. Each active pickup eases toward the live drone position for 0.65 seconds while tilting and shrinking. Arrival marks the fragment collected, awards its score, exposes it to the inventory UI and tutorial, unloads the generated plane model, and removes the world entity.
 - `ArtifactFragmentDropOffSystem` queries `ChargingPad` entities and starts a deposit when the drone moves within 0.5 X/Z units of the nearest pad. It launches collected fragments oldest-first from the drone at 0.25-second intervals, hides each launched fragment from inventory, and moves its full-size plane at a constant speed into the pad before unloading the plane model.
 - `ChunkSpawnerSystem` watches collected score deltas and adds generated chunks after enough artifact value is recovered.
 - `TutorialSystem` owns the active tutorial step, starts each run at tutorial step 1, tracks the drone's starting X/Z position, advances to step 2 once the drone moves on X or Z, spawns red shader-styled tutorial cones over artifact centers for step 2, advances to step 3 once the drone moves within 0.5 X/Z units of a cone, removes tutorial marker entities, advances to step 4 once the drone viewport cursor moves at least 25% of the drone viewport, advances to step 5 once any laser is active, advances to step 6 once the artifact manager has at least one collected fragment, queries the nearest `ChargingPad` entity to place the return-home cone, and completes step 6 once the drone is within `tutorialArtifactMarkerProximity` on X/Z of the pad.

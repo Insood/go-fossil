@@ -69,6 +69,7 @@ const (
 	artifactFragmentPickupGroundLift     = 0.03
 	artifactFragmentPickupRiseHeight     = 0.75
 	artifactFragmentPickupRiseDuration   = 0.35
+	artifactFragmentPickupProximity      = 0.5
 	artifactFragmentPickupHomingDuration = 0.65
 	artifactFragmentDropOffProximity     = 0.5
 	artifactFragmentDropOffDelay         = 0.25
@@ -112,6 +113,7 @@ const (
 	laserStrikeParticleMaxConeAngle  = math.Pi / 4
 	artifactCutoutDetectionScanTicks = 60
 	MaximumRegionSize                = 4096
+	droneMaximumCarryWeight          = 12000
 	burnOverlayAlpha                 = 255
 	dugOutOverlayAlpha               = 128
 

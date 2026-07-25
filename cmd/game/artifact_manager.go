@@ -58,6 +58,21 @@ func (manager *ArtifactManager) CollectedFragmentCount() int {
 	return count
 }
 
+func (manager *ArtifactManager) CarriedFragmentWeight() int {
+	if manager == nil {
+		return 0
+	}
+
+	weight := 0
+	for _, fragment := range manager.fragments {
+		if fragment.Collected && !fragment.DroppedOff {
+			weight += fragment.Weight
+		}
+	}
+
+	return weight
+}
+
 func (manager *ArtifactManager) Artifacts() []*Artifact {
 	if manager == nil || len(manager.artifacts) == 0 {
 		return nil

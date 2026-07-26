@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -195,7 +194,6 @@ func (manager *ArtifactManager) createFragmentFromRegion(background image.Image,
 	}
 
 	manager.fragments[fragmentID] = fragment
-	fmt.Printf("Created artifact fragment %d: weight=%d score=%d raw=%.3f grade=%.3f\n", fragment.ID, fragment.Weight, fragment.Score, score, fragment.Grade)
 	return fragment
 }
 

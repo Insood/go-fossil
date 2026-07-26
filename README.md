@@ -55,6 +55,12 @@ make build-windows
 This requires a MinGW-w64 cross-compiler and writes
 `bin/win/go-fossil.exe` alongside `bin/win/assets`.
 
+For a release build that does not open a console window:
+
+```bash
+make build-windows-release
+```
+
 Run the test suite with:
 
 ```bash

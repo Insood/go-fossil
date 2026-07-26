@@ -44,7 +44,8 @@ make build
 ```
 
 The Linux build is written to `bin/linux/go-fossil`, with its runtime assets
-copied to `bin/linux/assets`.
+copied to `bin/linux/assets` and `LICENSE.md` and `ASSETS.md` copied alongside
+the executable.
 
 To cross-compile a Windows build from the same environment:
 
@@ -53,7 +54,8 @@ make build-windows
 ```
 
 This requires a MinGW-w64 cross-compiler and writes
-`bin/win/go-fossil.exe` alongside `bin/win/assets`.
+`bin/win/go-fossil.exe` alongside `bin/win/assets`, `LICENSE.md`, and
+`ASSETS.md`.
 
 For a release build that does not open a console window:
 
@@ -73,20 +75,3 @@ make test
   gameplay systems, content formats, and implementation constraints.
 - [LLM context](docs/llm-context.md) is the codebase map and working guide for
   coding agents.
-
-## Asset credits
-
-- Fossil artwork is remixed from
-  [Fossil Undead RPG Enemy — Therapsid Charset](https://opengameart.org/content/fossil-undead-rpg-enemy-mod-therapsid-charset)
-  by Flying Tiger Comics (CC BY 3.0), itself remixed from
-  [Fossil Undead RPG Enemy Sprites](https://opengameart.org/content/fossil-undead-rpg-enemy-sprites)
-  by Stephen Challener aka Redshrike (CC BY 3.0).
-- Steam Deck pixel art is by ExxiIon ("Feel free to use and change however you like, just make sure to credit me" License) from
-  [this Reddit post](https://www.reddit.com/r/SteamDeck/comments/trztvf/my_pixel_art_submission_for_rplace_feel_free_to/).
-- The burning sound is from
-  [Freesound Community](https://pixabay.com/sound-effects/film-special-effects-burning-fire-steam-87118/) and has the [Pixabay Content License](https://pixabay.com/service/license-summary/)
-- Score sound by GameAudio (CC0) from https://freesound.org/people/GameAudio/sounds/220173/
-- Pick up sound by quatricise (CC0) from https://freesound.org/people/quatricise/sounds/789793/
-- Grixel Acme 9 Font is by Nikos Giannakopoulos and is licensed under
-  [Creative Commons Attribution-NoDerivs 2.5](http://creativecommons.org/licenses/by-nd/2.5/).
-- Cellphone by ?

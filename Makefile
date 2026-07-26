@@ -5,6 +5,7 @@
 LINUX_BIN_DIR := bin/linux
 WINDOWS_BIN_DIR := bin/win
 ASSET_SOURCE_DIR := cmd/game/assets
+BUILD_DOCUMENTS := LICENSE.md ASSETS.md
 
 build:
 	mkdir -p bin
@@ -12,6 +13,7 @@ build:
 	find $(LINUX_BIN_DIR) -mindepth 1 -exec rm -rf {} +
 	find bin -mindepth 1 -maxdepth 1 ! -name linux ! -name win -exec rm -rf {} +
 	cp -R $(ASSET_SOURCE_DIR) $(LINUX_BIN_DIR)/assets
+	cp $(BUILD_DOCUMENTS) $(LINUX_BIN_DIR)/
 	GOCACHE=$${GOCACHE:-$(CURDIR)/.gocache-local} go build -o $(LINUX_BIN_DIR)/go-fossil ./cmd/game
 
 build-windows:
@@ -20,6 +22,7 @@ build-windows:
 	find $(WINDOWS_BIN_DIR) -mindepth 1 -exec rm -rf {} +
 	find bin -mindepth 1 -maxdepth 1 ! -name linux ! -name win -exec rm -rf {} +
 	cp -R $(ASSET_SOURCE_DIR) $(WINDOWS_BIN_DIR)/assets
+	cp $(BUILD_DOCUMENTS) $(WINDOWS_BIN_DIR)/
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=$${CC:-x86_64-w64-mingw32-gcc} GOCACHE=$${GOCACHE:-$(CURDIR)/.gocache-local} go build -o $(WINDOWS_BIN_DIR)/go-fossil.exe ./cmd/game
 
 build-windows-release:
@@ -28,6 +31,7 @@ build-windows-release:
 	find $(WINDOWS_BIN_DIR) -mindepth 1 -exec rm -rf {} +
 	find bin -mindepth 1 -maxdepth 1 ! -name linux ! -name win -exec rm -rf {} +
 	cp -R $(ASSET_SOURCE_DIR) $(WINDOWS_BIN_DIR)/assets
+	cp $(BUILD_DOCUMENTS) $(WINDOWS_BIN_DIR)/
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=$${CC:-x86_64-w64-mingw32-gcc} GOCACHE=$${GOCACHE:-$(CURDIR)/.gocache-local} go build -ldflags="-H=windowsgui" -o $(WINDOWS_BIN_DIR)/go-fossil.exe ./cmd/game
 
 run: build

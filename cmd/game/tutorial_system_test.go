@@ -320,18 +320,25 @@ func TestTutorialStepSixMarksChargingPadAndAdvancesAtProximity(t *testing.T) {
 func TestTutorialStepSevenCompletesAfterFiveSeconds(t *testing.T) {
 	t.Parallel()
 
+	game := &Game{}
 	system := &TutorialSystem{
 		state: TutorialState{currentStep: tutorialStepCollectMore},
 	}
 
-	system.updateTimedStep(tutorialCollectMoreDuration - 0.01)
+	system.updateTimedStep(game, tutorialCollectMoreDuration-0.01)
 	if got, want := system.state.currentStep, tutorialStepCollectMore; got != want {
 		t.Fatalf("current step = %d, want %d before five seconds", got, want)
 	}
+	if game.TutorialCompleted {
+		t.Fatal("tutorial was marked complete before five seconds")
+	}
 
-	system.updateTimedStep(0.01)
+	system.updateTimedStep(game, 0.01)
 	if got, want := system.state.currentStep, tutorialStepComplete; got != want {
 		t.Fatalf("current step = %d, want %d after five seconds", got, want)
+	}
+	if !game.TutorialCompleted {
+		t.Fatal("tutorial completion was not recorded on the game")
 	}
 }
 

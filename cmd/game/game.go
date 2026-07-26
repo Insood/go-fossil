@@ -19,9 +19,10 @@ type Game struct {
 	TotalScore            int
 	Running               bool
 	ReturnToMenuRequested bool
+	TutorialCompleted     bool
 }
 
-func InitializeGame(assets *AssetManager) *Game {
+func InitializeGame(assets *AssetManager, tutorialCompleted bool) *Game {
 	world := ecs.NewWorld()
 	artifactManager := NewArtifactManager()
 	chunkManager := NewChunkManager(world, assets, artifactManager)
@@ -38,6 +39,7 @@ func InitializeGame(assets *AssetManager) *Game {
 		shadowFramebuffer: NewFramebuffer(shadowMapSize, shadowMapSize),
 		world:             world,
 		Running:           true,
+		TutorialCompleted: tutorialCompleted,
 	}
 
 	game.spawnInitialEntities()
@@ -86,7 +88,9 @@ func (game *Game) registerSystems() {
 	game.AddSystem(&ChunkSpawnerSystem{})
 	game.AddSystem(&RenderSystem3D{})
 	game.AddSystem(&UserInterfaceSystem{})
-	game.AddSystem(&TutorialSystem{})
+	if !game.TutorialCompleted {
+		game.AddSystem(&TutorialSystem{})
+	}
 	game.AddSystem(&DebugRender3DSystem{})
 	game.AddSystem(&DebugRenderSystem2D{})
 }

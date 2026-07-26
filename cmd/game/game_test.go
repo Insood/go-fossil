@@ -33,7 +33,7 @@ func TestSpawnDroneAddsPlayerControlled(t *testing.T) {
 func TestGameplaySystemOrderIncludesGameOverAndTerrainCollision(t *testing.T) {
 	t.Parallel()
 
-	game := &Game{}
+	game := &Game{TutorialCompleted: false}
 	game.registerSystems()
 
 	if _, ok := game.systems[3].(*GameOverDetectionSystem); !ok {
@@ -41,6 +41,22 @@ func TestGameplaySystemOrderIncludesGameOverAndTerrainCollision(t *testing.T) {
 	}
 	if _, ok := game.systems[7].(*TerrainCollisionDetectionSystem); !ok {
 		t.Fatalf("system 8 = %T, want *TerrainCollisionDetectionSystem", game.systems[7])
+	}
+	if _, ok := game.systems[21].(*TutorialSystem); !ok {
+		t.Fatalf("system 22 = %T, want *TutorialSystem", game.systems[21])
+	}
+}
+
+func TestGameplayOmitsTutorialAfterApplicationCompletion(t *testing.T) {
+	t.Parallel()
+
+	game := &Game{TutorialCompleted: true}
+	game.registerSystems()
+
+	for _, system := range game.systems {
+		if _, ok := system.(*TutorialSystem); ok {
+			t.Fatal("disabled tutorial was registered")
+		}
 	}
 }
 

@@ -17,6 +17,7 @@ func main() {
 	assets.Load()
 	defer assets.Unload()
 
+	tutorialCompleted := false
 	for !rl.WindowShouldClose() {
 		splash := InitializeSplashScreen(assets)
 		for !rl.WindowShouldClose() && !splash.StartRequested {
@@ -31,7 +32,7 @@ func main() {
 			return
 		}
 
-		game := InitializeGame(assets)
+		game := InitializeGame(assets, tutorialCompleted)
 		for !rl.WindowShouldClose() && game.Running {
 			rl.BeginDrawing()
 			rl.ClearBackground(rl.SkyBlue)
@@ -41,6 +42,7 @@ func main() {
 		}
 
 		returnToMenu := game.ReturnToMenuRequested
+		tutorialCompleted = game.TutorialCompleted
 		game.Unload()
 		if rl.WindowShouldClose() || !returnToMenu {
 			return

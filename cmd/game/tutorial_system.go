@@ -62,7 +62,7 @@ func (system *TutorialSystem) Update(game *Game) {
 	}
 
 	system.updateCurrentStep(game)
-	system.updateTimedStep(game.FrameTime)
+	system.updateTimedStep(game, game.FrameTime)
 	system.drawCurrentStep(game)
 	system.updatePromptAnimationTime(game.FrameTime)
 }
@@ -95,7 +95,7 @@ func (system *TutorialSystem) updateCurrentStep(game *Game) {
 	}
 }
 
-func (system *TutorialSystem) updateTimedStep(dt float32) {
+func (system *TutorialSystem) updateTimedStep(game *Game, dt float32) {
 	if system.state.currentStep != tutorialStepCollectMore {
 		return
 	}
@@ -103,6 +103,7 @@ func (system *TutorialSystem) updateTimedStep(dt float32) {
 	system.stepElapsed += max(dt, 0)
 	if system.stepElapsed >= tutorialCollectMoreDuration {
 		system.state.currentStep = tutorialStepComplete
+		game.TutorialCompleted = true
 	}
 }
 

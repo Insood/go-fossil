@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"math"
-	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	ecs "github.com/mlange-42/ark/ecs"
@@ -26,10 +24,6 @@ func (system *RenderSystem3D) Initialize(game *Game) {
 
 func (system *RenderSystem3D) Update(game *Game) {
 	system.renderShadowPass(game)
-
-	if rl.IsKeyPressed(rl.KeyF11) {
-		system.saveDepthBufferScreenshot(game)
-	}
 
 	system.renderScenePass(game)
 	if !system.skipDroneViewport {
@@ -153,56 +147,6 @@ func (system *RenderSystem3D) renderLasers() {
 		rl.DrawLine3D(start, laser.target, rl.Red)
 		rl.DrawSphere(laser.target, laserHitMarkerRadius, rl.Red)
 	}
-}
-
-func (system *RenderSystem3D) saveDepthBufferScreenshot(game *Game) {
-	depthRender := rl.LoadRenderTexture(game.shadowFramebuffer.Width, game.shadowFramebuffer.Height)
-	if depthRender.ID == 0 {
-		return
-	}
-	defer rl.UnloadRenderTexture(depthRender)
-
-	depthShader := Must(game.assets.LookupShader("depth_render"))
-	nearPlaneLoc := rl.GetShaderLocation(depthShader, "nearPlane")
-	farPlaneLoc := rl.GetShaderLocation(depthShader, "farPlane")
-	isOrthographicLoc := rl.GetShaderLocation(depthShader, "isOrthographic")
-
-	nearPlane := shadowNearPlane
-	farPlane := shadowFarPlane
-	isOrthographic := float32(0)
-	if lightCamera, ok := system.lightCamera(); ok && lightCamera.Projection == rl.CameraOrthographic {
-		isOrthographic = 1
-	}
-
-	rl.SetShaderValue(depthShader, nearPlaneLoc, []float32{nearPlane}, rl.ShaderUniformFloat)
-	rl.SetShaderValue(depthShader, farPlaneLoc, []float32{farPlane}, rl.ShaderUniformFloat)
-	rl.SetShaderValue(depthShader, isOrthographicLoc, []float32{isOrthographic}, rl.ShaderUniformFloat)
-
-	rl.BeginTextureMode(depthRender)
-	rl.ClearBackground(rl.Black)
-	rl.BeginShaderMode(depthShader)
-	rl.DrawTexturePro(
-		game.shadowFramebuffer.Target.Depth,
-		rl.NewRectangle(0, 0, float32(game.shadowFramebuffer.Width), float32(game.shadowFramebuffer.Height)),
-		rl.NewRectangle(0, 0, float32(game.shadowFramebuffer.Width), float32(game.shadowFramebuffer.Height)),
-		rl.Vector2{},
-		0,
-		rl.White,
-	)
-	rl.EndShaderMode()
-	rl.EndTextureMode()
-
-	image := rl.LoadImageFromTexture(depthRender.Texture)
-	if image == nil {
-		return
-	}
-
-	defer rl.UnloadImage(image)
-
-	rl.ImageFlipVertical(image)
-
-	fileName := fmt.Sprintf("shadow-depth-%s.png", time.Now().Format("20060102-150405"))
-	rl.ExportImage(*image, fileName)
 }
 
 func (system *RenderSystem3D) configureShadowReceiverShader(game *Game, lightCamera rl.Camera3D, darkness float32) {

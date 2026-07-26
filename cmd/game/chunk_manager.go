@@ -22,7 +22,6 @@ type ChunkManager struct {
 	rng             *rand.Rand
 	terrainChunkMap *ecs.Map1[TerrainChunkComponent]
 	chargingPadMap  *ecs.Map3[Position3, Renderable, ChargingPad]
-	chunkData       map[ChunkCoords]terrain.ChunkData
 	chunks          map[ChunkCoords]*TerrainChunk
 }
 
@@ -34,7 +33,6 @@ func NewChunkManager(world *ecs.World, assets *AssetManager, artifactManager *Ar
 		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
 		terrainChunkMap: ecs.NewMap1[TerrainChunkComponent](world),
 		chargingPadMap:  ecs.NewMap3[Position3, Renderable, ChargingPad](world),
-		chunkData:       make(map[ChunkCoords]terrain.ChunkData),
 		chunks:          make(map[ChunkCoords]*TerrainChunk),
 	}
 }
@@ -44,7 +42,12 @@ func (manager *ChunkManager) LoadDiskChunk(coords ChunkCoords, chunkName string)
 		return chunk
 	}
 
-	chunkData := manager.loadChunkData(coords, chunkName)
+	chunkPath := path.Join("terrain_chunks", chunkName+".json")
+	chunkData, err := terrain.LoadChunkData(manager.assets.assetFS, chunkPath)
+	if err != nil {
+		panic(fmt.Errorf("load terrain chunk %q: %w", chunkPath, err))
+	}
+
 	chunk := manager.buildChunk(coords, chunkData)
 	manager.chunks[coords] = chunk
 	return chunk
@@ -472,21 +475,6 @@ func chunkEntityPlacementPosition(chunk *TerrainChunk, placement terrain.EntityP
 		placement.Y/float32(terrainTexturePixelsPerTile),
 		chunk.OriginZ+placement.Z/float32(terrainTexturePixelsPerTile),
 	)
-}
-
-func (manager *ChunkManager) loadChunkData(coords ChunkCoords, chunkName string) terrain.ChunkData {
-	if chunk, ok := manager.chunkData[coords]; ok {
-		return chunk
-	}
-
-	chunkPath := path.Join("terrain_chunks", chunkName+".json")
-	chunk, err := terrain.LoadChunkData(manager.assets.assetFS, chunkPath)
-	if err != nil {
-		panic(fmt.Errorf("load terrain chunk %q: %w", chunkPath, err))
-	}
-
-	manager.chunkData[coords] = chunk
-	return chunk
 }
 
 func newTerrainMesh(surface *terrain.SurfaceMesh) rl.Mesh {

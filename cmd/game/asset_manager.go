@@ -297,7 +297,7 @@ func (assets *AssetManager) loadTextures() {
 			panic(fmt.Errorf("texture %q references missing image %q", textureName, assetPath))
 		}
 
-		texture := loadTextureFromImageAsset(img)
+		texture := loadTextureFromImage(img)
 		rl.SetTextureWrap(texture, rl.WrapRepeat)
 		if _, exists := assets.textures[textureName]; exists {
 			panic(fmt.Errorf("texture %q declared more than once", textureName))
@@ -325,7 +325,7 @@ func (assets *AssetManager) loadAnimations() {
 		}
 		for _, frame := range decodedFrames {
 			animation.Frames = append(animation.Frames, AnimationFrame{
-				Texture:  loadTextureFromImageAsset(frame.image),
+				Texture:  loadTextureFromImage(frame.image),
 				Duration: frame.duration,
 			})
 		}
@@ -585,22 +585,7 @@ func gifDelaySeconds(delays []int, frameIndex int) float32 {
 func loadSolidTexture(fill rl.Color) rl.Texture2D {
 	solid := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	solid.SetRGBA(0, 0, color.RGBAModel.Convert(fill).(color.RGBA))
-	return loadTextureFromImageAsset(solid)
-}
-
-func loadTextureFromImageAsset(src image.Image) rl.Texture2D {
-	var encoded bytes.Buffer
-	if err := png.Encode(&encoded, src); err != nil {
-		panic(fmt.Errorf("encode texture image: %w", err))
-	}
-
-	image := rl.LoadImageFromMemory(".png", encoded.Bytes(), int32(encoded.Len()))
-	if image == nil {
-		panic("load texture image from encoded memory")
-	}
-	defer rl.UnloadImage(image)
-
-	return rl.LoadTextureFromImage(image)
+	return loadTextureFromImage(solid)
 }
 
 func loadTextureFromImage(src image.Image) rl.Texture2D {

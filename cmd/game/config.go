@@ -142,7 +142,7 @@ const (
 	laserStrikeParticleSpawnLift     = 0.035
 	laserStrikeParticleMaxConeAngle  = math.Pi / 4
 	artifactCutoutDetectionScanTicks = 60
-	MaximumRegionSize                = 4096
+	MaximumRegionSize                = 8000
 	droneMaximumCarryWeight          = 12000
 	burnOverlayAlpha                 = 255
 	dugOutOverlayAlpha               = 128
